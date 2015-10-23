@@ -28,13 +28,8 @@ def jensen_topHat(Uinf, rotorDiameter, axialInd, turbineX, turbineY, k, WindDirD
     OLRatio = np.zeros([nTurbines, nTurbines])      # Overlap ratio
 
 
-    # adjust coordinates to wind direction reference frame
-    WindDirDeg = 270. - WindDirDeg
-    if WindDirDeg < 0.:
-        WindDirDeg += 360.
-    WindDirRad = np.pi*WindDirDeg/180.0             # inflow wind direction in radians
-    turbineXw = turbineX*np.cos(-WindDirRad)-turbineY*np.sin(-WindDirRad)
-    turbineYw = turbineX*np.sin(-WindDirRad)+turbineY*np.cos(-WindDirRad)
+    # adjust reference frame to wind direction
+    turbineXw, turbineYw = referenceFrameConversion(turbineX, turbineY, WindDirDeg)
 
     # overlap calculations as per Jun et. al 2012
     for turbI in range(0, nTurbines):
@@ -78,6 +73,20 @@ def jensen_topHat(Uinf, rotorDiameter, axialInd, turbineX, turbineY, k, WindDirD
         wt_velocity[turbI] = Uinf*(1.0-np.sqrt(sumterm))
 
     return wt_velocity
+
+
+def referenceFrameConversion(turbineX, turbineY, WindDirDeg):
+    """ adjust turbine positions to wind direction reference frame """
+
+    WindDirDeg = 270. - WindDirDeg
+    if WindDirDeg < 0.:
+        WindDirDeg += 360.
+    WindDirRad = np.pi*WindDirDeg/180.0             # inflow wind direction in radians
+    turbineXw = turbineX*np.cos(-WindDirRad)-turbineY*np.sin(-WindDirRad)
+    turbineYw = turbineX*np.sin(-WindDirRad)+turbineY*np.cos(-WindDirRad)
+
+    return turbineXw, turbineYw
+
 
 
 def powerCalc(wt_velocity, Cp, rotorDiameter, airDensity):
