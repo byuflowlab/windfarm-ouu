@@ -23,7 +23,7 @@ def jensen_topHat(Uinf, rotorDiameter, axialInd, turbineX, turbineY, k, WindDirD
 
     nTurbines = turbineX.size
     Rr = rotorDiameter/2.
-    UTilde = np.zeros([nTurbines, nTurbines])       # UTilde[i, j] of turb-i at turb-j
+
     wt_velocity = np.zeros(nTurbines)               # wt_velocity[i, j] of turb-i at turb-j
 
 
@@ -34,11 +34,7 @@ def jensen_topHat(Uinf, rotorDiameter, axialInd, turbineX, turbineY, k, WindDirD
     OLRatio = wakeOverlapJensen(turbineXw, turbineYw, rotorDiameter, k)
 
     # Single wake effective windspeed calculations as per N.O. Jensen 1983
-    for turbI in range(0, nTurbines):
-        for turb in range(0, nTurbines):
-            if turb != turbI and OLRatio[turb, turbI] != 0:
-                dx = turbineXw[turbI] - turbineXw[turb]
-                UTilde[turb, turbI] = Uinf*(1.0-2.0*axialInd[turb]*(Rr[turb]/(Rr[turb]+k*dx))**2)
+    UTilde = velocityDeficitJensen(Uinf, axialInd, turbineXw, rotorDiameter, k, OLRatio)
 
     # Wake Combination as per Jun et. al 2012 (I believe this is essentially what is done in WAsP)
     for turbI in range(0, nTurbines):
@@ -98,6 +94,21 @@ def wakeOverlapJensen(turbineXw, turbineYw, rotorDiameter, k):
 
     return OLRatio
 
+
+def velocityDeficitJensen(Uinf, axialInd, turbineXw, rotorDiameter, k, OLRatio):
+    """ Single wake effective windspeed calculations as per N.O. Jensen 1983 """
+
+    nTurbines = np.size(turbineXw)                  # number of turbines in the farm
+    Rr = rotorDiameter/2.0                          # radii of the rotors
+    UTilde = np.zeros([nTurbines, nTurbines])       # UTilde[i, j] of turb-i at turb-j
+
+    for turbI in range(0, nTurbines):
+        for turb in range(0, nTurbines):
+            if turb != turbI and OLRatio[turb, turbI] != 0:
+                dx = turbineXw[turbI] - turbineXw[turb]
+                UTilde[turb, turbI] = Uinf*(1.0-2.0*axialInd[turb]*(Rr[turb]/(Rr[turb]+k*dx))**2)
+
+    return UTilde
 
 
 def powerCalc(wt_velocity, Cp, rotorDiameter, airDensity):
