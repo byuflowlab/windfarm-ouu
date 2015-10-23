@@ -1,5 +1,6 @@
 """
-This file contains an implementation of the top hat Jensen model
+This file contains an implementation of the top hat version of the Jensen model
+presented in N. O. Jensen "A note on wind generator interaction" 1983
 
 Created by: Jared J. Thomas
 Date: 2015
@@ -9,7 +10,7 @@ Date: 2015
 import numpy as np
 
 
-def jensen_topHat(Uinf, rotorDiameter, axialInd, turbineX, turbineY, k, WindDirDeg):
+def jensen_topHat(Uinf, rotorDiameter, axialInd, turbineX, turbineY, k, WindDirDeg, Cp, airDensity):
     """
     :param Uinf: float; inflow wind velocity
     :param rotorDiameter: numpy array; diameter of each turbine
@@ -17,27 +18,48 @@ def jensen_topHat(Uinf, rotorDiameter, axialInd, turbineX, turbineY, k, WindDirD
     :param turbineX: numpy array; X position of each turbine
     :param turbineY: numpy array; Y position of each turbine
     :param k: float; wake decay constant
-    :param WindDirDeg: float; wind direction TO in deg.
+    :param WindDirDeg: float; wind direction FROM in deg. CW from north (as in meteorological data)
     :return: numpy array; effective wind speed at each turbine
     """
 
-    nTurbines = turbineX.size
-    Rr = rotorDiameter/2.
-    UTilde = np.zeros([nTurbines, nTurbines])             # UTilde[i, j] of turb-i at turb-j
-    wt_velocity = np.zeros(nTurbines)                         # wt_velocity[i, j] of turb-i at turb-j
-    OLRatio = np.zeros([nTurbines, nTurbines])            # Overlap ratio
-    WindDirRad = np.pi*WindDirDeg/180.0             # inflow wind direction in radians
-
-    # adjust coordinates to wind direction reference frame
-    turbineXw = np.zeros(nTurbines)
-    turbineYw = np.zeros(nTurbines)
-    for i in range(0, nTurbines):
-        turbineXw[i] = turbineX[i]*np.cos(-WindDirRad)-turbineY[i]*np.sin(-WindDirRad)
-        turbineYw[i] = turbineX[i]*np.sin(-WindDirRad)+turbineY[i]*np.cos(-WindDirRad)
-
-    # print turbineXw, turbineYw
+    # adjust reference frame to wind direction
+    turbineXw, turbineYw = referenceFrameConversion(turbineX, turbineY, WindDirDeg)
 
     # overlap calculations as per Jun et. al 2012
+    OLRatio = wakeOverlapJensen(turbineXw, turbineYw, rotorDiameter, k)
+
+    # Single wake effective windspeed calculations as per N.O. Jensen 1983
+    UTilde = velocityDeficitJensen(Uinf, axialInd, turbineXw, rotorDiameter, k, OLRatio)
+
+    # Wake Combination as per Jun et. al 2012 (I believe this is essentially what is done in WAsP)
+    wt_velocity = wakeCombinationSumSquares(Uinf, OLRatio, UTilde)
+
+    # simple power calculations
+    wt_power = powerCalc(wt_velocity, Cp, rotorDiameter, airDensity)
+
+    return wt_power, wt_velocity
+
+
+def referenceFrameConversion(turbineX, turbineY, WindDirDeg):
+    """ adjust turbine positions to wind direction reference frame """
+
+    WindDirDeg = 270. - WindDirDeg
+    if WindDirDeg < 0.:
+        WindDirDeg += 360.
+    WindDirRad = np.pi*WindDirDeg/180.0             # inflow wind direction in radians
+    turbineXw = turbineX*np.cos(-WindDirRad)-turbineY*np.sin(-WindDirRad)
+    turbineYw = turbineX*np.sin(-WindDirRad)+turbineY*np.cos(-WindDirRad)
+
+    return turbineXw, turbineYw
+
+
+def wakeOverlapJensen(turbineXw, turbineYw, rotorDiameter, k):
+    """ overlap calculations as per Jun et. al 2012 and WAsP """
+
+    nTurbines = np.size(turbineXw)
+    Rr = rotorDiameter/2.0
+    OLRatio = np.zeros([nTurbines, nTurbines])      # Overlap ratio
+
     for turbI in range(0, nTurbines):
         for turb in range(0, nTurbines):
             dx = turbineXw[turbI] - turbineXw[turb]         # downwind turbine separation
@@ -63,14 +85,31 @@ def jensen_topHat(Uinf, rotorDiameter, axialInd, turbineX, turbineY, k, WindDirD
                 Ar = np.pi*Rr[turbI]**2                      # rotor area of waked rotor
                 OLRatio[turb, turbI] = OLArea/Ar            # ratio of area of wake-i and turb-j to rotor area of turb-j
 
-    # Single wake effective windspeed calculations as per N.O. Jensen 1983
+    return OLRatio
+
+
+def velocityDeficitJensen(Uinf, axialInd, turbineXw, rotorDiameter, k, OLRatio):
+    """ Single wake effective windspeed calculations as per N.O. Jensen 1983 """
+
+    nTurbines = np.size(turbineXw)                  # number of turbines in the farm
+    Rr = rotorDiameter/2.0                          # radii of the rotors
+    UTilde = np.zeros([nTurbines, nTurbines])       # UTilde[i, j] of turb-i at turb-j
+
     for turbI in range(0, nTurbines):
         for turb in range(0, nTurbines):
             if turb != turbI and OLRatio[turb, turbI] != 0:
                 dx = turbineXw[turbI] - turbineXw[turb]
                 UTilde[turb, turbI] = Uinf*(1.0-2.0*axialInd[turb]*(Rr[turb]/(Rr[turb]+k*dx))**2)
 
-    # Wake Combination as per Jun et. al 2012 (I believe this is essentially what is done in WAsP)
+    return UTilde
+
+
+def wakeCombinationSumSquares(Uinf, OLRatio, UTilde):
+    """ Wake Combination as per Jun et. al 2012 (I believe this is essentially what is done in WAsP) """
+
+    nTurbines = np.size(OLRatio[0])
+    wt_velocity = np.zeros(nTurbines)               # wt_velocity[i, j] of turb-i at turb-j
+
     for turbI in range(0, nTurbines):
         sumterm = 0.0
         for turb in range(0, nTurbines):
@@ -83,8 +122,7 @@ def jensen_topHat(Uinf, rotorDiameter, axialInd, turbineX, turbineY, k, WindDirD
 
 def powerCalc(wt_velocity, Cp, rotorDiameter, airDensity):
 
-    Ar = 0.25*np.pi*rotorDiameter**2                    # Rotor area
+    Ar = 0.25*np.pi*rotorDiameter**2                    # Rotor area of each turbine
+    wt_power = 0.5*airDensity*Ar*Cp*wt_velocity**3      # power of each turbine
 
-    power = 0.5*airDensity*Ar*Cp*wt_velocity**3
-
-    return power
+    return wt_power

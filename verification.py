@@ -10,9 +10,12 @@ rotorDiameter = np.array([126.4, 126.4])
 # Define turbine measurements
 Vinf = 8.0
 k = 0.1
+Cp = 0.7737 * 4.0 * 1.0/3.0 * math.pow((1 - 1.0/3.0), 2)
+Cp = np.array([Cp, Cp])
 
 # Define site measurements
-windDirection = 0.0
+windDirection = 270
+airDensity = 1.1716
 
 # Define turbine locations
 dist = 3.0
@@ -27,7 +30,7 @@ theta = np.zeros_like(y)
 
 for i in np.arange(0, res):
     turbineY[1] = y[i]
-    temp = jensen_topHat(Vinf, rotorDiameter, axialInd, turbineX, turbineY, k, windDirection)
+    _, temp = jensen_topHat(Vinf, rotorDiameter, axialInd, turbineX, turbineY, k, windDirection, Cp, airDensity)
     print temp
     Ueff[i] = temp[1]
     theta[i] = y[i]/dist
