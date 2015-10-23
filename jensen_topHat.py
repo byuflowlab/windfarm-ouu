@@ -1,3 +1,11 @@
+"""
+This file contains an implementation of the top hat Jensen model
+
+Created by: Jared J. Thomas
+Date: 2015
+
+"""
+
 import numpy as np
 
 
