@@ -21,10 +21,6 @@ def jensen_topHat(Uinf, rotorDiameter, axialInd, turbineX, turbineY, k, WindDirD
     :return: numpy array; effective wind speed at each turbine
     """
 
-    nTurbines = turbineX.size
-    Rr = rotorDiameter/2.
-
-
     # adjust reference frame to wind direction
     turbineXw, turbineYw = referenceFrameConversion(turbineX, turbineY, WindDirDeg)
 
