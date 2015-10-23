@@ -17,7 +17,7 @@ Vinf = 8.0
 k = 0.1
 
 # Define site measurements
-windDirection = 30
+windDirection = 240
 airDensity = 1.1716
 
 Ueff = jensen_topHat(Vinf, rotorDiameter, axialInd, turbineX, turbineY, k, windDirection)

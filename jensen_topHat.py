@@ -17,22 +17,24 @@ def jensen_topHat(Uinf, rotorDiameter, axialInd, turbineX, turbineY, k, WindDirD
     :param turbineX: numpy array; X position of each turbine
     :param turbineY: numpy array; Y position of each turbine
     :param k: float; wake decay constant
-    :param WindDirDeg: float; wind direction TO in deg.
+    :param WindDirDeg: float; wind direction FROM in deg. CW from north (as in meteorological data)
     :return: numpy array; effective wind speed at each turbine
     """
 
     nTurbines = turbineX.size
     Rr = rotorDiameter/2.
-    UTilde = np.zeros([nTurbines, nTurbines])             # UTilde[i, j] of turb-i at turb-j
-    wt_velocity = np.zeros(nTurbines)                         # wt_velocity[i, j] of turb-i at turb-j
-    OLRatio = np.zeros([nTurbines, nTurbines])            # Overlap ratio
-    WindDirRad = np.pi*WindDirDeg/180.0             # inflow wind direction in radians
+    UTilde = np.zeros([nTurbines, nTurbines])       # UTilde[i, j] of turb-i at turb-j
+    wt_velocity = np.zeros(nTurbines)               # wt_velocity[i, j] of turb-i at turb-j
+    OLRatio = np.zeros([nTurbines, nTurbines])      # Overlap ratio
+
 
     # adjust coordinates to wind direction reference frame
+    WindDirDeg = 270. - WindDirDeg
+    if WindDirDeg < 0.:
+        WindDirDeg += 360.
+    WindDirRad = np.pi*WindDirDeg/180.0             # inflow wind direction in radians
     turbineXw = turbineX*np.cos(-WindDirRad)-turbineY*np.sin(-WindDirRad)
     turbineYw = turbineX*np.sin(-WindDirRad)+turbineY*np.cos(-WindDirRad)
-
-    # print turbineXw, turbineYw
 
     # overlap calculations as per Jun et. al 2012
     for turbI in range(0, nTurbines):
@@ -80,8 +82,7 @@ def jensen_topHat(Uinf, rotorDiameter, axialInd, turbineX, turbineY, k, WindDirD
 
 def powerCalc(wt_velocity, Cp, rotorDiameter, airDensity):
 
-    Ar = 0.25*np.pi*rotorDiameter**2                    # Rotor area
+    Ar = 0.25*np.pi*rotorDiameter**2                    # Rotor area of each turbine
+    wt_power = 0.5*airDensity*Ar*Cp*wt_velocity**3      # power of each turbine
 
-    power = 0.5*airDensity*Ar*Cp*wt_velocity**3
-
-    return power
+    return wt_power
