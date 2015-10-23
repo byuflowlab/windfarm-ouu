@@ -20,10 +20,8 @@ k = 0.1
 windDirection = 240
 airDensity = 1.1716
 
-Ueff = jensen_topHat(Vinf, rotorDiameter, axialInd, turbineX, turbineY, k, windDirection)
+wt_power, wt_velocity = jensen_topHat(Vinf, rotorDiameter, axialInd, turbineX, turbineY, k, windDirection, Cp, airDensity)
 
-Power = powerCalc(Ueff, Cp, rotorDiameter, airDensity)
-
-print "effective windspeeds (m/s): ", Ueff
-print "Power of each turbine: ", Power
-print "Wind farm total power: ", np.sum(Power)
+print "effective windspeeds (m/s): ", wt_velocity
+print "Power of each turbine: ", wt_power
+print "Wind farm total power: ", np.sum(wt_power)

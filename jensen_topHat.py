@@ -9,7 +9,7 @@ Date: 2015
 import numpy as np
 
 
-def jensen_topHat(Uinf, rotorDiameter, axialInd, turbineX, turbineY, k, WindDirDeg):
+def jensen_topHat(Uinf, rotorDiameter, axialInd, turbineX, turbineY, k, WindDirDeg, Cp, airDensity):
     """
     :param Uinf: float; inflow wind velocity
     :param rotorDiameter: numpy array; diameter of each turbine
@@ -24,8 +24,6 @@ def jensen_topHat(Uinf, rotorDiameter, axialInd, turbineX, turbineY, k, WindDirD
     nTurbines = turbineX.size
     Rr = rotorDiameter/2.
 
-    wt_velocity = np.zeros(nTurbines)               # wt_velocity[i, j] of turb-i at turb-j
-
 
     # adjust reference frame to wind direction
     turbineXw, turbineYw = referenceFrameConversion(turbineX, turbineY, WindDirDeg)
@@ -37,14 +35,12 @@ def jensen_topHat(Uinf, rotorDiameter, axialInd, turbineX, turbineY, k, WindDirD
     UTilde = velocityDeficitJensen(Uinf, axialInd, turbineXw, rotorDiameter, k, OLRatio)
 
     # Wake Combination as per Jun et. al 2012 (I believe this is essentially what is done in WAsP)
-    for turbI in range(0, nTurbines):
-        sumterm = 0.0
-        for turb in range(0, nTurbines):
-            if turb != turbI and OLRatio[turb, turbI] != 0:
-                sumterm += (OLRatio[turb, turbI]*(1-UTilde[turb, turbI]/Uinf))**2
-        wt_velocity[turbI] = Uinf*(1.0-np.sqrt(sumterm))
+    wt_velocity = wakeCombinationSumSquares(Uinf, OLRatio, UTilde)
 
-    return wt_velocity
+    # simple power calculations
+    wt_power = powerCalc(wt_velocity, Cp, rotorDiameter, airDensity)
+
+    return wt_power, wt_velocity
 
 
 def referenceFrameConversion(turbineX, turbineY, WindDirDeg):
@@ -109,6 +105,22 @@ def velocityDeficitJensen(Uinf, axialInd, turbineXw, rotorDiameter, k, OLRatio):
                 UTilde[turb, turbI] = Uinf*(1.0-2.0*axialInd[turb]*(Rr[turb]/(Rr[turb]+k*dx))**2)
 
     return UTilde
+
+
+def wakeCombinationSumSquares(Uinf, OLRatio, UTilde):
+    """ Wake Combination as per Jun et. al 2012 (I believe this is essentially what is done in WAsP) """
+
+    nTurbines = np.size(OLRatio[0])
+    wt_velocity = np.zeros(nTurbines)               # wt_velocity[i, j] of turb-i at turb-j
+
+    for turbI in range(0, nTurbines):
+        sumterm = 0.0
+        for turb in range(0, nTurbines):
+            if turb != turbI and OLRatio[turb, turbI] != 0:
+                sumterm += (OLRatio[turb, turbI]*(1-UTilde[turb, turbI]/Uinf))**2
+        wt_velocity[turbI] = Uinf*(1.0-np.sqrt(sumterm))
+
+    return wt_velocity
 
 
 def powerCalc(wt_velocity, Cp, rotorDiameter, airDensity):
