@@ -1,5 +1,6 @@
 """
 This file contains an implementation of the top hat version of the Jensen model
+presented in N. O. Jensen "A note on wind generator interaction" 1983
 
 Created by: Jared J. Thomas
 Date: 2015
