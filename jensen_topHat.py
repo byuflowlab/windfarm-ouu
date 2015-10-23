@@ -29,11 +29,8 @@ def jensen_topHat(Uinf, rotorDiameter, axialInd, turbineX, turbineY, k, WindDirD
     WindDirRad = np.pi*WindDirDeg/180.0             # inflow wind direction in radians
 
     # adjust coordinates to wind direction reference frame
-    turbineXw = np.zeros(nTurbines)
-    turbineYw = np.zeros(nTurbines)
-    for i in range(0, nTurbines):
-        turbineXw[i] = turbineX[i]*np.cos(-WindDirRad)-turbineY[i]*np.sin(-WindDirRad)
-        turbineYw[i] = turbineX[i]*np.sin(-WindDirRad)+turbineY[i]*np.cos(-WindDirRad)
+    turbineXw = turbineX*np.cos(-WindDirRad)-turbineY*np.sin(-WindDirRad)
+    turbineYw = turbineX*np.sin(-WindDirRad)+turbineY*np.cos(-WindDirRad)
 
     # print turbineXw, turbineYw
 
