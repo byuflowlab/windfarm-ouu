@@ -25,37 +25,13 @@ def jensen_topHat(Uinf, rotorDiameter, axialInd, turbineX, turbineY, k, WindDirD
     Rr = rotorDiameter/2.
     UTilde = np.zeros([nTurbines, nTurbines])       # UTilde[i, j] of turb-i at turb-j
     wt_velocity = np.zeros(nTurbines)               # wt_velocity[i, j] of turb-i at turb-j
-    OLRatio = np.zeros([nTurbines, nTurbines])      # Overlap ratio
 
 
     # adjust reference frame to wind direction
     turbineXw, turbineYw = referenceFrameConversion(turbineX, turbineY, WindDirDeg)
 
     # overlap calculations as per Jun et. al 2012
-    for turbI in range(0, nTurbines):
-        for turb in range(0, nTurbines):
-            dx = turbineXw[turbI] - turbineXw[turb]         # downwind turbine separation
-            dy = abs(turbineYw[turbI] - turbineYw[turb])    # crosswind turbine separation
-            if turb != turbI and dx > 0:
-                Rw = Rr[turb] + k*dx
-                OLArea = 0.0
-                if dy <= Rw - Rr[turbI]:
-                    OLArea = np.pi*Rr[turbI]**2
-
-                if Rw - Rr[turbI] < dy < Rw + Rr[turbI]:
-
-                    # print Rr[turb], dy, Rw
-
-                    a = (Rr[turb]**2+dy**2-Rw**2)/(2.0*dy*Rr[turb])
-                    b = (Rw**2+dy**2-Rr[turb]**2)/(2.0*dy*Rw)
-
-                    alpha1 = 2.0*np.arccos(a)
-                    alpha2 = 2.0*np.arccos(b)
-                    # print alpha1, alpha2
-                    OLArea = 0.5*(Rr[turbI]**2)*(alpha1 - np.sin(alpha1)) + 0.5*(Rw**2)*(alpha2 - np.sin(alpha2))
-
-                Ar = np.pi*Rr[turbI]**2                      # rotor area of waked rotor
-                OLRatio[turb, turbI] = OLArea/Ar            # ratio of area of wake-i and turb-j to rotor area of turb-j
+    OLRatio = wakeOverlapJensen(turbineXw, turbineYw, rotorDiameter, k)
 
     # Single wake effective windspeed calculations as per N.O. Jensen 1983
     for turbI in range(0, nTurbines):
@@ -86,6 +62,41 @@ def referenceFrameConversion(turbineX, turbineY, WindDirDeg):
     turbineYw = turbineX*np.sin(-WindDirRad)+turbineY*np.cos(-WindDirRad)
 
     return turbineXw, turbineYw
+
+
+def wakeOverlapJensen(turbineXw, turbineYw, rotorDiameter, k):
+    """ overlap calculations as per Jun et. al 2012 and WAsP """
+
+    nTurbines = np.size(turbineXw)
+    Rr = rotorDiameter/2.0
+    OLRatio = np.zeros([nTurbines, nTurbines])      # Overlap ratio
+
+    for turbI in range(0, nTurbines):
+        for turb in range(0, nTurbines):
+            dx = turbineXw[turbI] - turbineXw[turb]         # downwind turbine separation
+            dy = abs(turbineYw[turbI] - turbineYw[turb])    # crosswind turbine separation
+            if turb != turbI and dx > 0:
+                Rw = Rr[turb] + k*dx
+                OLArea = 0.0
+                if dy <= Rw - Rr[turbI]:
+                    OLArea = np.pi*Rr[turbI]**2
+
+                if Rw - Rr[turbI] < dy < Rw + Rr[turbI]:
+
+                    # print Rr[turb], dy, Rw
+
+                    a = (Rr[turb]**2+dy**2-Rw**2)/(2.0*dy*Rr[turb])
+                    b = (Rw**2+dy**2-Rr[turb]**2)/(2.0*dy*Rw)
+
+                    alpha1 = 2.0*np.arccos(a)
+                    alpha2 = 2.0*np.arccos(b)
+                    # print alpha1, alpha2
+                    OLArea = 0.5*(Rr[turbI]**2)*(alpha1 - np.sin(alpha1)) + 0.5*(Rw**2)*(alpha2 - np.sin(alpha2))
+
+                Ar = np.pi*Rr[turbI]**2                      # rotor area of waked rotor
+                OLRatio[turb, turbI] = OLArea/Ar            # ratio of area of wake-i and turb-j to rotor area of turb-j
+
+    return OLRatio
 
 
 

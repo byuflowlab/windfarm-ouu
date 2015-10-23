@@ -12,7 +12,7 @@ Vinf = 8.0
 k = 0.1
 
 # Define site measurements
-windDirection = 0.0
+windDirection = 270
 
 # Define turbine locations
 dist = 3.0
