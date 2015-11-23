@@ -43,7 +43,7 @@ class WindFrame(Component):
         turbineX = params['turbineX']
         turbineY = params['turbineY']
 
-        # print turbineX, turbineY
+        # print "in windframe", turbineX, turbineY
 
         # if self.ws_position.any():
         #     velX = self.ws_position[:, 0]
@@ -269,13 +269,13 @@ class SpacingComp(Component):
         super(SpacingComp, self).__init__()
 
         # Explicitly size input arrays
-        self.add_param('turbineX', np.zeros(nTurbines),
+        self.add_param('turbineX', val=np.zeros(nTurbines),
                        desc='x coordinates of turbines in wind dir. ref. frame')
-        self.add_param('turbineY', np.zeros(nTurbines),
+        self.add_param('turbineY', val=np.zeros(nTurbines),
                        desc='y coordinates of turbines in wind dir. ref. frame')
 
         # Explicitly size output array
-        self.add_output('separation', np.zeros((nTurbines-1.)*nTurbines/2.),
+        self.add_output('separation', val=np.zeros((nTurbines-1.)*nTurbines/2.),
                         desc='spacing of all turbines in the wind farm')
 
     def solve_nonlinear(self, params, unknowns, resids):
@@ -297,6 +297,8 @@ class SpacingComp(Component):
         # print 'entering dist const - linearize'
         turbineX = params['turbineX']
         turbineY = params['turbineY']
+        # print turbineX
+        # print turbineY
         nTurbines = turbineX.size
         dS = np.zeros(((nTurbines-1.)*nTurbines/2., 2*nTurbines))
         k = 0
@@ -305,18 +307,30 @@ class SpacingComp(Component):
 
         for i in range(0, nTurbines):
             for j in range(i+1, nTurbines):
-                dS[k, j] = (turbineX[j]-turbineX[i])*((turbineX[j]-turbineX[i])**2+(turbineY[j]-turbineY[i])**2)**(-0.5)
-                dS[k, i] = (turbineX[i]-turbineX[j])*((turbineX[j]-turbineX[i])**2+(turbineY[j]-turbineY[i])**2)**(-0.5)
-                dS[k, j+nTurbines] = (turbineY[j]-turbineY[i])*((turbineX[j]-turbineX[i])**2 +
-                                                                (turbineY[j]-turbineY[i])**2)**(-0.5)
-                dS[k, i+nTurbines] = (turbineY[i]-turbineY[j])*((turbineX[j]-turbineX[i])**2 +
-                                                                (turbineY[j]-turbineY[i])**2)**(-0.5)
+
+                if turbineX[i] != turbineX[j] or turbineY[i] != turbineY[j]:
+                    # separation wrt Xj
+                    dS[k, j] = (turbineX[j]-turbineX[i])*((turbineX[j]-turbineX[i])**2+(turbineY[j]-turbineY[i])**2)**(-0.5)
+                    # separation wrt Xi
+                    dS[k, i] = (turbineX[i]-turbineX[j])*((turbineX[j]-turbineX[i])**2+(turbineY[j]-turbineY[i])**2)**(-0.5)
+                    dS[k, j+nTurbines] = (turbineY[j]-turbineY[i])*((turbineX[j]-turbineX[i])**2 +
+                                                                    (turbineY[j]-turbineY[i])**2)**(-0.5)
+                    dS[k, i+nTurbines] = (turbineY[i]-turbineY[j])*((turbineX[j]-turbineX[i])**2 +
+                                                                    (turbineY[j]-turbineY[i])**2)**(-0.5)
+                else:
+                    # separation wrt Xj
+                    dS[k, j] = 1.
+                    # separation wrt Xi
+                    dS[k, i] = 1.
+                    dS[k, j+nTurbines] = 1.
+                    dS[k, i+nTurbines] = 1.
+
                 k += 1
 
         J = {}
 
-        J['separation', 'turbineX'] = dS[:, 0:nTurbines]
-        J['separation', 'turbineY'] = dS[:, nTurbines:nTurbines*nTurbines]
+        J['separation', 'turbineX'] = dS[:, :nTurbines]
+        J['separation', 'turbineY'] = dS[:, nTurbines:]
         # print J
         return J
 
@@ -439,6 +453,85 @@ class DeMUX2D(Component):
         return J
 
 
+# class AdjustCpWindSpeedComponent):
+#     """ Adjust Cp and Ct to yaw if they are not already adjusted """
+#
+#     def __init__(self, nTurbines):
+#
+#         # print 'entering adjustCtCp __init__ - analytic'
+#         super(AdjustCtCpWindSPeed, self).__init__()
+#
+#         # Explicitly size input array
+#         self.add_param('Cp_in', val=np.zeros(nTurbines), desc='power coefficient for all turbines')
+#
+#         # Explicitly size output arrays
+#         self.add_output('Cp_out', val=np.zeros(nTurbines), desc='power coefficient for all turbines')
+#
+#         # parameters since var trees are not supports
+#         self.add_param('params:CpCurve', val=True)
+#
+#     def solve_nonlinear(self, params, unknowns, resids):
+#
+#         # print 'entering adjustCtCP - analytic'
+#
+#         # collect inputs
+#         windspeed = params['wind_speed']
+#         Cp = params['Cp_in']
+#
+#         CpCurve = params['params:CpCurve']
+#
+#         # calculate new CP values, if desired
+#         if not CpCurve:
+#             unknowns['Cp_out'] = Cp
+#         else:
+#             unknowns['Cp_out'] = np.log(windspeed+1.0)
+#
+#
+#
+#     def linearize(self, params, unknowns, resids):
+#
+#         # print 'entering CtCp linearize'
+#         # collect inputs
+#         Ct = params['Ct_in']
+#         Cp = params['Cp_in']
+#         nTurbines = np.size(Ct)
+#         yaw = params['yaw'] * np.pi / 180.
+#
+#         # determine floris_parameter values
+#         if params['floris_params:FLORISoriginal']:
+#             pP = 1.88
+#         else:
+#             pP = params['params:pP']
+#
+#         CTcorrected = params['params:CTcorrected']
+#         CPcorrected = params['params:CPcorrected']
+#
+#         # calculate gradients
+#         J = {}
+#
+#         if not CTcorrected:
+#             J[('Ct_out', 'Ct_in')] = np.eye(nTurbines) * np.cos(yaw) * np.cos(yaw)
+#             J[('Ct_out', 'Cp_in')] = np.zeros((nTurbines, nTurbines))
+#             J[('Ct_out', 'yaw')] = np.eye(nTurbines) * (-2. * Ct * np.sin(yaw) * np.cos(yaw)) * np.pi / 180.
+#         else:
+#             J[('Ct_out', 'Ct_in')] = np.eye(nTurbines, nTurbines)
+#             J[('Ct_out', 'Cp_in')] = np.zeros((nTurbines, nTurbines))
+#             J[('Ct_out', 'yaw')] = np.zeros((nTurbines, nTurbines))
+#
+#         if not CPcorrected:
+#             J[('Cp_out', 'Cp_in')] = np.eye(nTurbines, nTurbines) * np.cos(yaw) ** pP
+#             J[('Cp_out', 'Ct_in')] = np.zeros((nTurbines, nTurbines))
+#             J[('Cp_out', 'yaw')] = np.eye(nTurbines, nTurbines) * (
+#                 -Cp * pP * np.sin(yaw) * np.cos(yaw) ** (pP - 1.0)) * np.pi / 180.
+#         else:
+#             J[('Cp_out', 'Cp_in')] = np.eye(nTurbines, nTurbines)
+#             J[('Cp_out', 'Ct_in')] = np.zeros((nTurbines, nTurbines))
+#             J[('Cp_out', 'yaw')] = np.zeros((nTurbines, nTurbines))
+#
+#         return J
+#
+
+
 if __name__ == "__main__":
 
     # top = Problem()
@@ -477,21 +570,38 @@ if __name__ == "__main__":
     # print(root.p.unknowns['Array'])
     # top.check_partial_derivatives()
 
+    # top = Problem()
+    #
+    # root = top.root = Group()
+    #
+    # root.add('p1', IndepVarComp('x', np.zeros(2)))
+    # root.add('p', DeMUX(nElements=2))
+    #
+    # root.connect('p1.x', 'p.Array')
+    #
+    # top.setup()
+    # top.run()
+    #
+    # # should return 8760.0
+    # print(root.p.unknowns['output0'])
+    # print(root.p.unknowns['output1'])
+    # top.check_partial_derivatives()
+
     top = Problem()
 
     root = top.root = Group()
 
-    root.add('p1', IndepVarComp('x', np.zeros(2)))
-    root.add('p', DeMUX(nElements=2))
+    root.add('p1', IndepVarComp('x', np.array([0, 3])))
+    root.add('p2', IndepVarComp('y', np.array([1, 0])))
+    root.add('p', SpacingComp(nTurbines=2))
 
-    root.connect('p1.x', 'p.Array')
+    root.connect('p1.x', 'p.turbineX')
+    root.connect('p2.y', 'p.turbineY')
 
     top.setup()
     top.run()
 
-    # should return 8760.0
-    print(root.p.unknowns['output0'])
-    print(root.p.unknowns['output1'])
+    # print(root.p.unknowns['output0'])
+    # print(root.p.unknowns['output1'])
     top.check_partial_derivatives()
-
 
