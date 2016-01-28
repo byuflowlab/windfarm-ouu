@@ -1,0 +1,32 @@
+# For OUU wind farm
+environment
+    tabular_data
+
+method
+    polynomial_chaos
+        quadrature_order 3
+    output verbose
+
+model
+    single
+
+variables
+    histogram_bin_uncertain = 1
+    abscissas = 0.0 0.628318530718 1.25663706144 1.88495559215 2.51327412287 3.14159265359 3.76991118431 4.39822971503 5.02654824574 5.65486677646 6.28318530718
+    ordinates = 0.161940677544 0.198588122348 0.168067619905 0.13912851359 0.180729702025 0.251787885651 0.248673310484 0.148111538877 0.0479592608239 0.0461003821711 0
+    descriptors = 'x'
+
+interface
+    fork
+    analysis_drivers = 'interface.py'
+    parameters_file = 'params.in'
+    results_file = 'results.out'
+#    file_save
+
+responses
+    num_response_functions = 1
+    no_gradients
+    no_hessians
+    descriptors = 'dummy'
+
+
