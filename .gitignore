@@ -2,4 +2,7 @@
 *.out
 *.o
 *.so
-
+build
+dist
+*.egg*
+*.txt
