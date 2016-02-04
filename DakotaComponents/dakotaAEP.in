@@ -1,0 +1,79 @@
+# For OUU wind farm
+environment
+    top_method_pointer = 'OPTIMIZATION_METHOD'
+    tabular_data
+
+###########################
+# begin opt specification #
+###########################
+method
+    id_method = 'OPTIMIZATION_METHOD'
+    model_pointer = 'OPTIM_MODEL'
+    optpp_q_newton
+    #npsol_sqp
+        max_iterations = 0
+
+model
+    id_model = 'OPTIM_MODEL'
+    variables_pointer = 'OPTIM_VARIABLES'
+    responses_pointer = 'OPTIM_RESPONSES'
+    nested
+        sub_method_pointer = 'UQ_METHOD'
+        # minimize 1*mean + 0*std
+        primary_response_mapping = 1.0 0.0
+
+variables
+    id_variables = 'OPTIM_VARIABLES'
+    continuous_design = 18
+cdv_initial_point  5.0 10.0 15.0 5.0 10.0 15.0 5.0 10.0 15.0 5.0 5.0 5.0 10.0 10.0 10.0 15.0 15.0 15.0 
+    cdv_descriptor 'x1' 'x2' 'x3' 'x4' 'x5' 'x6' 'x7' 'x8' 'x9' 'x10' 'x11' 'x12' 'x13' 'x14' 'x15' 'x16' 'x17' 'x18'
+
+responses
+    # NOTE: This specifies the TOTAL RESPONSE for the optimization,
+    #       which is a combination of nested & interface responses.
+    id_responses = 'OPTIM_RESPONSES'
+    objective_functions = 1
+    analytic_gradients
+    no_hessians
+
+##########################
+# begin UQ specification #
+##########################
+method
+    id_method = 'UQ_METHOD'
+    model_pointer = 'UQ_MODEL'
+    polynomial_chaos
+       quadrature_order 3
+    output verbose
+
+model
+    id_model = 'UQ_MODEL'
+    single
+        variables_pointer = 'UQ_VARIABLES'
+        responses_pointer = 'UQ_RESPONSES'
+        interface_pointer = 'UQ_INTERFACE'
+
+variables
+    id_variables = 'UQ_VARIABLES'
+    continuous_design = 18
+    histogram_bin_uncertain = 1
+    abscissas = 0.0 0.628318530718 1.25663706144 1.88495559215 2.51327412287 3.14159265359 3.76991118431 4.39822971503 5.02654824574 5.65486677646 6.28318530718
+    ordinates = 0.161940677544 0.198588122348 0.168067619905 0.13912851359 0.180729702025 0.251787885651 0.248673310484 0.148111538877 0.0479592608239 0.0461003821711 0
+    descriptors = 'x'
+
+interface
+    id_interface = 'UQ_INTERFACE'
+    fork
+        analysis_drivers = 'getPower.py'
+        parameters_file = 'params.in'
+        results_file = 'results.out'
+        file_save
+
+responses
+    id_responses = 'UQ_RESPONSES'
+    num_response_functions = 1
+    analytic_gradients
+    no_hessians
+    descriptors = 'power'
+
+

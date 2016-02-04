@@ -28,20 +28,24 @@ def main():
     # Set up your application
     # ------------------------
 
-    nvar = 1  # Specify the number of uncertain variables
-    dakotaInterface.checknVar(nvar, paramsdict)
+    nVarDesign = 18
+    nVarUncertain = 1
+    nVar = nVarDesign + nVarUncertain
+    dakotaInterface.checknVar(nVar, paramsdict)
 
     wind_direction = [float(paramsdict['x'])]
-    active_set_vector = [int(paramsdict['ASV_1:dummy'])]
+    design_vars = []
+    for i in range(1, nVarDesign+1):
+        var = 'x' + str(i)
+        design_vars.append(float(paramsdict[var]))
+    active_set_vector = [int(paramsdict['ASV_1:power'])]
 
     # -----------------------------
     # Execute your application
     # -----------------------------
-    # This is a dummy application just returns the wind direction
+    # Need to read in the function and gradient values
 
-    resultsdict = {'fns': wind_direction, 'fnGrads': []}
-
-    # -------- Finish modifying for your problem -------- #
+    resultsdict = {'fns': wind_direction, 'fnGrads': [design_vars]}
 
     # ----------------------------
     # Return the results to DAKOTA
