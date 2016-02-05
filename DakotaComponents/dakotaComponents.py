@@ -30,15 +30,22 @@ class SamplePoints(ExternalCode):
 
 
 class DakotaAEP(ExternalCode):
-    def __init__(self):
+    def __init__(self, nDirections=1):
         super(DakotaAEP, self).__init__()
 
+        self.add_param('power_directions', np.zeros(nDirections), units ='kW',
+                       desc = 'vector containing the power production at each wind direction ccw from north')
+        self.add_param('windrose_frequencies', np.zeros(nDirections),
+                       desc = 'vector containing the frequency of each wind speed at each direction')
+
+        self.add_output('AEP', val=0.0, units='kWh', desc='total annual energy output of wind farm')
         # Will need the x y locations.
         # Use these to overwrite the the dakota input file
 
         # File in which the external code is implemented
         pythonfile = 'getDakotaAEP.py'
         self.options['command'] = ['python', pythonfile]
+
 
     def solve_nonlinear(self, params, unknowns, resids):
 
@@ -48,7 +55,7 @@ class DakotaAEP(ExternalCode):
         super(DakotaAEP, self).solve_nonlinear(params,unknowns,resids)
 
         # postprocess()
-        unknowns['AEP'] = 5
+        unknowns['AEP'] = np.sum(params['power_directions'])
         #unknowns['AEPGradient'] = np.zeros(9)
 
     def linearize(self, params, unknowns, resids):
