@@ -29,29 +29,19 @@ def main():
     # Set up your application
     # ------------------------
 
-    nVarDesign = 18
     nVarUncertain = 1
-    nVar = nVarDesign + nVarUncertain
-    dakotaInterface.checknVar(nVar, paramsdict)
+    dakotaInterface.checknVar(nVarUncertain, paramsdict)
 
-    print 'eval id ' + paramsdict['eval_id']
-
-    wind_direction = [float(paramsdict['x'])]
-    design_vars = []
-    for i in range(1, nVarDesign+1):
-        var = 'x' + str(i)
-        design_vars.append(float(paramsdict[var]))
     active_set_vector = [int(paramsdict['ASV_1:power'])]
 
     # -----------------------------
     # Execute your application
     # -----------------------------
-    # Need to read in the function and gradient values
 
     power = np.loadtxt('powerInput.txt')
     index = int(paramsdict['eval_id']) - 1
     power_i = power[index]
-    resultsdict = {'fns': [power_i], 'fnGrads': [design_vars]}
+    resultsdict = {'fns': [power_i], 'fnGrads': []}
 
     # ----------------------------
     # Return the results to DAKOTA
