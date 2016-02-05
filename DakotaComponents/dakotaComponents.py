@@ -1,36 +1,9 @@
-from openmdao.api import Problem, Group, ExternalCode
+from openmdao.api import Problem, Group, ExternalCode, IndepVarComp
 import numpy as np
-
-class SamplePoints(ExternalCode):
-    def __init__(self):
-        super(SamplePoints, self).__init__()
-
-        # File in which the external code is implemented
-        pythonfile = 'getSamplePoints.py'
-        self.options['command'] = ['python', pythonfile]
-
-        # Component outputs
-        self.add_output('windDirections', shape=4)  # Shape needs to be determined (Sparse grid)
-
-
-    def solve_nonlinear(self, params, unknowns, resids):
-
-        # parent solve_nonlinear function actually runs the external code
-        super(SamplePoints, self).solve_nonlinear(params,unknowns,resids)
-
-        # postprocess the results
-        dakotaTabular = 'dakota_tabular.dat'
-        f = open(dakotaTabular,'r')
-        f.readline()
-        x = []
-        for line in f:
-            x.append(float(line.split()[2]))
-
-        unknowns['windDirections'] = np.array(x)
 
 
 class DakotaAEP(ExternalCode):
-    def __init__(self, nDirections=1):
+    def __init__(self, nDirections=10):
         super(DakotaAEP, self).__init__()
 
         self.add_param('power_directions', np.zeros(nDirections), units ='kW',
@@ -39,8 +12,6 @@ class DakotaAEP(ExternalCode):
                        desc = 'vector containing the frequency of each wind speed at each direction')
 
         self.add_output('AEP', val=0.0, units='kWh', desc='total annual energy output of wind farm')
-        # Will need the x y locations.
-        # Use these to overwrite the the dakota input file
 
         # File in which the external code is implemented
         pythonfile = 'getDakotaAEP.py'
@@ -49,14 +20,18 @@ class DakotaAEP(ExternalCode):
 
     def solve_nonlinear(self, params, unknowns, resids):
 
-        #preprocess() Set up x, y locations.
+        # Generate the file with the power directions for Dakota
+        power = params['power_directions']
+        np.savetxt('powerInput.txt', power, header='power')
 
         # parent solve_nonlinear function actually runs the external code
         super(DakotaAEP, self).solve_nonlinear(params,unknowns,resids)
 
-        # postprocess()
-        unknowns['AEP'] = np.sum(params['power_directions'])
-        #unknowns['AEPGradient'] = np.zeros(9)
+        # Read in the calculated AEP
+
+        unknowns['AEP'] = np.loadtxt('AEP.txt')
+        #unknowns['AEP'] = np.sum(params['power_directions'])
+
 
     def linearize(self, params, unknowns, resids):
 
@@ -70,7 +45,10 @@ class DakotaAEP(ExternalCode):
 
 if __name__ == "__main__":
     prob = Problem(root=Group())
-    prob.root.add('samplePoints', SamplePoints())
+    prob.root.add('p', IndepVarComp('power', np.random.rand(10)))
+    prob.root.add('DakotaAEP', DakotaAEP())
+    prob.root.connect('p.power', 'DakotaAEP.power_directions')
     prob.setup()
     prob.run()
-    print (prob.root.samplePoints.unknowns['windDirections'])
+    print 'AEP = ', (prob.root.DakotaAEP.unknowns['AEP'])
+    print 'power directions = ', (prob.root.DakotaAEP.params['power_directions'])

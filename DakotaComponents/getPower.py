@@ -12,6 +12,7 @@
 # necessary python modules
 import sys
 import dakotaInterface
+import numpy as np
 
 
 def main():
@@ -33,6 +34,8 @@ def main():
     nVar = nVarDesign + nVarUncertain
     dakotaInterface.checknVar(nVar, paramsdict)
 
+    print 'eval id ' + paramsdict['eval_id']
+
     wind_direction = [float(paramsdict['x'])]
     design_vars = []
     for i in range(1, nVarDesign+1):
@@ -45,7 +48,10 @@ def main():
     # -----------------------------
     # Need to read in the function and gradient values
 
-    resultsdict = {'fns': wind_direction, 'fnGrads': [design_vars]}
+    power = np.loadtxt('powerInput.txt')
+    index = int(paramsdict['eval_id']) - 1
+    power_i = power[index]
+    resultsdict = {'fns': [power_i], 'fnGrads': [design_vars]}
 
     # ----------------------------
     # Return the results to DAKOTA

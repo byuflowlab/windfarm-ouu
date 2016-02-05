@@ -4,7 +4,6 @@ import sys
 import numpy as np
 from dakotaInterface import RedirectOutput, updateDakotaFile
 
-
 def getDakotaAEP(dakotaFile):
 
     designVars = getTurbineLocations()
@@ -105,3 +104,7 @@ if __name__ == '__main__':
     print 'AEP', AEP
     print 'AEPgrad', AEPgrad
     print 'chaos coefficients', coeff
+    with open('AEP.txt', 'w') as f:
+        f.write('# AEP \n')
+        f.write(str(AEP))
+    #np.savetxt('AEP.txt', AEP, header='AEP')  # It doesn't like to write a scalar
