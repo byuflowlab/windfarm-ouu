@@ -6,6 +6,13 @@ class DakotaAEP(ExternalCode):
     def __init__(self, nDirections=10):
         super(DakotaAEP, self).__init__()
 
+        # set finite difference options (fd used for testing)
+        # self.fd_options['force_fd'] = True
+        self.fd_options['form'] = 'central'
+        self.fd_options['step_size'] = 1.0e-4
+        self.fd_options['step_type'] = 'relative'
+
+
         self.add_param('power_directions', np.zeros(nDirections), units ='kW',
                        desc = 'vector containing the power production at each wind direction ccw from north')
         self.add_param('windrose_frequencies', np.zeros(nDirections),
@@ -35,11 +42,26 @@ class DakotaAEP(ExternalCode):
 
     def linearize(self, params, unknowns, resids):
 
-        # Question what if the optimizer only wants the function value.
+        power = params['power_directions']
 
-        # The linearize returns but the solve_nonlinear doesn't
-        # read gradient
-        J = np.zeros(9)
+        # Get the weights of the integration points
+        # weights = [0.03366682575, 0.07745913394, 0.1283591748, 0.1342931983, 0.1567958649, 0.2109227504, 0.1628296759, 0.06054507962, 0.02454240261, 0.01058589391]
+        dakotaTabular = 'dakota_quadrature_tabular.dat'
+        f = open(dakotaTabular, 'r')
+        f.readline()
+        w = []
+        for line in f:
+            w.append(float(line.split()[1]))
+
+        dAEP_dpower = np.ones(len(power))*np.array(w)
+
+        J = {}
+        J[('AEP', 'power_directions')] = np.array([dAEP_dpower])
+
+        # Do we need this partial? This is not as straighforward as below
+        # dAEP_dwindrose_frequencies = np.ones(ndirs)*power_directions*hours
+
+
         return J
 
 
@@ -52,3 +74,11 @@ if __name__ == "__main__":
     prob.run()
     print 'AEP = ', (prob.root.DakotaAEP.unknowns['AEP'])
     print 'power directions = ', (prob.root.DakotaAEP.params['power_directions'])
+    print prob.root.DakotaAEP.params.keys()
+    # The DakotaAEP.power_directions key is not recognized
+    # J = prob.calc_gradient(['DakotaAEP.AEP'], ['DakotaAEP.power_directions'])
+    # J = prob.calc_gradient(['DakotaAEP.AEP'], ['p.power'])
+    # print 'power directions gradient = ', J
+
+    # This check works
+    data = prob.check_partial_derivatives()
