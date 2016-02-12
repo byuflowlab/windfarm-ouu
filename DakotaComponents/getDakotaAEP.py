@@ -2,15 +2,11 @@
 import subprocess
 import sys
 import numpy as np
-from dakotaInterface import RedirectOutput, updateDakotaFile
-
+from dakotaInterface import RedirectOutput
 
 def getDakotaAEP(dakotaFile):
 
-    designVars = getTurbineLocations()
-
     dakotaInput = dakotaFile
-    updateDakotaFile(dakotaInput, designVars)
 
     print 'Calling Dakota...'
     # Pipe the output
@@ -23,33 +19,14 @@ def getDakotaAEP(dakotaFile):
 
     print 'finished calling Dakota.'
 
-    # postprocess (This should also go in the Dakota component)
-    AEP, AEPgrad, coeff = postprocess()
-    return AEP, AEPgrad, coeff
-
-
-def getTurbineLocations():
-
-    # This will be replaced in the preprocess step of the
-    # Dakota component
-
-    # define turbine size
-    rotor_diameter = 1  # (m)
-
-    # Scaling grid case
-    nRows = 3    # number of rows and columns in grid
-    spacing = 5     # turbine grid spacing in diameters
-
-    # Set up position arrays
-    points = np.linspace(start=spacing*rotor_diameter, stop=nRows*spacing*rotor_diameter, num=nRows)
-    xpoints, ypoints = np.meshgrid(points, points)
-    turbineX = np.ndarray.flatten(xpoints)
-    turbineY = np.ndarray.flatten(ypoints)
-
-    return np.concatenate((turbineX, turbineY))
+    # Postprocess the results
+    AEP, coeff = postprocess()
+    return AEP, coeff
 
 
 def postprocess():
+    """Read the Mean and the coefficients from the Dakota output."""
+
     filename = 'logDakota.out'
 
     with open(filename, 'r') as f:
@@ -69,39 +46,28 @@ def postprocess():
             except ValueError:
                 break
 
-        # Find the function and gradient values
-        AEPgrad = []
+        # Find the function
         while True:
             line = f.readline()
-            if 'mean_r1' in line:
+            if 'Mean' in line:
                 # function value
-                AEP = float(line.split()[0])
-                # get the gradient
-                while True:
-                    line = f.readline()
-                    split_line = line.split()
-                    if len(split_line) > 0:
-                        if split_line[0] == '[':
-                            for entry in split_line[1:]:
-                                try:
-                                    AEPgrad.append(float(entry))
-                                except ValueError:
-                                    break
-                        else:
-                            for entry in split_line:
-                                try:
-                                    AEPgrad.append(float(entry))
-                                except ValueError:
-                                    break
-                    else:
-                        break
+                f.readline()
+                line = f.readline()
+                AEP = float(line.split()[1])
+                break
             if not line: break
 
-    return np.array(AEP), np.array(AEPgrad), np.array(coeff)
+    return np.array(AEP), np.array(coeff)
+
 
 if __name__ == '__main__':
     dakotaFileName = 'dakotaAEP.in'
-    AEP, AEPgrad, coeff = getDakotaAEP(dakotaFileName)
-    print 'AEP', AEP
-    print 'AEPgrad', AEPgrad
-    print 'chaos coefficients', coeff
+    AEP, coeff = getDakotaAEP(dakotaFileName)
+    # print 'AEP', AEP
+    # print 'chaos coefficients', coeff
+
+    # Write out the calculated AEP to be read by the DakotaAEP Component
+    with open('AEP.txt', 'w') as f:
+        f.write('# AEP \n')
+        f.write(str(AEP))
+    #np.savetxt('AEP.txt', AEP, header='AEP')  # It doesn't like to write a scalar

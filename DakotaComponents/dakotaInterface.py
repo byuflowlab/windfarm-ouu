@@ -136,24 +136,24 @@ class RedirectOutput(object):
 
 #: class output()
 
-
-def updateDakotaFile(dakotaFilename, designVars):
-    """Rewrite design variables in Dakota file."""
-
-    filein = dakotaFilename
-    fileout = dakotaFilename + '.tmp'
-    fr = open(filein, 'r')
-    fw = open(fileout, 'w')
-    for line in fr:
-        if 'cdv_initial_point' in line:
-            towrite = 'cdv_initial_point  '
-            for x in designVars:
-                towrite = towrite + str(x) + ' '
-            towrite += '\n'
-
-            fw.write(towrite)
-        else:
-            fw.write(line)
-    fr.close()
-    fw.close()
-    shutil.move(fileout, filein)
+# Because not using gradients from Dakota, no need to use this.
+# def updateDakotaFile(dakotaFilename, designVars):
+#     """Rewrite design variables in Dakota file."""
+#
+#     filein = dakotaFilename
+#     fileout = dakotaFilename + '.tmp'
+#     fr = open(filein, 'r')
+#     fw = open(fileout, 'w')
+#     for line in fr:
+#         if 'cdv_initial_point' in line:
+#             towrite = 'cdv_initial_point  '
+#             for x in designVars:
+#                 towrite = towrite + str(x) + ' '
+#             towrite += '\n'
+#
+#             fw.write(towrite)
+#         else:
+#             fw.write(line)
+#     fr.close()
+#     fw.close()
+#     shutil.move(fileout, filein)

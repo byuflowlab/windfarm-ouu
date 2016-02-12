@@ -13,6 +13,7 @@ def getSamplePoints(dakotaFile):
 
     Returns:
         x (np.array): A vector of sample points
+        w (np.array): The weight associated with the sample points
 
     """
 
@@ -29,16 +30,19 @@ def getSamplePoints(dakotaFile):
     print 'finished calling Dakota.'
 
     # read the points from the dakota tabular file
-    dakotaTabular = 'dakota_tabular.dat'
+    # dakotaTabular = 'dakota_tabular.dat'
+    dakotaTabular = 'dakota_quadrature_tabular.dat'
     f = open(dakotaTabular, 'r')
     f.readline()
     x = []
+    w = []
     for line in f:
+        w.append(float(line.split()[1]))
         x.append(float(line.split()[2]))
-
-    return np.array(x)
+    return np.array(x), np.array(w)
 
 if __name__ == '__main__':
     dakotaFileName = 'dakotaSamplePoints.in'
-    points = getSamplePoints(dakotaFileName)
-    print points
+    points, weights = getSamplePoints(dakotaFileName)
+    print 'points = ', points
+    print 'weights = ', weights

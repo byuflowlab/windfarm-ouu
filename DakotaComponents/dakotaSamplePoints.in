@@ -4,7 +4,7 @@ environment
 
 method
     polynomial_chaos
-        quadrature_order 4
+        quadrature_order 10
     output verbose
 
 model
