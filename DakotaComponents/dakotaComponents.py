@@ -3,7 +3,7 @@ import numpy as np
 
 
 class DakotaAEP(ExternalCode):
-    def __init__(self, nDirections=10):
+    def __init__(self, nDirections=10, dakotaFileName='dakotaAEP.in'):
         super(DakotaAEP, self).__init__()
 
         # set finite difference options (fd used for testing)
@@ -22,7 +22,7 @@ class DakotaAEP(ExternalCode):
 
         # File in which the external code is implemented
         pythonfile = 'getDakotaAEP.py'
-        self.options['command'] = ['python', pythonfile]
+        self.options['command'] = ['python', pythonfile, dakotaFileName]
 
 
     def solve_nonlinear(self, params, unknowns, resids):

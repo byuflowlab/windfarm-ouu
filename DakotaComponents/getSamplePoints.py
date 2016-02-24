@@ -42,7 +42,8 @@ def getSamplePoints(dakotaFile):
     return np.array(x), np.array(w)
 
 if __name__ == '__main__':
-    dakotaFileName = 'dakotaSamplePoints.in'
+    # dakotaFileName = 'dakotaSamplePoints.in'
+    dakotaFileName = 'dakotaAEP.in'
     points, weights = getSamplePoints(dakotaFileName)
     print 'points = ', points
     print 'weights = ', weights

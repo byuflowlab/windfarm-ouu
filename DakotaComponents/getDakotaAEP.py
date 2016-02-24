@@ -61,13 +61,13 @@ def postprocess():
 
 
 if __name__ == '__main__':
-    dakotaFileName = 'dakotaAEP.in'
+
+    # dakotaFileName = 'dakotaAEP.in'
+    dakotaFileName = sys.argv[1]
+
     AEP, coeff = getDakotaAEP(dakotaFileName)
     # print 'AEP', AEP
     # print 'chaos coefficients', coeff
 
     # Write out the calculated AEP to be read by the DakotaAEP Component
-    with open('AEP.txt', 'w') as f:
-        f.write('# AEP \n')
-        f.write(str(AEP))
-    #np.savetxt('AEP.txt', AEP, header='AEP')  # It doesn't like to write a scalar
+    np.savetxt('AEP.txt', [AEP], header='AEP')  # put in [] It doesn't like to write a scalar

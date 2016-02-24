@@ -15,7 +15,7 @@ class dakotaGroupAEP(Group):
     Group containing all necessary components for wind plant AEP calculations using the FLORIS model
     """
 
-    def __init__(self, nTurbines, resolution=0, nDirections=1, use_rotor_components=False, datasize=0):
+    def __init__(self, nTurbines, resolution=0, nDirections=1, use_rotor_components=False, datasize=0, dakotaFileName='dakotaAEP.in'):
 
         super(dakotaGroupAEP, self).__init__()
 
@@ -41,7 +41,7 @@ class dakotaGroupAEP(Group):
                                  'velocitiesTurbines%i' % direction_id, 'wt_power%i' % direction_id, 'power%i' % direction_id])#, 'wakeCentersYT', 'wakeDiametersT'])
 
         self.add('powerMUX', MUX(nDirections))
-        self.add('AEPcomp', dakotaComponents.DakotaAEP(nDirections), promotes=['*'])
+        self.add('AEPcomp', dakotaComponents.DakotaAEP(nDirections, dakotaFileName), promotes=['*'])
 
         # add necessary inputs for group
         self.add('p1', IndepVarComp('windDirections', np.zeros(nDirections)), promotes=['*'])
@@ -68,5 +68,6 @@ class dakotaGroupAEP(Group):
         for direction_id in range(0, nDirections):
             self.connect('windDirectionsDeMUX.output%i' % direction_id, 'direction_group%i.wind_direction' % direction_id)
             self.connect('yaw%i' % direction_id, 'direction_group%i.yaw' % direction_id)
+
             self.connect('power%i' % direction_id, 'powerMUX.input%i' % direction_id)
         self.connect('powerMUX.Array', 'power_directions')

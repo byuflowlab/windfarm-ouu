@@ -38,9 +38,15 @@ def main():
     # Execute your application
     # -----------------------------
 
-    power = np.loadtxt('powerInput.txt')
-    index = int(paramsdict['eval_id']) - 1
-    power_i = power[index]
+    try:
+        power = np.atleast_1d(np.loadtxt('powerInput.txt'))
+        index = int(paramsdict['eval_id']) - 1
+        power_i = power[index]
+
+    except IOError:  # This is for the case when we are only getting the sample points.
+        print '\n\nWARNING: missing powerInput.txt\n\n'
+        power_i = np.nan
+
     resultsdict = {'fns': [power_i], 'fnGrads': []}
 
     # ----------------------------
