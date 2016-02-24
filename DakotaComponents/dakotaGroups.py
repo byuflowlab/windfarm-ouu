@@ -67,7 +67,6 @@ class dakotaGroupAEP(Group):
         self.connect('windDirections', 'windDirectionsDeMUX.Array')
         for direction_id in range(0, nDirections):
             self.connect('windDirectionsDeMUX.output%i' % direction_id, 'direction_group%i.wind_direction' % direction_id)
-            self.connect('yaw%i' % direction_id, 'direction_group%i.yaw' % direction_id)
-
+            self.connect('yaw%i' % direction_id, 'direction_group%i.yaw%i' % (direction_id, direction_id))
             self.connect('power%i' % direction_id, 'powerMUX.input%i' % direction_id)
         self.connect('powerMUX.Array', 'power_directions')
