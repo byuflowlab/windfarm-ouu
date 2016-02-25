@@ -29,7 +29,7 @@ class dakotaGroupAEP(Group):
                 pg.add('direction_group%i' % direction_id,
                        DirectionGroupFLORIS(nTurbines=nTurbines, resolution=resolution, direction_id=direction_id,
                                             use_rotor_components=use_rotor_components, datasize=datasize),
-                       promotes=['params:*', 'floris_params:*', 'windSpeeds', 'air_density',
+                       promotes=['params:*', 'floris_params:*', 'wind_speed', 'air_density',
                                  'axialInduction', 'generator_efficiency', 'turbineX', 'turbineY', 'rotorDiameter',
                                  'velocitiesTurbines%i' % direction_id, 'wt_power%i' % direction_id, 'power%i' % direction_id])#, 'wakeCentersYT', 'wakeDiametersT'])
         else:
@@ -37,7 +37,7 @@ class dakotaGroupAEP(Group):
                 pg.add('direction_group%i' % direction_id,
                        DirectionGroupFLORIS(nTurbines=nTurbines, resolution=resolution, direction_id=direction_id,
                                             use_rotor_components=use_rotor_components, datasize=datasize),
-                       promotes=['Ct_in', 'Cp_in', 'params:*', 'floris_params:*', 'windSpeeds', 'air_density',
+                       promotes=['Ct_in', 'Cp_in', 'params:*', 'floris_params:*', 'wind_speed', 'air_density',
                                  'axialInduction', 'generator_efficiency', 'turbineX', 'turbineY', 'rotorDiameter',
                                  'velocitiesTurbines%i' % direction_id, 'wt_power%i' % direction_id, 'power%i' % direction_id])#, 'wakeCentersYT', 'wakeDiametersT'])
 
