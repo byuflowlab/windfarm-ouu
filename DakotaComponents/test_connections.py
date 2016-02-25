@@ -40,6 +40,7 @@ if __name__ == '__main__':
     air_density = 1.1716    # kg/m^3
     nDirections = 10
     windDirections = np.linspace(0, 360.-360./nDirections, nDirections)
+    windSpeeds = np.linspace(3, 12, 10)
     windFrequencies = np.ones_like(windDirections)*1.0/nDirections  # deg (N = 0 deg., using direction FROM, as in met-mast data)
 
     # set up problem
@@ -58,7 +59,7 @@ if __name__ == '__main__':
     prob['rotorDiameter'] = rotorDiameter
     prob['axialInduction'] = axialInduction
     prob['generator_efficiency'] = generator_efficiency
-    prob['wind_speed'] = wind_speed
+    prob['windSpeeds'] = windSpeeds
     prob['air_density'] = air_density
     prob['windDirections'] = windDirections
     prob['Ct_in'] = Ct

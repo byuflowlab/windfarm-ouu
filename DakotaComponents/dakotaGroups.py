@@ -21,6 +21,7 @@ class dakotaGroupAEP(Group):
 
         # add components and groups
         self.add('windDirectionsDeMUX', DeMUX(nDirections))
+        self.add('windSpeedsDeMUX', DeMUX(nDirections))
 
         pg = self.add('all_directions', ParallelGroup(), promotes=['*'])
         if use_rotor_components:
@@ -28,7 +29,7 @@ class dakotaGroupAEP(Group):
                 pg.add('direction_group%i' % direction_id,
                        DirectionGroupFLORIS(nTurbines=nTurbines, resolution=resolution, direction_id=direction_id,
                                             use_rotor_components=use_rotor_components, datasize=datasize),
-                       promotes=['params:*', 'floris_params:*', 'wind_speed', 'air_density',
+                       promotes=['params:*', 'floris_params:*', 'windSpeeds', 'air_density',
                                  'axialInduction', 'generator_efficiency', 'turbineX', 'turbineY', 'rotorDiameter',
                                  'velocitiesTurbines%i' % direction_id, 'wt_power%i' % direction_id, 'power%i' % direction_id])#, 'wakeCentersYT', 'wakeDiametersT'])
         else:
@@ -36,7 +37,7 @@ class dakotaGroupAEP(Group):
                 pg.add('direction_group%i' % direction_id,
                        DirectionGroupFLORIS(nTurbines=nTurbines, resolution=resolution, direction_id=direction_id,
                                             use_rotor_components=use_rotor_components, datasize=datasize),
-                       promotes=['Ct_in', 'Cp_in', 'params:*', 'floris_params:*', 'wind_speed', 'air_density',
+                       promotes=['Ct_in', 'Cp_in', 'params:*', 'floris_params:*', 'windSpeeds', 'air_density',
                                  'axialInduction', 'generator_efficiency', 'turbineX', 'turbineY', 'rotorDiameter',
                                  'velocitiesTurbines%i' % direction_id, 'wt_power%i' % direction_id, 'power%i' % direction_id])#, 'wakeCentersYT', 'wakeDiametersT'])
 
@@ -52,7 +53,8 @@ class dakotaGroupAEP(Group):
         self.add('p5', IndepVarComp('rotorDiameter', np.zeros(nTurbines)), promotes=['*'])
         self.add('p6', IndepVarComp('axialInduction', np.zeros(nTurbines)), promotes=['*'])
         self.add('p7', IndepVarComp('generator_efficiency', np.zeros(nTurbines)), promotes=['*'])
-        self.add('p8', IndepVarComp('wind_speed', val=8.0), promotes=['*'])
+        # self.add('p8', IndepVarComp('windSpeeds', val=8.0), promotes=['*'])
+        self.add('p8', IndepVarComp('windSpeeds', np.zeros(nDirections), units='m/s'), promotes=['*'])
         self.add('p9', IndepVarComp('air_density', val=1.1716), promotes=['*'])
         self.add('p11', IndepVarComp('windrose_frequencies', np.zeros(nDirections)), promotes=['*'])
 
@@ -60,13 +62,17 @@ class dakotaGroupAEP(Group):
             self.add('p12', IndepVarComp('Ct_in', np.zeros(nTurbines)), promotes=['*'])
             self.add('p13', IndepVarComp('Cp_in', np.zeros(nTurbines)), promotes=['*'])
 
+
         for direction_id in range(0, nDirections):
             self.add('y%i' % direction_id, IndepVarComp('yaw%i' % direction_id, np.zeros(nTurbines)), promotes=['*'])
 
         # connect components
         self.connect('windDirections', 'windDirectionsDeMUX.Array')
+        self.connect('windSpeeds', 'windSpeedsDeMUX.Array')
         for direction_id in range(0, nDirections):
             self.connect('windDirectionsDeMUX.output%i' % direction_id, 'direction_group%i.wind_direction' % direction_id)
             self.connect('yaw%i' % direction_id, 'direction_group%i.yaw%i' % (direction_id, direction_id))
             self.connect('power%i' % direction_id, 'powerMUX.input%i' % direction_id)
+            self.connect('windSpeedsDeMUX.output%i' % direction_id, 'direction_group%i.wind_speed' % direction_id)
         self.connect('powerMUX.Array', 'power_directions')
+
