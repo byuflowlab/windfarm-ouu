@@ -56,7 +56,7 @@ class dakotaGroupAEP(Group):
         # self.add('p8', IndepVarComp('windSpeeds', val=8.0), promotes=['*'])
         self.add('p8', IndepVarComp('windSpeeds', np.zeros(nDirections), units='m/s'), promotes=['*'])
         self.add('p9', IndepVarComp('air_density', val=1.1716), promotes=['*'])
-        self.add('p11', IndepVarComp('windrose_frequencies', np.zeros(nDirections)), promotes=['*'])
+        self.add('p11', IndepVarComp('weights', np.zeros(nDirections)), promotes=['*'])
 
         if not use_rotor_components:
             self.add('p12', IndepVarComp('Ct_in', np.zeros(nTurbines)), promotes=['*'])

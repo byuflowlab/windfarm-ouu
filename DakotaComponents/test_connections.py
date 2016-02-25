@@ -65,7 +65,7 @@ if __name__ == '__main__':
     prob['Ct_in'] = Ct
     prob['Cp_in'] = Cp
     prob['floris_params:FLORISoriginal'] = False
-    prob['windrose_frequencies'] = windFrequencies
+    prob['weights'] = windFrequencies
 
     # run the problem
     print 'start FLORIS run'
