@@ -1,5 +1,6 @@
 from openmdao.api import Problem, Group, ExternalCode, IndepVarComp
 import numpy as np
+from getSamplePoints import getSamplePoints
 
 
 class DakotaAEP(ExternalCode):
@@ -15,7 +16,7 @@ class DakotaAEP(ExternalCode):
 
         self.add_param('power_directions', np.zeros(nDirections), units ='kW',
                        desc = 'vector containing the power production at each wind direction ccw from north')
-        self.add_param('windrose_frequencies', np.zeros(nDirections),
+        self.add_param('weights', np.zeros(nDirections),
                        desc = 'vector containing the frequency of each wind speed at each direction')
 
         self.add_output('AEP', val=0.0, units='kWh', desc='total annual energy output of wind farm')
@@ -42,34 +43,26 @@ class DakotaAEP(ExternalCode):
 
     def linearize(self, params, unknowns, resids):
 
-        power = params['power_directions']
-
-        # Get the weights of the integration points
-        # weights = [0.03366682575, 0.07745913394, 0.1283591748, 0.1342931983, 0.1567958649, 0.2109227504, 0.1628296759, 0.06054507962, 0.02454240261, 0.01058589391]
-        dakotaTabular = 'dakota_quadrature_tabular.dat'
-        f = open(dakotaTabular, 'r')
-        f.readline()
-        w = []
-        for line in f:
-            w.append(float(line.split()[1]))
-
-        dAEP_dpower = np.ones(len(power))*np.array(w)
+        weight = params['weights'] # The weights of the integration points
+        dAEP_dpower = weight
 
         J = {}
         J[('AEP', 'power_directions')] = np.array([dAEP_dpower])
-
-        # Do we need this partial? This is not as straighforward as below
-        # dAEP_dwindrose_frequencies = np.ones(ndirs)*power_directions*hours
-
 
         return J
 
 
 if __name__ == "__main__":
+
+    dakotaFileName = 'dakotaAEP.in'
+    unused, weights = getSamplePoints(dakotaFileName)
+
     prob = Problem(root=Group())
     prob.root.add('p', IndepVarComp('power', np.random.rand(10)))
+    prob.root.add('w', IndepVarComp('weight', weights))
     prob.root.add('DakotaAEP', DakotaAEP())
     prob.root.connect('p.power', 'DakotaAEP.power_directions')
+    prob.root.connect('w.weight', 'DakotaAEP.weights')
     prob.setup()
     prob.run()
     print 'AEP = ', (prob.root.DakotaAEP.unknowns['AEP'])
