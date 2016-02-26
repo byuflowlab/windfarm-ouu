@@ -117,11 +117,11 @@ if __name__ == "__main__":
 
     AEP = []
     samples = []
-    for n in range(1,21,1):
+    for n in range(1,101,1):
 
         # n = 10  # Number of points
-        # dakotaFileName = 'dakotaAEPdirection.in'
-        dakotaFileName = 'dakotaAEPspeed.in'
+        dakotaFileName = 'dakotaAEPdirection.in'
+        # dakotaFileName = 'dakotaAEPspeed.in'
 
         # Update dakota file with desired number of sample points
         updateDakotaFile(dakotaFileName, n)
@@ -130,17 +130,17 @@ if __name__ == "__main__":
         points, weights = getSamplePoints(dakotaFileName)       # The sample points could return 1 or 2D.
         # print 'Wind directions at which power is evaluated (deg)'
         print 'Wind speeds at which power is evaluated'
-        a = 5
-        b = 11
+        a = 0
+        b = 360
         points = (a+b)/2 + (b-a)/2*points
         for point in points:
             print '\t', point
 
-        # windspeed = np.ones(weights.size)*8
-        # winddirections = points
+        windspeed = np.ones(weights.size)*8
+        winddirections = points
 
-        windspeed = points
-        winddirections = np.ones(weights.size)*225
+        # windspeed = points
+        # winddirections = np.ones(weights.size)*225
 
         # Set up problem, define the turbine locations and all that stuff, pass it the wind direction x
         prob = problem_set_up(windspeed, winddirections, weights, dakotaFileName)

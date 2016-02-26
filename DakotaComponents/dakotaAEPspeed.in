@@ -4,7 +4,7 @@ environment
 
 method
     polynomial_chaos
-quadrature_order  20
+quadrature_order  100
     output verbose
 
 model
@@ -12,8 +12,8 @@ model
 
 variables
     uniform_uncertain = 1
-    lower_bounds = 5
-    upper_bounds = 11
+    lower_bounds = 0
+    upper_bounds = 30
     descriptors = 'x'
 
 interface
