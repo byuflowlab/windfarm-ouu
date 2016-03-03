@@ -6,10 +6,10 @@ import platform
 
 
 setup(
-    name='OUUWakeModels',
-    version='0.0.0',
-    description='collection of wake models for optimization under uncertainty',
-    install_requires=['florisse'],
-    dependency_links=['https://github.com/WISDEM/FLORISSE/tarball/FLORIScosine#egg=florisse'],
-    zip_safe=False
+    	name='OUUWakeModels',
+    	version='0.0.0',
+    	description='collection of wake models for optimization under uncertainty',
+    	install_requires=['florisse', 'akima>=1.0'],
+    	dependency_links=['https://github.com/WISDEM/FLORISSE/tarball/FLORIScosine#egg=florisse', 'https://github.com/andrewning/akima/tarball/master#egg=akima-1.0.0'],
+	zip_safe=False
 )
