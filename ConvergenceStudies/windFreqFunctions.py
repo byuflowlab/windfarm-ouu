@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 import scipy.integrate as integrate
+from math import exp
 
 
 def wind_frequency_funcion():
@@ -51,8 +52,31 @@ def npfrequ(bins):
         frequency[i] = np.trapz(f(x), x, dx=dx)
         bin_start += bin_size
     return frequency
+	
+
+def weibull_prob(x):
+    a = 1.8
+    avg = 8.
+    lamda = avg/(((a-1)/a)**(1/a))
+    return a/lamda*(x/lamda)**(a-1)*exp(-(x/lamda)**a)
 
 
+def speed_frequ(speeds):
+    x = speeds
+    size = 30./(speeds)
+    dx = 0.01
+    x1 = 0.
+    x2 = x1+dx
+    location = size
+    frequency = np.zeros(speeds)
+    for i in range(0, speeds):
+        while x1 <= location:
+            dfrequency = dx*(weibull_prob(x1)+weibull_prob(x2))/2
+            frequency[i] += dfrequency
+            x1 = x2
+            x2 += dx
+        location += size
+    return frequency
 
 
 if __name__ == '__main__':
@@ -81,7 +105,7 @@ if __name__ == '__main__':
     # f1 = f(x3)
     # print np.trapz(f1, dx=dx)
 
-    f = wind_frequency_cubic()
+    """f = wind_frequency_cubic()
     x = np.linspace(0.,72.,1000)
     x_wind = np.linspace(0.,72,72)
 
@@ -100,9 +124,22 @@ if __name__ == '__main__':
     plt.title('Frequency Function')
     plt.xlabel('Wind Direction')
     plt.ylabel('Frequency')
+    plt.show()"""
+
+    f = speed_frequ(1000)
+    print f
+    print np.sum(f)
+
+
+    
+    x = np.linspace(0, 30, 1000)
+    y = np.zeros(len(x))
+    for i in range(len(x)):
+        y[i] = weibull_prob(x[i])
+    plt.plot(x,y)
+    plt.xlabel('Wind Speed (m/s)')
+    plt.ylabel('Probability')
     plt.show()
-
-
 
 
 

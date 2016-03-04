@@ -1,10 +1,10 @@
 from openmdao.api import Problem, Group
 from florisse.floris import DirectionGroupFLORIS
+from windFreqFunctions import *
 import matplotlib.pyplot as plt
 import random
 import time
 import numpy as np
-from windFreqFunctions import *
 
 
 if __name__ == "__main__":
@@ -17,7 +17,7 @@ if __name__ == "__main__":
     spacing = 5     # turbine grid spacing in diameters
 
     # Set up position arrays
-    points = np.linspace(start=spacing*rotor_diameter, stop=nRows*spacing*rotor_diameter, num=nRows)
+    points = np.linspace(start=0, stop=(nRows-1)*spacing*rotor_diameter, num=nRows)
     xpoints, ypoints = np.meshgrid(points, points)
     turbineX = np.ndarray.flatten(xpoints)
     turbineY = np.ndarray.flatten(ypoints)
@@ -25,9 +25,9 @@ if __name__ == "__main__":
     # turbineX = np.zeros(100)
     # turbineY = np.zeros(100)
     # for i in range(100):
-    #     turbineX[i] = random.random()*6000
-    #     turbineY[i]=  random.random()*6000
-
+    #     turbineX[i] = random.random()*(nRows-1)*spacing*rotor_diameter
+    #     turbineY[i]=  random.random()*(nRows-1)*spacing*rotor_diameter
+    #
     # plt.figure(1)
     # plt.scatter(turbineX, turbineY)
 
@@ -50,17 +50,16 @@ if __name__ == "__main__":
         yaw[turbI] = 0.     # deg.
 
     # Define flow properties
-    wind_speed = 8.0        # m/s
+    v_max = 30.
+    wind_speed = np.linspace(0, v_max, v_max*100)        # m/s
+    frequency = speed_frequ(len(wind_speed))
     air_density = 1.1716    # kg/m^3
 
-
-
-    wind_direction = np.linspace(0,359,360)
-    frequency = frequ(len(wind_direction))
-    power = np.zeros(len(wind_direction))
+    wind_direction = -90.
+    power = np.zeros(len(wind_speed))
     # wind_direction = 240    # deg (N = 0 deg., using direction FROM, as in met-mast data)
     # set up problem
-    for i in range(0, len(wind_direction)):
+    for i in range(0, len(wind_speed)):
         prob = Problem(root=Group())
         prob.root.add('FLORIS', DirectionGroupFLORIS(nTurbs, resolution=0), promotes=['*'])
 
@@ -76,9 +75,9 @@ if __name__ == "__main__":
         prob['rotorDiameter'] = rotorDiameter
         prob['axialInduction'] = axialInduction
         prob['generator_efficiency'] = generator_efficiency
-        prob['wind_speed'] = wind_speed
+        prob['wind_speed'] = wind_speed[i]
         prob['air_density'] = air_density
-        prob['wind_direction'] = wind_direction[i]
+        prob['wind_direction'] = wind_direction
         prob['Ct_in'] = Ct
         prob['Cp_in'] = Cp
         prob['floris_params:FLORISoriginal'] = False
@@ -89,20 +88,16 @@ if __name__ == "__main__":
         toc = time.time()
 
         # print the results
-        print 'wind farm power (kW): %s' % prob['power0']
+        # print 'wind farm power (kW): %s' % prob['power0']
         print i
-        print "FREQUENCY: ", frequency[i]
         power[i] = prob['power0']*frequency[i]
 
-    np.savetxt("powerVSdirectionWEIGHTED"+".txt", np.c_[wind_direction, power])
+    np.savetxt("powerVSspeed0_degrees"+"%s"%v_max+"WEIGHTED.txt", np.c_[wind_speed, power])
     plt.figure(2)
-    plt.plot(wind_direction, power, label='power')
-    plt.xlabel('wind_direction (degrees)')
+    plt.plot(wind_speed, power)
+    plt.xlabel('speed (m/s)')
     plt.ylabel('wind farm power (kW)')
-    plt.title('Wind Farm Power As a Function of Wind Direction')
-    plt.xlim([0, 360])
-    plt.legend()
-
-    plt.figure(3)
-    plt.plot(wind_direction, frequency, label='frequency')
+    plt.title('Wind Farm Power As a Function of Wind Speed')
+    plt.xlim([0, v_max])
+    plt.ylim([0, 510000])
     plt.show()
