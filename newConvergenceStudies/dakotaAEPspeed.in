@@ -4,7 +4,10 @@ environment
 
 method
     polynomial_chaos
-quadrature_order  10
+quadrature_order  50
+    #expansion_order 20
+        #expansion_samples 20
+        #collocation_points 20
     output verbose
 
 model
@@ -14,6 +17,9 @@ variables
     uniform_uncertain = 1
     lower_bounds = 0
     upper_bounds = 30
+    #weibull_uncertain = 1
+    #alphas = 1.8
+    #betas = 12.552983
     descriptors = 'x'
 
 interface

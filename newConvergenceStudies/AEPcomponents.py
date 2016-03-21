@@ -26,6 +26,7 @@ class DakotaAEP(ExternalCode):
 
         # define output
         self.add_output('AEP', val=0.0, units='kWh', desc='total annual energy output of wind farm')
+        self.add_output('Var_energy', val=0.0, units='kWh**2', desc='Variance of energy output of wind farm')
 
         # File in which the external code is implemented
         pythonfile = 'getDakotaAEP.py'
@@ -48,6 +49,8 @@ class DakotaAEP(ExternalCode):
         # number of hours in a year
         hours = 8760.0
         unknowns['AEP'] = np.loadtxt('AEP.txt')*hours
+        unknowns['Var_energy'] = np.loadtxt('Var.txt')*hours
+
 
         print 'In DakotaAEP'
 
@@ -79,6 +82,8 @@ class SimpleAEP(Component):
 
         # define output
         self.add_output('AEP', val=0.0, units='kWh', desc='total annual energy output of wind farm')
+        self.add_output('std_energy', val=0.0, units='kWh', desc='standard deviation of energy output of wind farm')
+
 
     def solve_nonlinear(self, params, unknowns, resids):
 
@@ -89,11 +94,17 @@ class SimpleAEP(Component):
         # number of hours in a year
         hours = 8760.0
 
-        # calculate approximate AEP
-        AEP = sum(power*weight*rho)*hours
+        # calculate the statistics
+        mean = sum(power*weight*rho)
+        print 'first term = ', sum(np.power(power, 2)*weight*rho)/1e9
+        print 'second term = ', np.power(mean, 2)/1e9
+        std = np.sqrt(sum(np.power(power, 2)*weight*rho) - np.power(mean, 2))
+        AEP = mean*hours
+        std_energy = std*hours
 
         # promote AEP result to class attribute
         unknowns['AEP'] = AEP
+        unknowns['std_energy'] = std_energy
 
         print 'In SimpleAEP'
 

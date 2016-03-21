@@ -20,8 +20,8 @@ def getDakotaAEP(dakotaFile):
     print 'finished calling Dakota.'
 
     # Postprocess the results
-    AEP, coeff = postprocess()
-    return AEP, coeff
+    AEP, Var, coeff = postprocess()
+    return AEP, Var, coeff
 
 
 def postprocess():
@@ -54,10 +54,11 @@ def postprocess():
                 f.readline()
                 line = f.readline()
                 AEP = float(line.split()[1])
+                std = float(line.split()[2])
                 break
             if not line: break
 
-    return np.array(AEP), np.array(coeff)
+    return np.array(AEP), np.array(std)*np.array(std), np.array(coeff)
 
 
 if __name__ == '__main__':
@@ -65,9 +66,10 @@ if __name__ == '__main__':
     # dakotaFileName = 'dakotaAEP.in'
     dakotaFileName = sys.argv[1]
 
-    AEP, coeff = getDakotaAEP(dakotaFileName)
+    AEP, Var, coeff = getDakotaAEP(dakotaFileName)
     # print 'AEP', AEP
     # print 'chaos coefficients', coeff
 
     # Write out the calculated AEP to be read by the DakotaAEP Component
     np.savetxt('AEP.txt', [AEP], header='AEP')  # put in [] It doesn't like to write a scalar
+    np.savetxt('Var.txt', [Var], header='Variance energy')

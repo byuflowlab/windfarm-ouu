@@ -43,8 +43,13 @@ def getSamplePoints(dakotaFile):
     w = np.array(w)
 
     # Scale the sample points to their true range from the [-1,1] range.
+    # This is for uniform_uncertain variables
     f = open(dakotaFile, 'r')
     for line in f:
+        if line.lstrip().startswith('#') and 'uniform_uncertain' in line:
+            a = -1.0
+            b = 1.0
+            break
         if 'lower_bounds' in line:
             a = float(line.split()[2])  # will need to update for multiple variables
         if 'upper_bounds' in line:
