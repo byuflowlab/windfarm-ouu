@@ -5,13 +5,14 @@ import scipy.integrate as integrate
 from math import exp
 
 
-def wind_frequency_funcion():
-    input_file = open("amalia_windrose_8.txt")
+def wind_frequency_funcion(windrose):
+    input_file = open(windrose+".txt")
     wind_data = np.loadtxt(input_file)
-
-    length_data = np.linspace(0,72.01,len(wind_data))
-    f = interp1d(length_data, wind_data)
-    return f
+    
+    probability = wind_data[:, 2]
+    length_data = np.linspace(0,len(wind_data)+0.01,len(probability))
+    f = interp1d(length_data, probability)
+    return f, len(probability)
 
 
 def wind_frequency_cubic():
@@ -23,9 +24,11 @@ def wind_frequency_cubic():
     return f
 
 
-def frequ(bins):
-    f = wind_frequency_funcion()
-    bin_size = 72./bins
+def frequ(windrose, bins):
+    f, size = wind_frequency_funcion(windrose)
+    L = size/1.
+    print "L: ", L
+    bin_size = L/bins
     dx = 0.01
     x1 = 0.
     x2 = x1+dx
@@ -38,6 +41,8 @@ def frequ(bins):
             x1 = x2
             x2 += dx
         bin_location += bin_size
+    total = np.sum(frequency)
+    frequency = frequency/total
     return frequency
 
 def npfrequ(bins):
@@ -104,7 +109,9 @@ if __name__ == '__main__':
     # dx=72./bins3
     # f1 = f(x3)
     # print np.trapz(f1, dx=dx)
-
+    frequencies = frequ('windrose_lissett_single_average_speed', 5)
+    print frequencies
+    print np.sum(frequencies)
     """f = wind_frequency_cubic()
     x = np.linspace(0.,72.,1000)
     x_wind = np.linspace(0.,72,72)
@@ -126,7 +133,7 @@ if __name__ == '__main__':
     plt.ylabel('Frequency')
     plt.show()"""
 
-    f = speed_frequ(1000)
+    """f = speed_frequ(1000)
     print f
     print np.sum(f)
 
@@ -139,7 +146,7 @@ if __name__ == '__main__':
     plt.plot(x,y)
     plt.xlabel('Wind Speed (m/s)')
     plt.ylabel('Probability')
-    plt.show()
+    plt.show()"""
 
 
 
