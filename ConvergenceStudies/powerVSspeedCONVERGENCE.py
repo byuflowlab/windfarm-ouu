@@ -7,6 +7,7 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
+from windFreqFunctions import *
 
 import cProfile
 
@@ -112,18 +113,13 @@ if __name__ == "__main__":
     # ERROR = np.array([])
     number_speeds = np.array([])
     max_min = np.array([])
-    max_speed = 15.
+    max_speed = 30.
 
     for speeds in range(1, 500):
         # Define flow properties
-        offset = 12.
-        windDirections = np.ones(speeds)*233.
-        windFrequencies = np.ones(speeds)/speeds
+        windDirections = np.ones(speeds)*225.
+        windFrequencies = speed_frequ(speeds)
         wind_speeds = np.linspace(0, max_speed, speeds)
-       #  windDirections = np.linspace(360/(2*speeds)+offset, (360+360/(2*speeds)+offset)-360/speeds, speeds)
-       # #windFrequencies = bin_frequency(bins)
-       #  f = wind_frequency_funcion()
-       #  windFrequencies = frequ(speeds, f)
 
         # initialize problem
         prob = Problem(impl=impl, root=AEPGroupFLORIS(nTurbines=nTurbs, nDirections=windDirections.size, resolution=0))
@@ -177,7 +173,7 @@ if __name__ == "__main__":
             max_min = np.append(max_min, prob['AEP'])
 
         mpi_print(prob,  'speeds: %s' % speeds)
-        np.savetxt("WindSpeedConvergence.txt", np.c_[number_speeds, AEP_data])
+        np.savetxt("weighted_convergence_AEP_VS_speeds.txt", np.c_[number_speeds, AEP_data])
 
     # plt.figure(1)
     # plt.plot(number_bins, AEP_data)

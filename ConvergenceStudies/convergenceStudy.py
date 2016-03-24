@@ -173,7 +173,7 @@ if __name__ == "__main__":
             max_min = np.append(max_min, prob['AEP'])
 
         mpi_print(prob,  'bins: %s' % bins)
-        # np.savetxt("AEP_VS_bins_try_3", np.c_[number_bins, AEP_data, ERROR])
+        np.savetxt("weighted_convergence_AEP_VS_bins", np.c_[number_bins, AEP_data, ERROR])
 
 
     # plt.figure(1)

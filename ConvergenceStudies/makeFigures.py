@@ -42,7 +42,7 @@ if __name__=="__main__":
     # plt.ylim([2000, 3000])
     plt.xlabel('Wind Direction Weighted with Frequency')
     plt.ylabel('Power (kW)')
-    # plt.title('AEP vs Number of Wind directions: 10x10 grid')
+    plt.title('10x10 Grid:  Power vs Weighted Wind Direction')
 
     converged = y[len(y)-1]
     

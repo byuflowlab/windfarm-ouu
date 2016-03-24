@@ -11,7 +11,16 @@ if __name__ == "__main__":
 
     # define turbine locations in global reference frame
     rotor_diameter = 126.4  # (m)
+    
+    "Princess Amalia turbines"
+    amalia_x = open("amalia_x.txt")
+    # turbineX = np.loadtxt(amalia_x)
+    amalia_x.close()
+    amalia_y = open("amalia_y.txt")
+    # turbineY = np.loadtxt(amalia_y)
+    amalia_y.close()
 
+    "Grid of turbines"
     # Scaling grid case
     nRows = 10   # number of rows and columns in grid
     spacing = 5     # turbine grid spacing in diameters
@@ -22,6 +31,7 @@ if __name__ == "__main__":
     turbineX = np.ndarray.flatten(xpoints)
     turbineY = np.ndarray.flatten(ypoints)
 
+    "Random Turbines"
     # turbineX = np.zeros(100)
     # turbineY = np.zeros(100)
     # for i in range(100):
