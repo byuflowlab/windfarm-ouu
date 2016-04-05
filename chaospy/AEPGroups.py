@@ -13,7 +13,7 @@ class AEPGroup(Group):
     Group containing all necessary components for wind plant AEP calculations using the FLORIS model
     """
 
-    def __init__(self, nTurbines, resolution=0, nDirections=1, use_rotor_components=False, datasize=0, method='', dakotaFileName=''):
+    def __init__(self, nTurbines, resolution=0, nDirections=1, use_rotor_components=False, datasize=0, method='', method_dict=None):
 
         super(AEPGroup, self).__init__()
 
@@ -71,11 +71,11 @@ class AEPGroup(Group):
         # Specify how the energy statistics are computed
         self.add('powerMUX', MUX(nDirections, units=power_units))
         if method == 'dakota':
-            self.add('AEPcomp', DakotaStatistics(nDirections, dakotaFileName), promotes=['*'])
+            self.add('AEPcomp', DakotaStatistics(nDirections, method_dict), promotes=['*'])
         elif method == 'chaospy':
-            self.add('AEPcomp', ChaospyStatistics(nDirections), promotes=['*'])
+            self.add('AEPcomp', ChaospyStatistics(nDirections, method_dict), promotes=['*'])
         elif method == 'rect':
-            self.add('AEPcomp', RectStatistics(nDirections), promotes=['*'])
+            self.add('AEPcomp', RectStatistics(nDirections, method_dict), promotes=['*'])
         else:
             print "Specify one of these UQ methods = ['dakota', 'chaospy', 'rect']"
             sys.exit()
@@ -89,5 +89,7 @@ class AEPGroup(Group):
             self.connect('power%i' % direction_id, 'powerMUX.input%i' % direction_id)
             self.connect('windSpeedsDeMUX.output%i' % direction_id, 'direction_group%i.wind_speed' % direction_id)
         self.connect('powerMUX.Array', 'power')
+        # self.connect('power', 'powerMUX.Array')  # reversing the order doesn't work.
+
 
 

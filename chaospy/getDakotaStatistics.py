@@ -51,7 +51,7 @@ def postprocess():
             line = f.readline()
             if 'Mean' in line:
                 # function value
-                # f.readline()  # for the least squares case
+                f.readline()  # for the least squares case
                 line = f.readline()
                 mean = float(line.split()[1])
                 std = float(line.split()[2])

@@ -5,40 +5,6 @@ from scipy.interpolate import interp1d
 from scipy import special
 
 
-
-
-def trapezoid(n):
-    a = 0.0
-    b = 360.0
-    x = np.linspace(a, b, n+1)
-    w = np.ones(n+1)*(b-a)/(2*n)
-    w[0] *= 0.5
-    w[-1] *= 0.5
-    f = amaliaWindRose().pdf(x)
-    w *= f
-    return [x], w
-
-
-def rectangle2(n):
-    a = 0.0
-    b = 360.0
-    step = (b-a)/n
-    x = np.linspace(a+step/2, b-step/2, n)
-    w = np.ones(n)*step  # Integration weight, the dx interval
-    f = amaliaWindRose().pdf(x)
-    w *= f
-    return [x], w
-
-def rectangle(n):
-    a = 0.0
-    b = 30.0
-    step = (b-a)/n
-    x = np.linspace(a+step/2, b-step/2, n)
-    w = np.ones(n)*step  # Integration weight, the dx interval
-    f = myWeibull().pdf(x)
-    w *= f
-    return [x], w
-
 class amaliaWindRose(object):
     # Fill out this class
     def __init__(self):
@@ -76,7 +42,6 @@ class amaliaWindRose(object):
 
     def bnd(self):
         return (self.lo, self.hi)
-
 
 
 class myWeibull(object):

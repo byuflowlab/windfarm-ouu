@@ -4,14 +4,14 @@ from openmdao.api import Problem
 from AEPGroups import AEPGroup
 
 
-def problem_set_up(windspeeds, winddirections, method='rect', dakotaInputFile=''):
+def problem_set_up(windspeeds, winddirections, method='rect', method_dict=None):
     """Set up wind farm problem.
 
     Args:
         windspeeds (np.array): wind speeds vector
         winddirections (np.array): wind directions vector
         method (string): UQ method to use
-        dakotaInputFile (string): filename of dakota input file
+        method_dict (dict): Parameters for the UQ method
 
     Returns:
         prob (openMDAO problem class): The set up wind farm.
@@ -58,7 +58,8 @@ def problem_set_up(windspeeds, winddirections, method='rect', dakotaInputFile=''
         yaw[turbI] = 0.     # deg.
 
     # initialize problem
-    prob = Problem(AEPGroup(nTurbines=nTurbs, nDirections=winddirections.size, method=method, dakotaFileName=dakotaInputFile))
+    prob = Problem(AEPGroup(nTurbines=nTurbs, nDirections=winddirections.size,
+                            method=method, method_dict=method_dict))
 
     # initialize problem
     prob.setup(check=False)

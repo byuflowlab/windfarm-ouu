@@ -4,12 +4,13 @@ import os
 import chaospy as cp
 import distributions
 from getSamplePoints import getSamplePoints
+import quadrature_rules
 
 
 class DakotaStatistics(ExternalCode):
-    """Use Dakota to estimate the AEP based on weighted power production."""
+    """Use Dakota to estimate the statistics."""
 
-    def __init__(self, nDirections=10, dakotaFileName='dakotaAEP.in'):
+    def __init__(self, nDirections=10, method_dict=None):
         super(DakotaStatistics, self).__init__()
 
         # set finite difference options (fd used for testing only)
@@ -28,7 +29,7 @@ class DakotaStatistics(ExternalCode):
 
         # File in which the external code is implemented
         pythonfile = 'getDakotaStatistics.py'
-        self.options['command'] = ['python', pythonfile, dakotaFileName]
+        self.options['command'] = ['python', pythonfile, method_dict['filename']]
 
     def solve_nonlinear(self, params, unknowns, resids):
 
@@ -41,9 +42,9 @@ class DakotaStatistics(ExternalCode):
 
         os.remove('powerInput.txt')
 
-        # Read in the calculated AEP
         # number of hours in a year
         hours = 8760.0
+        # promote statistics to class attribute
         unknowns['mean'] = np.loadtxt('mean.txt')*hours
         unknowns['std'] = np.loadtxt('std.txt')*hours
 
@@ -59,7 +60,7 @@ class DakotaStatistics(ExternalCode):
 class ChaospyStatistics(Component):
     """Use chaospy to estimate the statistics."""
 
-    def __init__(self, nDirections=10):
+    def __init__(self, nDirections=10, method_dict=None):
         super(ChaospyStatistics, self).__init__()
 
         # set finite difference options (fd used for testing only)
@@ -71,6 +72,8 @@ class ChaospyStatistics(Component):
         # define inputs
         self.add_param('power', np.zeros(nDirections), units ='kW',
                        desc = 'vector containing the power production at each wind direction ccw from north')
+        self.add_param('method_dict', method_dict,
+                       desc = 'parameters for the UQ method')
 
         # define output
         self.add_output('mean', val=0.0, units='kWh', desc='mean annual energy output of wind farm')
@@ -80,42 +83,40 @@ class ChaospyStatistics(Component):
     def solve_nonlinear(self, params, unknowns, resids):
 
         power = params['power']
+        method_dict = params['method_dict']
+        dist = method_dict['distribution']
+        rule = method_dict['rule']
         n = len(power)
-        # windrose_dist = distributions.getWindRose()
-        weibull_dist = distributions.getWeibull()
-        # weibull_dist = cp.weibull(a=0.1)
-        print 'aloha', weibull_dist
-        # weibull_dist = distributions.getWindRose()
-        points, weights = cp.generate_quadrature(order=n-1, domain=weibull_dist, rule="Clenshaw")
-        # points, weights = cp.generate_quadrature(order=n, domain=weibull_dist, rule="L")
-        # points, weights = trapezoid(n-1)
-        # points, weights = distributions.rectangle(n)
-        poly = cp.orth_chol(n-1, weibull_dist)  # double check this is giving me good orthogonal polynomials.
-        # poly = cp.orth_gs(n-1, weibull_dist)
-        print poly, '\n'
+        if rule != 'rectangle':
+            points, weights = cp.generate_quadrature(order=n-1, domain=dist, rule=rule)
+        else:
+            points, weights = quadrature_rules.rectangle(n, method_dict['distribution'])
+
+        poly = cp.orth_chol(n-1, dist)
+        # double check this is giving me good orthogonal polynomials.
+        # print poly, '\n'
         p2 = cp.outer(poly, poly)
-        print 'chol', cp.E(p2, weibull_dist)
-        norms = np.diagonal(cp.E(p2, weibull_dist))
-        print 'diag', norms
+        # print 'chol', cp.E(p2, dist)
+        norms = np.diagonal(cp.E(p2, dist))
+        # print 'diag', norms
 
         expansion, coeff = cp.fit_quadrature(poly, points, weights, power, retall=True, norms=norms)
         # expansion, coeff = cp.fit_quadrature(poly, points, weights, power, retall=True)
 
-        mean = cp.E(expansion, weibull_dist)
-        # print poly[0]
-        # print cp.E(poly[0]*poly[0], weibull_dist)
+        mean = cp.E(expansion, dist)
         print 'mean cp.E =', mean
         # mean = sum(power*weights)
-        print 'mean sum =', mean
+        print 'mean sum =', sum(power*weights)
         print 'mean coeff =', coeff[0]
-        std = cp.Std(expansion, weibull_dist)
+        std = cp.Std(expansion, dist)
 
         print mean
         print std
-        print np.sqrt(np.sum(coeff[1:]**2 * cp.E(poly**2, weibull_dist)[1:]))
+        print np.sqrt(np.sum(coeff[1:]**2 * cp.E(poly**2, dist)[1:]))
 
         # number of hours in a year
         hours = 8760.0
+        # promote statistics to class attribute
         unknowns['mean'] = mean*hours
         unknowns['std'] = std*hours
 
@@ -129,9 +130,9 @@ class ChaospyStatistics(Component):
 
 
 class RectStatistics(Component):
-    """Use simple integration to estimate the AEP based on weighted power production."""
+    """Use simple rectangle integration to estimate the statistics."""
 
-    def __init__(self, nDirections=10):
+    def __init__(self, nDirections=10, method_dict=None):
 
         super(RectStatistics, self).__init__()
 
@@ -143,36 +144,29 @@ class RectStatistics(Component):
         # define inputs
         self.add_param('power', np.zeros(nDirections), units ='kW',
                        desc = 'vector containing the power production at each wind direction ccw from north')
-        self.add_param('weights', np.zeros(nDirections),
-                       desc = 'vector containing the weights for integration.')
-        self.add_param('frequency', np.zeros(nDirections),
-                       desc = 'vector containing the frequency from the probability density function.')
+        self.add_param('method_dict', method_dict,
+                       desc = 'parameters for the UQ method')
 
         # define output
-        self.add_output('AEP', val=0.0, units='kWh', desc='total annual energy output of wind farm')
-        self.add_output('std_energy', val=0.0, units='kWh', desc='standard deviation of energy output of wind farm')
-
+        self.add_output('mean', val=0.0, units='kWh', desc='mean annual energy output of wind farm')
+        self.add_output('std', val=0.0, units='kWh', desc='std of energy output of wind farm')
 
     def solve_nonlinear(self, params, unknowns, resids):
 
         power = params['power']
-        rho = params['frequency']
-        weight = params['weights'] # The weights of the integration points
+        n = len(power)
+        method_dict = params['method_dict']
+        dist = method_dict['distribution']
+        unused, weights = quadrature_rules.rectangle(n, method_dict['distribution'])
+
+        mean = sum(power*weights)
+        std = np.sqrt(sum(np.power(power, 2)*weights) - np.power(mean, 2))  # Revisar if this is right
 
         # number of hours in a year
         hours = 8760.0
-
-        # calculate the statistics
-        mean = sum(power*weight*rho)
-        print 'first term = ', sum(np.power(power, 2)*weight*rho)/1e9
-        print 'second term = ', np.power(mean, 2)/1e9
-        std = np.sqrt(sum(np.power(power, 2)*weight*rho) - np.power(mean, 2))
-        AEP = mean*hours
-        std_energy = std*hours
-
-        # promote AEP result to class attribute
-        unknowns['AEP'] = AEP
-        unknowns['std_energy'] = std_energy
+        # promote statistics to class attribute
+        unknowns['mean'] = mean*hours
+        unknowns['std'] = std*hours
 
         print 'In RectStatistics'
 

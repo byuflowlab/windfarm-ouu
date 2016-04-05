@@ -20,31 +20,36 @@ from wind_pdfs import wind_speed_pdfweibull, wind_direction_pdf
 
 if __name__ == "__main__":
 
+    method = 'dakota'
+    method_dict = {}
     mean = []
     std = []
     samples = []
-    for n in range(10,51,1):
 
-        # n = 10  # Number of points
-        dakotaFileName = 'dakotaAEPspeed.in'
+    method_dict['filename'] = 'dakotaAEPspeed.in'
+
+    for n in range(20,21,1):
 
         # Update dakota file with desired number of sample points
-        updateDakotaFile2(dakotaFileName, n)
+        updateDakotaFile(method_dict['filename'], n)
 
         # run Dakota file to get the points locations (also weights)
-        points = getSamplePoints(dakotaFileName)
+        points, unused = getSamplePoints(method_dict['filename'])
 
         # For wind speed
         windspeeds = points
         winddirections = np.ones(n)*225
 
-        print 'Locations at which power is evaluated'
-        for point in windspeeds:
-            print '\t', point
+        # windspeeds = np.ones(n)*8
+        # winddirections = points[0]
 
+        print 'Locations at which power is evaluated'
+        print '\twindspeed \t winddirection'
+        for i in range(n):
+            print i+1,'\t', '%.2f' %windspeeds[i], '\t', '%.2f' %winddirections[i]
 
         # Set up problem, define the turbine locations and all that stuff, pass it the wind direction x
-        prob = problem_set_up(windspeeds, winddirections, dakotaFileName)
+        prob = problem_set_up(windspeeds, winddirections, method, method_dict)
 
         prob.run()
 
@@ -61,8 +66,8 @@ if __name__ == "__main__":
     # Save a record of the run
     power = prob['power']
     hours = 8760
-    print np.mean(power)*hours/1e6
-    print np.std(power)*hours/1e6
+    # print np.mean(power)*hours/1e6
+    # print np.std(power)*hours/1e6
 
     obj = {'mean': mean, 'std': std, 'samples': samples, 'winddirections': winddirections.tolist(),
            'windspeeds': windspeeds.tolist(), 'power': power.tolist()}

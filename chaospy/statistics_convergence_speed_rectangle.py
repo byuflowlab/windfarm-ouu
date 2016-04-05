@@ -22,7 +22,7 @@ import quadrature_rules
 
 if __name__ == "__main__":
 
-    method = 'chaospy'
+    method = 'rect'
     method_dict = {}
     mean = []
     std = []
@@ -32,16 +32,11 @@ if __name__ == "__main__":
     weibull_dist = distributions.getWeibull()
 
     method_dict['distribution'] = weibull_dist
-    method_dict['rule'] = 'Clenshaw'
-    # method_dict['rule'] = 'rectangle'
 
     for n in range(20,21,1):
 
         # Get the points at which to evaluate the wind farm
-        if method_dict['rule'] != 'rectangle':
-            points, unused = cp.generate_quadrature(order=n-1, domain=method_dict['distribution'], rule=method_dict['rule'])
-        else:
-            points, unused = quadrature_rules.rectangle(n, method_dict['distribution'])
+        points, unused = quadrature_rules.rectangle(n, method_dict['distribution'])
 
         windspeeds = points[0]
         winddirections = np.ones(n)*225

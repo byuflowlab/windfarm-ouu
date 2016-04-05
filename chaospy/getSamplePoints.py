@@ -5,7 +5,7 @@ import numpy as np
 from dakotaInterface import RedirectOutput
 
 
-def getSamplePoints(dakotaFile):
+def getSamplePoints2(dakotaFile):
     """Call Dakota to get the sample points.
 
     Args:
@@ -41,7 +41,7 @@ def getSamplePoints(dakotaFile):
     return x
 
 
-def getSamplePoints2(dakotaFile):
+def getSamplePoints(dakotaFile):
     """Call Dakota to get the sample points.
 
     Args:
