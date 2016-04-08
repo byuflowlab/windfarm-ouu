@@ -44,7 +44,7 @@ if __name__ == '__main__':
     windFrequencies = np.ones_like(windDirections)*1.0/nDirections  # deg (N = 0 deg., using direction FROM, as in met-mast data)
 
     # set up problem
-    prob = Problem(dakotaGroupAEP(nTurbines=nTurbs, nDirections=nDirections))
+    prob = Problem(dakotaGroupAEP(nTurbines=nTurbs, nDirections=nDirections, use_rotor_components=False))
 
     # initialize problem
     prob.setup(check=True)
