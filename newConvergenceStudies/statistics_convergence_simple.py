@@ -59,10 +59,10 @@ if __name__ == "__main__":
 
 
     # Save a record of the run
-    power = prob['power']
+    power = prob['dirPowers']
     power = power*rho  # Saved the weighted power
     obj = {'AEP': AEP, 'std_energy': std_energy, 'samples': samples, 'winddirections': winddirections.tolist(),
-           'windspeeds': windspeeds.tolist(), 'power': power.tolist()}
+           'windspeeds': windspeeds.tolist(), 'dirPowers': power.tolist()}
     jsonfile = open('record.json','w')
     json.dump(obj, jsonfile, indent=2)
     jsonfile.close()
