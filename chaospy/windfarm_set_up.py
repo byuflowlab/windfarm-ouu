@@ -69,7 +69,7 @@ def problem_set_up(windspeeds, winddirections, method='rect', method_dict=None):
     prob['windDirections'] = winddirections
     prob['rotorDiameter'] = rotorDiameter
     prob['axialInduction'] = axialInduction
-    prob['generator_efficiency'] = generator_efficiency
+    prob['generatorEfficiency'] = generator_efficiency
     prob['air_density'] = air_density
     prob['Ct_in'] = Ct
     prob['Cp_in'] = Cp

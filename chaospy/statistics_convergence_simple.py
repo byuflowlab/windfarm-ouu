@@ -41,9 +41,11 @@ if __name__ == "__main__":
         print 'Locations at which power is evaluated'
         for point in winddirections:
             print '\t', point
-
+        
+        method_dict = {}
+        method_dict['distribution'] = rho
         # Set up problem, define the turbine locations and all that stuff
-        prob = problem_set_up(windspeeds, winddirections, weights, rho)
+        prob = problem_set_up(windspeeds, winddirections,'rect', method_dict)
 
         prob.run()
 
