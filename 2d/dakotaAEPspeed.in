@@ -1,0 +1,46 @@
+# For OUU wind farm
+environment
+    tabular_data
+
+method
+    polynomial_chaos
+quadrature_order  29
+#    expansion_order 20
+        #expansion_samples 10
+#collocation_points  10
+        #collocation_ratio = 2
+#        cross_validation
+#        seed = 100
+    normalized
+    output verbose
+
+model
+    single
+
+variables
+    #uniform_uncertain = 1
+    #lower_bounds = 0
+    #upper_bounds = 30
+    #weibull_uncertain = 1
+    #alphas = 1.8
+    #betas = 12.552983
+    histogram_bin_uncertain = 1
+    abscissas = 0.0 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0 11.0 12.0 13.0 14.0 15.0 16.0 17.0 18.0 19.0 20.0 21.0 22.0 23.0 24.0 25.0 26.0 27.0 28.0 29.0 30.0 100.0
+    ordinates = 1.0e-5 0.0187480762381 0.0318004901391 0.0422862191259 0.0505528484962 0.0567380447402 0.0609600401657 0.0633615561945 0.0641180389641 0.0634335154342 0.0615316297679 0.0586451353688 0.0550055649629 0.0508340698879 0.0463339859798 0.0416853830101 0.0370416324975 0.0325278654209 0.0282410785709 0.024251580268 0.0206054369109 0.0173275843645 0.0144252949488 0.0118917340509 0.00970939295035 0.00785324005998 0.00629348644216 0.00499790954659 0.00393371935506 0.00306898245977 0.00237364197652 0.0
+    descriptors = 'x'
+
+interface
+    id_interface = 'UQ_INTERFACE'
+    fork
+        analysis_drivers = 'getPower.py'
+        parameters_file = 'params.in'
+        results_file = 'results.out'
+        file_save
+
+responses
+    num_response_functions = 1
+    no_gradients
+    no_hessians
+    descriptors = 'power'
+
+
