@@ -19,7 +19,7 @@ class DakotaStatistics(ExternalCode):
         self.fd_options['step_type'] = 'relative'
 
         # define inputs
-        self.add_param('power', np.zeros(nDirections), units ='kW',
+        self.add_param('dirPowers', np.zeros(nDirections), units ='kW',
                        desc = 'vector containing the power production at each wind direction ccw from north')
 
         # define output
@@ -33,8 +33,8 @@ class DakotaStatistics(ExternalCode):
     def solve_nonlinear(self, params, unknowns, resids):
 
         # Generate the file with the power vector for Dakota
-        power = params['power']
-        np.savetxt('powerInput.txt', power, header='power')
+        power = params['dirPowers']
+        np.savetxt('powerInput.txt', power, header='dirPowers')
 
         # parent solve_nonlinear function actually runs the external code
         super(DakotaStatistics, self).solve_nonlinear(params,unknowns,resids)
@@ -69,7 +69,7 @@ class ChaospyStatistics(Component):
         self.fd_options['step_type'] = 'relative'
 
         # define inputs
-        self.add_param('power', np.zeros(nDirections), units ='kW',
+        self.add_param('dirPowers', np.zeros(nDirections), units ='kW',
                        desc = 'vector containing the power production at each wind direction ccw from north')
         self.add_param('method_dict', method_dict,
                        desc = 'parameters for the UQ method')
@@ -81,7 +81,7 @@ class ChaospyStatistics(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
 
-        power = params['power']
+        power = params['dirPowers']
         method_dict = params['method_dict']
         dist = method_dict['distribution']
         rule = method_dict['rule']
@@ -142,10 +142,12 @@ class RectStatistics(Component):
         self.fd_options['step_type'] = 'relative'
 
         # define inputs
-        self.add_param('power', np.zeros(nDirections), units ='kW',
+        self.add_param('dirPowers', np.zeros(nDirections), units ='kW',
                        desc = 'vector containing the power production at each wind direction ccw from north')
         self.add_param('method_dict', method_dict,
                        desc = 'parameters for the UQ method')
+        self.add_param('weights', np.zeros(nDirections), desc = 'weight assigned to each wind direction when integrating')
+        self.add_param('frequency', np.zeros(nDirections), desc = 'the frequency to wind from each direction')
 
         # define output
         self.add_output('mean', val=0.0, units='kWh', desc='mean annual energy output of wind farm')
@@ -153,7 +155,7 @@ class RectStatistics(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
 
-        power = params['power']
+        power = params['dirPowers']
         n = len(power)
         method_dict = params['method_dict']
         dist = method_dict['distribution']
@@ -178,7 +180,7 @@ class RectStatistics(Component):
 
 def linearize_function(params):
 
-    power = params['power']
+    power = params['dirPowers']
     weight = params['weights'] # The weights of the integration points
     rho = params['frequency']
     # number of hours in a year
@@ -188,7 +190,7 @@ def linearize_function(params):
     dAEP_drho = power*weight*hours
 
     J = {}
-    J[('AEP', 'power')] = np.array([dAEP_dpower])
+    J[('AEP', 'dirPowers')] = np.array([dAEP_dpower])
     J[('AEP', 'weights')] = np.array([dAEP_dweight])
     J[('AEP', 'frequency')] = np.array([dAEP_drho])
 
@@ -203,18 +205,18 @@ if __name__ == "__main__":
     f = wind_direction_pdf()
     rho = f(winddirections)
     prob = Problem(root=Group())
-    prob.root.add('p', IndepVarComp('power', np.random.rand(10)))
+    prob.root.add('p', IndepVarComp('dirPowers', np.random.rand(10)))
     prob.root.add('w', IndepVarComp('weight', weights))
     prob.root.add('rho', IndepVarComp('frequency', rho))
     # prob.root.add('DakotaAEP', DakotaAEP(dakotaFileName=dakotaFileName))
     prob.root.add('DakotaAEP', SimpleAEP())
-    prob.root.connect('p.power', 'DakotaAEP.power')
+    prob.root.connect('p.dirPowers', 'DakotaAEP.dirPowers')
     prob.root.connect('w.weight', 'DakotaAEP.weights')
     prob.root.connect('rho.frequency', 'DakotaAEP.frequency')
     prob.setup()
     prob.run()
     print 'AEP = ', (prob.root.DakotaAEP.unknowns['AEP'])
-    print 'power directions = ', (prob.root.DakotaAEP.params['power'])
+    print 'power directions = ', (prob.root.DakotaAEP.params['dirPowers'])
     print prob.root.DakotaAEP.params.keys()
     # The DakotaAEP.power_directions key is not recognized
     # J = prob.calc_gradient(['DakotaAEP.AEP'], ['DakotaAEP.power'])

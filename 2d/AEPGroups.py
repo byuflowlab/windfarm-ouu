@@ -111,7 +111,7 @@ class AEPGroup(Group):
             self.connect('windDirectionsDeMUX.output%i' % direction_id, 'direction_group%i.wind_direction' % direction_id)
             self.connect('windSpeedsDeMUX.output%i' % direction_id, 'direction_group%i.wind_speed' % direction_id)
             self.connect('dir_power%i' % direction_id, 'powerMUX.input%i' % direction_id)
-        self.connect('powerMUX.Array', 'power')
+        self.connect('powerMUX.Array', 'dirPowers')
 
 
 

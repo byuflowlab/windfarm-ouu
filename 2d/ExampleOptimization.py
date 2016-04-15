@@ -10,6 +10,7 @@ import numpy as np
 import pylab as plt
 
 import cProfile
+import quadrature_rules
 
 
 import sys
@@ -49,7 +50,7 @@ if __name__ == "__main__":
 
     # Scaling grid case
     #nRows = int(sys.argv[1])     # number of rows and columns in grid
-    nRows = 3
+    nRows = 2
     spacing = 5     # turbine grid spacing in diameters
 
     # Set up position arrays
@@ -78,16 +79,22 @@ if __name__ == "__main__":
         yaw[turbI] = 0.     # deg.
 
     # Define flow properties
-    wind_speed = 8.0        # m/s
-    air_density = 1.1716    # kg/m^3
-    windDirections = np.linspace(0, 270, size)
-    windFrequencies = np.ones_like(windDirections)*1.0/size
-    
+    # Get the points at which to evaluate the wind farm
+
     method = 'rect'
     dist = distributions.getWindRose()
 
     method_dict = {}
     method_dict['distribution'] = dist
+    n = 30
+    points, unused = quadrature_rules.rectangle(n, method_dict['distribution'])
+    windspeeds = np.ones(n)*8
+    windDirections = points[0]     # m/s
+    
+    air_density = 1.1716    # kg/m^3
+    #windDirections = np.linspace(0, 270, size)
+    #windFrequencies = np.ones_like(windDirections)*1.0/size
+    
 
     # initialize problem
     prob = Problem(impl=impl, root=OptAEP(nTurbines=nTurbs, nDirections=windDirections.size,                                        minSpacing=minSpacing, use_rotor_components=False, datasize=0, differentiable=True, force_fd=False, nSamples=0, method=method, method_dict=method_dict))
@@ -130,7 +137,8 @@ if __name__ == "__main__":
     prob['rotorDiameter'] = rotorDiameter
     prob['axialInduction'] = axialInduction
     prob['generatorEfficiency'] = generatorEfficiency
-    prob['windSpeeds'] = np.ones(windDirections.size)*wind_speed
+    # prob['windSpeeds'] = np.ones(windDirections.size)*wind_speed
+    prob['windSpeeds'] = windspeeds
     prob['air_density'] = air_density
     prob['windDirections'] = windDirections
     # prob['windFrequencies'] = windFrequencies
