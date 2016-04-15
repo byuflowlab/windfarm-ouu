@@ -85,7 +85,7 @@ class OptAEP(Group):
                  promotes=['*'])
 
         # add objective component
-        self.add('obj_comp', ExecComp('obj = -1.*AEP', AEP=0.0), promotes=['*'])
+        self.add('obj_comp', ExecComp('obj = -1.*mean', mean=0.0), promotes=['*'])
 
 
 
