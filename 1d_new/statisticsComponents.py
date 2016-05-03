@@ -28,7 +28,7 @@ class DakotaStatistics(ExternalCode):
 
         # File in which the external code is implemented
         pythonfile = 'getDakotaStatistics.py'
-        self.options['command'] = ['python', pythonfile, method_dict['filename']]
+        self.options['command'] = ['python', pythonfile, method_dict['dakota_filename']]
 
     def solve_nonlinear(self, params, unknowns, resids):
 
@@ -158,15 +158,20 @@ class RectStatistics(Component):
         method_dict = params['method_dict']
         dist = method_dict['distribution']
         unused, weights = quadrature_rules.rectangle(n, method_dict['distribution'])
+        # print weights
 
         mean = sum(power*weights)
-        std = np.sqrt(sum(np.power(power, 2)*weights) - np.power(mean, 2))  # Revisar if this is right
+        # Calculate std to ensure it is positive, first method could have issues for small number of samples
+        # std = np.sqrt(sum(np.power(power, 2)*weights) - np.power(mean, 2))  # Revisar if this is right
+        var = np.sum(np.power(power - mean, 2) * weights)
+        std = np.sqrt(var)
 
         # number of hours in a year
         hours = 8760.0
         # promote statistics to class attribute
         unknowns['mean'] = mean*hours
         unknowns['std'] = std*hours
+
 
         print 'In RectStatistics'
 
@@ -179,18 +184,17 @@ class RectStatistics(Component):
 def linearize_function(params):
 
     power = params['power']
-    weight = params['weights'] # The weights of the integration points
-    rho = params['frequency']
+    n = len(power)
+    method_dict = params['method_dict']
+    dist = method_dict['distribution']
+    unused, weights = quadrature_rules.rectangle(n, method_dict['distribution'])
+
     # number of hours in a year
     hours = 8760.0
-    dAEP_dpower = weight*rho*hours
-    dAEP_dweight = power*rho*hours
-    dAEP_drho = power*weight*hours
+    dAEP_dpower = weights*hours
 
     J = {}
-    J[('AEP', 'power')] = np.array([dAEP_dpower])
-    J[('AEP', 'weights')] = np.array([dAEP_dweight])
-    J[('AEP', 'frequency')] = np.array([dAEP_drho])
+    J[('mean', 'power')] = np.array([dAEP_dpower])
 
     return J
 

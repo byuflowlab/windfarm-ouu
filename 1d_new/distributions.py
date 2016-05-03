@@ -1,6 +1,6 @@
 import chaospy as cp
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from scipy import special
 
@@ -22,8 +22,14 @@ class amaliaWindRose(object):
         f = interp1d(x, wind_data)
         return f
 
+    def _wind_rose_poly_func(self):
+        def f(x):
+            return np.array([f_helper(z) for z in x[0]])  # I'm not sure why this x became an array of arrays.
+        return f
+
     def pdf(self, x):
         f = self._wind_rose_func()
+        # f = self._wind_rose_poly_func()  # This will give me different results for the rectangle method.
         return f(x)
 
     def cdf(self, x):
@@ -92,6 +98,7 @@ def getWeibull():
         bnd = lambda self: my_weibull.bnd(),
         pdf = lambda self, x: my_weibull.pdf(x),
         # mom = lambda self, k: my_weibull.mom(k),
+        mom = lambda self, x: my_weibull.cdf(x),
         str = lambda self: my_weibull.str()
     )
 
@@ -120,23 +127,98 @@ def getWindRose():
     # print windrose_dist.range()
     return windrose_dist
 
-x = np.linspace(0,30)
-x = np.linspace(0,30,31)
-print x
-weibull = getWeibull()
-# weibull = cp.weibull(a=0.1)
-y = weibull.pdf(x)
-print np.sum(y)
-print y
-a = ''
-for xi in y:
-    a = a + str(xi) + ' '
-print a
-plt.figure()
-plt.plot(x, y)
 
-plt.show()
+def windrose_polyfit(x):
+    y = 493597.250387841  *np.power(x, 12) + \
+        -207774.160030495 *np.power(x, 11) + \
+        -413203.013010848 *np.power(x, 10) + \
+        158080.893880027  *np.power(x, 9) + \
+        127607.500730722  *np.power(x, 8) + \
+        -44242.1722820275 *np.power(x, 7) + \
+        -17735.2623897828 *np.power(x, 6) + \
+        5422.11156037294  *np.power(x, 5) + \
+        1057.31910521884  *np.power(x, 4) + \
+        -253.807324825523 *np.power(x, 3) + \
+        -19.8973363502958 *np.power(x, 2) + \
+        1.43458543839655  *np.power(x, 1) + \
+        1.05778787373732  *np.power(x, 0)
+    return y
 
+def f_helper(x):
+    a = 140
+    b = 470
+    if x >= 140:
+        x1 = (x - (b+a)/2.) / (b-a)
+        return windrose_polyfit(x1)/360
+    elif x <= 110:
+        x1 = (x + 360 - (b+a)/2.) / (b-a)
+        return windrose_polyfit(x1)/360
+    else:
+        return 0.0
+
+# dist = getWindRose()
+# x1 = np.linspace(0,360,361)
+# y1 = dist.pdf(x1)
+# # print np.sum(y)
+# # plt.figure()
+# # plt.plot(x, y)
+#
+# x = np.linspace(-0.5, 0.5, 361)
+# dx = x[1]-x[0]
+# a = 140
+# b = 470
+# xnew = ((b+a)/2. + (b-a)*x)%360
+# index = np.argsort(xnew)
+# # print xnew[index]
+#
+# y = windrose_polyfit(x)
+# # print y
+# # print np.sum(y*dx)
+# fig, ax = plt.subplots()
+# ax.plot(x1, y1, label='original')
+# ax.plot(xnew[index], y[index]/360., label='smooth')
+# # ax.plot(x, y, label='smooth')
+# ax.legend()
+
+# # The matlab file PJ sent me
+# # Polynomial fit
+# # polynomial coefficients
+# alpha = np.array([493597.250387841, -207774.160030495, -413203.013010848, 158080.893880027, 127607.500730722, -44242.1722820275, -17735.2623897828, 5422.11156037294, 1057.31910521884, -253.807324825523, -19.8973363502958, 1.43458543839655, 1.05778787373732])
+# # alpha = np.array([493597.250387841, -207774.160030495])
+# z = np.arange(0, 335*np.pi/180., 0.01)
+# # print z
+# x = z/(335*np.pi/180.) - 0.5
+# # print x
+# y = np.polyval(alpha, x)
+# plt.figure()
+# plt.plot(x, y)
+
+
+
+# plt.show()
+
+
+
+
+# x = np.linspace(0,30)
+# x = np.linspace(0,30,1001)
+# dx= x[1]-x[0]
+# print x
+# weibull = getWeibull()
+# # weibull = cp.weibull(a=0.1)
+# y = weibull.pdf(x)
+# # y = weibull.pdf(x+0.5)
+# print np.sum(y)*dx
+# # print y
+# a = ''
+# for xi in y:
+#     a = a + str(xi) + ' '
+# # print a
+# plt.figure()
+# plt.plot(x, y)
+#
+# plt.show()
+# 0.991836543302
 # print wind_rose
 # nodes, weights = cp.generate_quadrature(order=23, domain=wind_rose, rule="Gaussian")  # Seems like I can only get same optimal points as Dakota! But maybe I can try other rules.
 # print nodes

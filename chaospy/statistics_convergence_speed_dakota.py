@@ -27,8 +27,10 @@ if __name__ == "__main__":
     samples = []
 
     method_dict['filename'] = 'dakotaAEPspeed.in'
+    # method_dict['filename'] = 'dakotaAEPdirection.in'
 
-    for n in range(20,21,1):
+
+    for n in range(1,30,1):
 
         # Update dakota file with desired number of sample points
         updateDakotaFile(method_dict['filename'], n)
@@ -41,7 +43,7 @@ if __name__ == "__main__":
         winddirections = np.ones(n)*225
 
         # windspeeds = np.ones(n)*8
-        # winddirections = points[0]
+        # winddirections = points
 
         print 'Locations at which power is evaluated'
         print '\twindspeed \t winddirection'

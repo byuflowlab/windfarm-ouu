@@ -2,53 +2,48 @@
 import numpy as np
 # import matplotlib.pyplot as plt
 import json
-import chaospy as cp
 from getSamplePoints import getSamplePoints
 from windfarm_set_up import problem_set_up
 from dakotaInterface import updateDakotaFile, updateDakotaFile2
-# from wind_pdfs import wind_speed_pdfweibull, wind_direction_pdf
-import distributions
-import quadrature_rules
-
-# Put this in the simple case
-# ------ Problem we are solving is of the form ------ #
-#   mu_p = int p(x)rho(x) dx = sum p(x_i)rho(x_i)w(x_i)
-#   where p is the power, x is the uncertain variable
-#   rho is the probability density function of the
-#   uncertain variable and w is the numerical
-#   integration weight.
-# --------------------------------------------------- #
 
 
 if __name__ == "__main__":
 
-    method = 'rect'
+    method = 'dakota'
     method_dict = {}
     mean = []
     std = []
     samples = []
 
-    # Set up the distribution
-    # dist = distributions.getWeibull()
-    dist = distributions.getWindRose()
+    method_dict['filename'] = 'dakotaAEPspeed.in'
+    # method_dict['filename'] = 'dakotaAEPdirection.in'
+    # method_dict['filename'] = 'dakotadirectionsmooth.in'
 
-    method_dict['distribution'] = dist
+    for n in range(1,24,1):
 
-    for n in range(30,31,1):
+        # Update dakota file with desired number of sample points
+        updateDakotaFile(method_dict['filename'], n)
 
-        # Get the points at which to evaluate the wind farm
-        points, unused = quadrature_rules.rectangle(n, method_dict['distribution'])
+        # run Dakota file to get the points locations (also weights)
+        points = getSamplePoints(method_dict['filename'])
 
-        # windspeeds = points[0]
-        # winddirections = np.ones(n)*225
+        # Update the points to correct range
+        # a = 140
+        # b = 470
+        # points = ((b+a)/2. + (b-a)*points)%360
 
-        windspeeds = np.ones(n)*8
-        winddirections = points[0]
+        # For wind speed
+        windspeeds = points
+        winddirections = np.ones(n)*225
+
+        # For wind direction
+        # windspeeds = np.ones(n)*8
+        # winddirections = points
 
         print 'Locations at which power is evaluated'
         print '\twindspeed \t winddirection'
         for i in range(n):
-            print i+1,'\t', '%.2f' %windspeeds[i], '\t', '%.2f' %winddirections[i]
+            print i+1, '\t', '%.2f' % windspeeds[i], '\t', '%.2f' % winddirections[i]
 
         # Set up problem, define the turbine locations and all that stuff, pass it the wind direction x
         prob = problem_set_up(windspeeds, winddirections, method, method_dict)
@@ -84,7 +79,7 @@ if __name__ == "__main__":
     # print json.dumps(a, indent=2)
 
     # fig, ax = plt.subplots()
-    # ax.plot(winddirections, power)
+    # ax.plot(windspeeds, power)
     # ax.set_xlabel('wind speed (m/s)')
     # ax.set_ylabel('power')
 

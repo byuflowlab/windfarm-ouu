@@ -120,6 +120,91 @@ def getWindRose():
     # print windrose_dist.range()
     return windrose_dist
 
+
+# def windrose_polyfit(x):
+#     y = 493597.250387841 + \
+#         -207774.160030495*x #+ \
+#         # -413203.013010848*np.power(x, 2) + \
+#         # 158080.893880027*np.power(x, 3) + \
+#         # 127607.500730722*np.power(x, 4) + \
+#         # -44242.1722820275*np.power(x, 5) + \
+#         # -17735.2623897828*np.power(x, 6) + \
+#         # 5422.11156037294*np.power(x, 7) + \
+#         # 1057.31910521884*np.power(x, 8) + \
+#         # -253.807324825523*np.power(x, 9) + \
+#         # -19.8973363502958*np.power(x, 10) + \
+#         # 1.43458543839655*np.power(x, 11) + \
+#         # 1.05778787373732*np.power(x, 12)
+#     return y
+
+def windrose_polyfit(x):
+    y = 493597.250387841  *np.power(x, 12) + \
+        -207774.160030495 *np.power(x, 11) + \
+        -413203.013010848 *np.power(x, 10) + \
+        158080.893880027  *np.power(x, 9) + \
+        127607.500730722  *np.power(x, 8) + \
+        -44242.1722820275 *np.power(x, 7) + \
+        -17735.2623897828 *np.power(x, 6) + \
+        5422.11156037294  *np.power(x, 5) + \
+        1057.31910521884  *np.power(x, 4) + \
+        -253.807324825523 *np.power(x, 3) + \
+        -19.8973363502958 *np.power(x, 2) + \
+        1.43458543839655  *np.power(x, 1) + \
+        1.05778787373732  *np.power(x, 0)
+    return y
+
+# dist = getWindRose()
+# x = np.linspace(0,360,361)
+# y = dist.pdf(x)
+# # print np.sum(y)
+# plt.figure()
+# plt.plot(x, y)
+#
+x = np.linspace(-0.5, 0.5, 101)
+print x
+a = 140
+b = 470
+xnew = ((b+a)/2. + (b-a)*x)%360
+print xnew
+print np.sort(xnew)
+index = np.argsort(xnew)
+print xnew[index]
+
+y = windrose_polyfit(x)
+print y
+plt.figure()
+plt.plot(xnew[index], y[index],  'o-')
+
+
+# The matlab file PJ sent me
+# Polynomial fit
+# polynomial coefficients
+alpha = np.array([493597.250387841, -207774.160030495, -413203.013010848, 158080.893880027, 127607.500730722, -44242.1722820275, -17735.2623897828, 5422.11156037294, 1057.31910521884, -253.807324825523, -19.8973363502958, 1.43458543839655, 1.05778787373732])
+# alpha = np.array([493597.250387841, -207774.160030495])
+z = np.arange(0, 335*np.pi/180., 0.01)
+# print z
+x = z/(335*np.pi/180.) - 0.5
+# print x
+y = np.polyval(alpha, x)
+plt.figure()
+plt.plot(x, y)
+
+
+# a = np.array([5,4,3,2,1])
+# b = np.array([5,4,3,2,1])
+# c = np.array([a,b])
+# print c
+# print c[0,:]
+# # print c[c[0,:].argsort()]
+
+
+
+
+plt.show()
+
+
+
+
 # x = np.linspace(0,30)
 # x = np.linspace(0,30,31)
 # print x

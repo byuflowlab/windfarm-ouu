@@ -22,32 +22,44 @@ import quadrature_rules
 
 if __name__ == "__main__":
 
-    method = 'rect'
+    method = 'chaospy'
     method_dict = {}
     mean = []
     std = []
     samples = []
 
     # Set up the distribution
-    # dist = distributions.getWeibull()
-    dist = distributions.getWindRose()
+    weibull_dist = distributions.getWeibull()
+    windrose_dist = distributions.getWindRose()
+    joint = cp.J(windrose_dist, weibull_dist)
 
-    method_dict['distribution'] = dist
+    points, weigths = cp.generate_quadrature(order=4, domain=joint, rule='Clenshaw')
+    print points
+    print weigths
+    print len(weigths)
+    print points[0]
+    print points[1]
 
-    for n in range(30,31,1):
+    method_dict['distribution'] = joint
+    method_dict['rule'] = 'Clenshaw'
+    # method_dict['rule'] = 'rectangle'
+
+    for n in range(5,6,1):
+
 
         # Get the points at which to evaluate the wind farm
-        points, unused = quadrature_rules.rectangle(n, method_dict['distribution'])
+        if method_dict['rule'] != 'rectangle':
+            points, unused = cp.generate_quadrature(order=n-1, domain=method_dict['distribution'], rule=method_dict['rule'])
+        else:
+            points, unused = quadrature_rules.rectangle(n, method_dict['distribution'])
 
-        # windspeeds = points[0]
-        # winddirections = np.ones(n)*225
-
-        windspeeds = np.ones(n)*8
+        windspeeds = points[1]
         winddirections = points[0]
 
         print 'Locations at which power is evaluated'
         print '\twindspeed \t winddirection'
-        for i in range(n):
+        # for i in range(n):
+        for i in range(n*n):
             print i+1,'\t', '%.2f' %windspeeds[i], '\t', '%.2f' %winddirections[i]
 
         # Set up problem, define the turbine locations and all that stuff, pass it the wind direction x

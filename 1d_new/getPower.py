@@ -29,7 +29,7 @@ def main():
     # Set up your application
     # ------------------------
 
-    nVarUncertain = 2
+    nVarUncertain = 1
     dakotaInterface.checknVar(nVarUncertain, paramsdict)
 
     active_set_vector = [int(paramsdict['ASV_1:power'])]

@@ -19,9 +19,7 @@ import quadrature_rules
 #   integration weight.
 # --------------------------------------------------- #
 
-
-if __name__ == "__main__":
-
+def run():
     method = 'rect'
     method_dict = {}
     mean = []
@@ -29,21 +27,22 @@ if __name__ == "__main__":
     samples = []
 
     # Set up the distribution
-    # dist = distributions.getWeibull()
-    dist = distributions.getWindRose()
+    dist = distributions.getWeibull()
+    # dist = distributions.getWindRose()
 
     method_dict['distribution'] = dist
 
-    for n in range(30,31,1):
+    for n in range(20,21,1):
 
         # Get the points at which to evaluate the wind farm
         points, unused = quadrature_rules.rectangle(n, method_dict['distribution'])
+        print np.sum(unused), 'should be 1'
 
-        # windspeeds = points[0]
-        # winddirections = np.ones(n)*225
+        windspeeds = points[0]
+        winddirections = np.ones(n)*225
 
-        windspeeds = np.ones(n)*8
-        winddirections = points[0]
+        # windspeeds = np.ones(n)*8
+        # winddirections = points[0]
 
         print 'Locations at which power is evaluated'
         print '\twindspeed \t winddirection'
@@ -67,6 +66,7 @@ if __name__ == "__main__":
 
     # Save a record of the run
     power = prob['power']
+    print power
     hours = 8760
     # print np.mean(power)*hours/1e6
     # print np.std(power)*hours/1e6
@@ -96,4 +96,6 @@ if __name__ == "__main__":
 
     # plt.show()
 
+if __name__ == "__main__":
+    run()
 

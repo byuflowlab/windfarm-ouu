@@ -29,9 +29,10 @@ if __name__ == "__main__":
     samples = []
 
     # Set up the distribution
-    weibull_dist = distributions.getWeibull()
+    # dist = distributions.getWeibull()
+    dist = distributions.getWindRose()
 
-    method_dict['distribution'] = weibull_dist
+    method_dict['distribution'] = dist
     method_dict['rule'] = 'Clenshaw'
     # method_dict['rule'] = 'rectangle'
 
@@ -43,11 +44,11 @@ if __name__ == "__main__":
         else:
             points, unused = quadrature_rules.rectangle(n, method_dict['distribution'])
 
-        windspeeds = points[0]
-        winddirections = np.ones(n)*225
+        # windspeeds = points[0]
+        # winddirections = np.ones(n)*225
 
-        # windspeeds = np.ones(n)*8
-        # winddirections = points[0]
+        windspeeds = np.ones(n)*8
+        winddirections = points[0]
 
         print 'Locations at which power is evaluated'
         print '\twindspeed \t winddirection'
