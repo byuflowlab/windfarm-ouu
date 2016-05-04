@@ -12,6 +12,7 @@ import quadrature_rules
 def getPoints(method_dict, n):
 
     method = method_dict['method']
+
     if method == 'dakota':
         # Update dakota file with desired number of sample points
         updateDakotaFile(method_dict['dakota_filename'], n)
@@ -20,9 +21,9 @@ def getPoints(method_dict, n):
 
         # If direction
         # Update the points to correct range
-        # a = 140
-        # b = 470
-        # points = ((b+a)/2. + (b-a)*points)%360
+        a = 140
+        b = 470
+        points = ((b+a)/2. + (b-a)*points)%360
         return points
 
     if method == 'rect':
@@ -40,7 +41,6 @@ def getPoints(method_dict, n):
         return points[0]
 
 
-
 def run():
     """
     method_dict = {}
@@ -55,11 +55,11 @@ def run():
 
     method_dict = {}
     method_dict['method'] = 'rect'
-    method_dict['uncertain_var'] = 'speed'
+    method_dict['uncertain_var'] = 'direction'
 
-    method_dict['dakota_filename'] = 'dakotaAEPspeed.in'
+    # method_dict['dakota_filename'] = 'dakotaAEPspeed.in'
     # method_dict['dakota_filename'] = 'dakotaAEPdirection.in'
-    # method_dict['dakota_filename'] = 'dakotadirectionsmooth.in'
+    method_dict['dakota_filename'] = 'dakotadirectionsmooth.in'
 
     mean = []
     std = []

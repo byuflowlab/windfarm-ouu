@@ -6,7 +6,75 @@ from scipy import special
 
 
 class amaliaWindRose(object):
-    # Fill out this class
+    """The smoothed amalia distribution."""
+
+    def __init__(self):
+        self.lo = 0.0
+        self.hi = 360.0
+
+    def pdf(self, x):
+        x = x.flatten()  # In the constructor of the distribution it gets made a 2d array for some reason. But not for cdf
+        f = self._wind_rose_poly_func()  # This will give me different results for the rectangle method. It's because the values were different
+        return f(x)
+
+    def cdf(self, x):
+        # Integrate by rectangle rule
+        # dx = 0.001  # interval spacing
+        cdf = []
+        for x_i in np.array(x, copy=False, ndmin=1):  # makes it work if x is a scalar
+            dx = x_i/100.  # interval spacing
+            if x_i == 0:
+                cdf.append(0.0)
+            else:
+                X = np.arange(dx/2, x_i, dx)
+                cdf.append(np.sum(self.pdf(X)*dx))  # integration by rectangle rule
+        return np.array(cdf)
+
+    def str(self):
+        return "Amalia windrose"
+
+    def bnd(self):
+        return (self.lo, self.hi)
+
+    def _wind_rose_poly_func(self):
+        def f(x):
+            return np.array([self._f_helper(z) for z in x])
+        return f
+
+    def _windrose_polyfit(self, x):
+        y = 493597.250387841  *np.power(x, 12) + \
+            -207774.160030495 *np.power(x, 11) + \
+            -413203.013010848 *np.power(x, 10) + \
+            158080.893880027  *np.power(x, 9) + \
+            127607.500730722  *np.power(x, 8) + \
+            -44242.1722820275 *np.power(x, 7) + \
+            -17735.2623897828 *np.power(x, 6) + \
+            5422.11156037294  *np.power(x, 5) + \
+            1057.31910521884  *np.power(x, 4) + \
+            -253.807324825523 *np.power(x, 3) + \
+            -19.8973363502958 *np.power(x, 2) + \
+            1.43458543839655  *np.power(x, 1) + \
+            1.05778787373732  *np.power(x, 0)
+        return y
+
+    def _f_helper(self, x):
+        a = 140
+        b = 470
+        if x >= 140:
+            x1 = (x - (b+a)/2.) / (b-a)
+            return self._windrose_polyfit(x1)/330
+            # return self._windrose_polyfit(x1)/360
+        elif x <= 110:
+            x1 = (x + 360 - (b+a)/2.) / (b-a)
+            return self._windrose_polyfit(x1)/330
+            # return self._windrose_polyfit(x1)/360
+        else:
+            return 0.0
+
+
+class amaliaWindRoseRaw(object):
+    """The raw amalia distribution."""
+
     def __init__(self):
         self.lo = 0.0
         self.hi = 360.0
@@ -22,25 +90,22 @@ class amaliaWindRose(object):
         f = interp1d(x, wind_data)
         return f
 
-    def _wind_rose_poly_func(self):
-        def f(x):
-            return np.array([f_helper(z) for z in x[0]])  # I'm not sure why this x became an array of arrays.
-        return f
-
     def pdf(self, x):
+        x = x.flatten()  # In the constructor of the distribution it gets made a 2d array for some reason. For this amalia class this flattening is unnecesary
         f = self._wind_rose_func()
-        # f = self._wind_rose_poly_func()  # This will give me different results for the rectangle method.
         return f(x)
 
     def cdf(self, x):
         # Integrate by rectangle rule
-        dx = 0.001  # interval spacing
-        f = self._wind_rose_func()
+        # dx = 0.001  # interval spacing
         cdf = []
-        for x_i in x[0]:
-            X = np.arange(dx/2,x_i,dx)
-            cdf.append(np.sum(f(X)*dx))  # integration by rectangle rule.
-            # cdf.append(np.sum(X*f(X)*dx))  # I can use this to calculate the mean, when x is 360
+        for x_i in np.array(x, copy=False, ndmin=1):  # makes it work if x is a scalar
+            dx = x_i/100.  # interval spacing
+            if x_i == 0:
+                cdf.append(0.0)
+            else:
+                X = np.arange(dx/2, x_i, dx)
+                cdf.append(np.sum(self.pdf(X)*dx))  # integration by rectangle rule
         return np.array(cdf)
 
     def str(self):
@@ -54,8 +119,6 @@ class myWeibull(object):
     def __init__(self):
         self.a = 1.8
         self.b = 12.552983
-        # self.a = 0.1 #1.8
-        # self.b = 1.0 #12.552983
         self.lo = 0.0
         self.hi = 30.0
 
@@ -94,30 +157,28 @@ def getWeibull():
     my_weibull = myWeibull()
     # Set the necessary functions to construct a chaospy distribution
     Weibull = cp.construct(
-        cdf = lambda self, x: my_weibull.cdf(x),
-        bnd = lambda self: my_weibull.bnd(),
-        pdf = lambda self, x: my_weibull.pdf(x),
-        # mom = lambda self, k: my_weibull.mom(k),
-        mom = lambda self, x: my_weibull.cdf(x),
-        str = lambda self: my_weibull.str()
+        cdf=lambda self, x: my_weibull.cdf(x),
+        bnd=lambda self: my_weibull.bnd(),
+        pdf=lambda self, x: my_weibull.pdf(x),
+        mom=lambda self, k: my_weibull.mom(k),
+        str=lambda self: my_weibull.str()
     )
 
     weibull_dist = Weibull()
-    # print weibull_dist
-    # print weibull_dist.pdf(31)
-    # print weibull_dist.range()
-    # print weibull_dist.mom((1,2))
     return weibull_dist
+
 
 def getWindRose():
 
     amalia_wind_rose = amaliaWindRose()
+    # amalia_wind_rose = amaliaWindRoseRaw()
+
     # Set the necessary functions to construct a chaospy distribution
     windRose = cp.construct(
-        cdf = lambda self, x: amalia_wind_rose.cdf(x),
-        bnd = lambda self: amalia_wind_rose.bnd(),
-        pdf = lambda self, x: amalia_wind_rose.pdf(x),
-        str = lambda self: amalia_wind_rose.str()
+        cdf=lambda self, x: amalia_wind_rose.cdf(x),
+        bnd=lambda self: amalia_wind_rose.bnd(),
+        pdf=lambda self, x: amalia_wind_rose.pdf(x),
+        str=lambda self: amalia_wind_rose.str()
     )
 
     windrose_dist = windRose()
@@ -128,41 +189,41 @@ def getWindRose():
     return windrose_dist
 
 
-def windrose_polyfit(x):
-    y = 493597.250387841  *np.power(x, 12) + \
-        -207774.160030495 *np.power(x, 11) + \
-        -413203.013010848 *np.power(x, 10) + \
-        158080.893880027  *np.power(x, 9) + \
-        127607.500730722  *np.power(x, 8) + \
-        -44242.1722820275 *np.power(x, 7) + \
-        -17735.2623897828 *np.power(x, 6) + \
-        5422.11156037294  *np.power(x, 5) + \
-        1057.31910521884  *np.power(x, 4) + \
-        -253.807324825523 *np.power(x, 3) + \
-        -19.8973363502958 *np.power(x, 2) + \
-        1.43458543839655  *np.power(x, 1) + \
-        1.05778787373732  *np.power(x, 0)
-    return y
-
-def f_helper(x):
-    a = 140
-    b = 470
-    if x >= 140:
-        x1 = (x - (b+a)/2.) / (b-a)
-        return windrose_polyfit(x1)/360
-    elif x <= 110:
-        x1 = (x + 360 - (b+a)/2.) / (b-a)
-        return windrose_polyfit(x1)/360
-    else:
-        return 0.0
+# x = np.linspace(-0.5, 0.5, 361)
+# dx = x[1]-x[0]
+# y = windrose_polyfit(x)
+# print np.sum(y)*dx
+# imax = np.argmax(y)
+# print x[imax]
+# z = y[imax:-1]
+# xz = x[imax:-1]+x[imax]
+# z = np.concatenate((y[imax:], y[:imax]))
+# print z
+# print len(z)
+# print z.shape
+# print len(y)
+# print y.shape
+#
+# fig, ax = plt.subplots()
+# ax.plot(x, y)
+# ax.plot(x, z)
+# plt.show()
 
 # dist = getWindRose()
-# x1 = np.linspace(0,360,361)
+# x1 = np.linspace(0,360,11)
+# print x1
 # y1 = dist.pdf(x1)
-# # print np.sum(y)
-# # plt.figure()
-# # plt.plot(x, y)
-#
+# print dist._cdf(x1)
+# print dist._cdf(360)
+# print np.sum(y1)
+# plt.figure()
+# plt.plot(x1, y1)
+# plt.show()
+
+
+
+
+
 # x = np.linspace(-0.5, 0.5, 361)
 # dx = x[1]-x[0]
 # a = 140
