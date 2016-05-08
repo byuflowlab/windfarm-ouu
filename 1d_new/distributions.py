@@ -9,8 +9,22 @@ class amaliaWindRose(object):
     """The smoothed amalia distribution."""
 
     def __init__(self):
+
+        # f(x)
+        #   |                   *
+        #   |   ***            * *      **
+        #   | **   *          *   **  **  *     ***
+        #   |*      *        *      **     *  **   *
+        #   |        *      *               **
+        #   |         *    *
+        # --+----------****-----+------------------+--
+        #  lo          A  B     C                  hi    (x)
+
         self.lo = 0.0
         self.hi = 360.0
+        self.A = 110  # Left boundary of zero probability region
+        self.B = 140  # Right boundary of zero probability region
+        self.C = 225  # Location of max probability
 
     def pdf(self, x):
         x = x.flatten()  # In the constructor of the distribution it gets made a 2d array for some reason. But not for cdf
@@ -58,17 +72,21 @@ class amaliaWindRose(object):
         return y
 
     def _f_helper(self, x):
-        a = 140
-        b = 470
-        if x >= 140:
+        # Linear transformation from interval [a,b] to [-0.5,0.5]
+        A = self.A
+        B = self.B
+        a = B  # 140
+        b = self.hi - self.lo + A  # 470
+        if x >= B:
             x1 = (x - (b+a)/2.) / (b-a)
-            return self._windrose_polyfit(x1)/330
+            return self._windrose_polyfit(x1)/330  # The 330 comes from 360-(B-A)=R in quadrature rules
             # return self._windrose_polyfit(x1)/360
-        elif x <= 110:
+        elif x <= A:
             x1 = (x + 360 - (b+a)/2.) / (b-a)
             return self._windrose_polyfit(x1)/330
             # return self._windrose_polyfit(x1)/360
         else:
+            # If I'm only calling the pdf I should not go in here, but when calling the cdf I get in here.
             return 0.0
 
 
@@ -109,7 +127,7 @@ class amaliaWindRoseRaw(object):
         return np.array(cdf)
 
     def str(self):
-        return "Amalia windrose"
+        return "Amalia windrose raw"
 
     def bnd(self):
         return (self.lo, self.hi)
@@ -188,13 +206,14 @@ def getWindRose():
     # print windrose_dist.range()
     return windrose_dist
 
-
+# amalia_wind_rose = amaliaWindRose()
 # x = np.linspace(-0.5, 0.5, 361)
 # dx = x[1]-x[0]
-# y = windrose_polyfit(x)
+# y = amalia_wind_rose._windrose_polyfit(x)
 # print np.sum(y)*dx
 # imax = np.argmax(y)
 # print x[imax]
+# print y[imax]
 # z = y[imax:-1]
 # xz = x[imax:-1]+x[imax]
 # z = np.concatenate((y[imax:], y[:imax]))
