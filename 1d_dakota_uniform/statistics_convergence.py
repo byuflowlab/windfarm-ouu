@@ -1,6 +1,6 @@
 
 import numpy as np
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import chaospy as cp
 import json
 from openmdao.api import Problem
@@ -9,6 +9,84 @@ from getSamplePoints import getSamplePoints
 from dakotaInterface import updateDakotaFile, updateDakotaFile2
 import distributions
 import quadrature_rules
+
+
+def run():
+    """
+    method_dict = {}
+    keys of method_dict:
+        'method' = 'dakota', 'rect' or 'chaospy'  # 'chaospy needs updating
+        'uncertain_var' = 'speed' or 'direction'
+        'dakota_filename' = 'dakotaInput.in', applicable for dakota method
+        'distribution' = a distribution applicable for rect and chaospy methods, it gets set in getPoints()
+    Returns:
+        Writes a json file 'record.json' with the run information.
+    """
+
+    method_dict = {}
+    method_dict['method']           = 'rect'
+    method_dict['uncertain_var']    = 'direction'
+
+    if method_dict['uncertain_var'] == 'speed':
+        dist = distributions.getWeibull()
+        method_dict['distribution'] = dist
+    elif method_dict['uncertain_var'] == 'direction':
+        dist = distributions.getWindRose()
+        method_dict['distribution'] = dist
+    else:
+        raise ValueError('unknown uncertain_var option "%s", valid options "speed" or "direction".' %method_dict['uncertain_var'])
+
+    method_dict['dakota_filename'] = 'dakotageneral.in'
+
+    mean = []
+    std = []
+    samples = []
+
+    for n in range(5,6,1):
+
+        points, weights = getPoints(method_dict, n)
+
+        if method_dict['uncertain_var'] == 'speed':
+            # For wind speed
+            windspeeds = points
+            winddirections = np.ones(n)*225
+        elif method_dict['uncertain_var'] == 'direction':
+            # For wind direction
+            windspeeds = np.ones(n)*8
+            winddirections = points
+        else:
+            raise ValueError('unknown uncertain_var option "%s", valid options "speed" or "direction".' %method_dict['uncertain_var'])
+
+
+        print 'Locations at which power is evaluated'
+        print '\twindspeed \t winddirection'
+        for i in range(n):
+            print i+1, '\t', '%.2f' % windspeeds[i], '\t', '%.2f' % winddirections[i]
+
+        # Set up problem, define the turbine locations and all that stuff
+        prob = problem_set_up(windspeeds, winddirections, weights, method_dict)
+
+        prob.run()
+
+        # print the results
+        mean_data = prob['mean']
+        std_data = prob['std']
+        print 'mean = ', mean_data/1e6, ' GWhrs'
+        print 'std = ', std_data/1e6, ' GWhrs'
+        mean.append(mean_data/1e6)
+        std.append(std_data/1e6)
+        samples.append(n)
+
+
+    # Save a record of the run
+    power = prob['power']
+
+    obj = {'mean': mean, 'std': std, 'samples': samples, 'winddirections': winddirections.tolist(),
+           'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
+           'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var']}
+    jsonfile = open('record.json','w')
+    json.dump(obj, jsonfile, indent=2)
+    jsonfile.close()
 
 
 def getPoints(method_dict, n):
@@ -122,8 +200,15 @@ def getPoints(method_dict, n):
             print np.sum(w)  # this should sum to 1
             print np.sum(wd)  # this should sum to 1
 
-            w = w*wd  # Modify the weight with with the dakota integration weight
-            w = w*R   # Modify with the range, the effect of this gets undone withing dakota (This is due to the "tricking" of the problem)
+            w = w#*wd  # Modify the weight with with the dakota integration weight
+            # print np.sum(w)
+            # w = w*R   # Modify with the range, the effect of this gets undone withing dakota (This is due to the "tricking" of the problem)
+            # w = w*R/len(w)
+            w = w*len(w)
+
+        points = x
+        weights = w
+        return points, weights
 
     else:
         # Don't modify the range at all.
@@ -139,112 +224,6 @@ def getPoints(method_dict, n):
             w.append(dist._cdf(xi+dx/2.) - dist._cdf(xi-dx/2.))
         w = np.array(w).flatten()
     # return [x], w
-
-
-
-
-    if method == 'dakota':
-        # # Update dakota file with desired number of sample points
-        # updateDakotaFile(method_dict['dakota_filename'], n)
-        # # run Dakota file to get the points locations
-        # points = getSamplePoints(method_dict['dakota_filename'])
-        #
-        # # If direction
-        # # Update the points to correct range
-        # a = 140
-        # b = 470
-        # points = ((b+a)/2. + (b-a)*points)%360
-        points = x
-        return points
-
-    if method == 'rect':
-
-        # points, unused = quadrature_rules.rectangle(n, method_dict['distribution'])
-        points = [x]
-        return points[0]
-
-
-def run():
-    """
-    method_dict = {}
-    keys of method_dict:
-        'method' = 'dakota', 'rect' or 'chaospy'  # 'chaospy needs updating
-        'uncertain_var' = 'speed' or 'direction'
-        'dakota_filename' = 'dakotaInput.in', applicable for dakota method
-        'distribution' = a distribution applicable for rect and chaospy methods, it gets set in getPoints()
-    Returns:
-        Writes a json file 'record.json' with the run information.
-    """
-
-    method_dict = {}
-    method_dict['method'] = 'dakota'
-    method_dict['uncertain_var'] = 'direction'
-    if method_dict['uncertain_var'] == 'speed':
-        dist = distributions.getWeibull()
-        method_dict['distribution'] = dist
-    elif method_dict['uncertain_var'] == 'direction':
-        dist = distributions.getWindRose()
-        method_dict['distribution'] = dist
-    else:
-        raise ValueError('unknown uncertain_var option "%s", valid options "speed" or "direction".' %method_dict['uncertain_var'])
-
-
-    # method_dict['dakota_filename'] = 'dakotaAEPspeed.in'
-    # method_dict['dakota_filename'] = 'dakotaAEPdirection.in'
-    # method_dict['dakota_filename'] = 'dakotadirectionsmooth.in'
-    method_dict['dakota_filename'] = 'dakotageneral.in'
-
-
-
-    mean = []
-    std = []
-    samples = []
-
-    for n in range(5,6,1):
-
-        points = getPoints(method_dict, n)
-
-        if method_dict['uncertain_var'] == 'speed':
-            # For wind speed
-            windspeeds = points
-            winddirections = np.ones(n)*225
-        elif method_dict['uncertain_var'] == 'direction':
-            # For wind direction
-            windspeeds = np.ones(n)*8
-            winddirections = points
-        else:
-            raise ValueError('unknown uncertain_var option "%s", valid options "speed" or "direction".' %method_dict['uncertain_var'])
-
-
-        print 'Locations at which power is evaluated'
-        print '\twindspeed \t winddirection'
-        for i in range(n):
-            print i+1, '\t', '%.2f' % windspeeds[i], '\t', '%.2f' % winddirections[i]
-
-        # Set up problem, define the turbine locations and all that stuff
-        prob = problem_set_up(windspeeds, winddirections, method_dict)
-
-        prob.run()
-
-        # print the results
-        mean_data = prob['mean']
-        std_data = prob['std']
-        print 'mean = ', mean_data/1e6, ' GWhrs'
-        print 'std = ', std_data/1e6, ' GWhrs'
-        mean.append(mean_data/1e6)
-        std.append(std_data/1e6)
-        samples.append(n)
-
-
-    # Save a record of the run
-    power = prob['power']
-
-    obj = {'mean': mean, 'std': std, 'samples': samples, 'winddirections': winddirections.tolist(),
-           'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
-           'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var']}
-    jsonfile = open('record.json','w')
-    json.dump(obj, jsonfile, indent=2)
-    jsonfile.close()
 
 
 def plot():
@@ -269,12 +248,13 @@ def plot():
     # plt.show()
 
 
-def problem_set_up(windspeeds, winddirections, method_dict=None):
+def problem_set_up(windspeeds, winddirections, weights, method_dict=None):
     """Set up wind farm problem.
 
     Args:
         windspeeds (np.array): wind speeds vector
         winddirections (np.array): wind directions vector
+        weights (np.array): integration weights associated with the windspeeds and winddirections
         method_dict (dict): UQ method and parameters for the UQ method
 
     Returns:
@@ -310,9 +290,9 @@ def problem_set_up(windspeeds, winddirections, method_dict=None):
     # turbineY = x[1]
 
     # Amalia wind farm
-    # locations = np.genfromtxt('../WindFarms/layout_amalia.txt', delimiter=' ')
-    # turbineX = locations[:,0]
-    # turbineY = locations[:,1]
+    locations = np.genfromtxt('../WindFarms/layout_amalia.txt', delimiter=' ')
+    turbineX = locations[:,0]
+    turbineY = locations[:,1]
 
     # Amalia optimized with 4 wind dir
     # locations = np.genfromtxt('../WindFarms/layout_amalia_optimized4dir.csv', delimiter=',')
@@ -337,9 +317,9 @@ def problem_set_up(windspeeds, winddirections, method_dict=None):
     # print 'turbineY', a
 
 
-    # plt.figure()
-    # plt.scatter(turbineX, turbineY)
-    # plt.show()
+    plt.figure()
+    plt.scatter(turbineX, turbineY)
+    plt.show()
 
     # initialize arrays for each turbine properties
     nTurbs = turbineX.size
@@ -361,7 +341,7 @@ def problem_set_up(windspeeds, winddirections, method_dict=None):
 
     # initialize problem
     prob = Problem(AEPGroup(nTurbines=nTurbs, nDirections=winddirections.size,
-                            method_dict=method_dict))
+                            weights=weights, method_dict=method_dict))
 
     # initialize problem
     prob.setup(check=False)
@@ -369,6 +349,7 @@ def problem_set_up(windspeeds, winddirections, method_dict=None):
     # assign initial values to variables
     prob['windSpeeds'] = windspeeds
     prob['windDirections'] = winddirections
+    prob['weights'] = weights
     prob['rotorDiameter'] = rotorDiameter
     prob['axialInduction'] = axialInduction
     prob['generatorEfficiency'] = generator_efficiency

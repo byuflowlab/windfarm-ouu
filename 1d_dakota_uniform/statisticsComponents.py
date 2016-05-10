@@ -21,6 +21,8 @@ class DakotaStatistics(ExternalCode):
         # define inputs
         self.add_param('power', np.zeros(nDirections), units ='kW',
                        desc = 'vector containing the power production at each wind direction ccw from north')
+        self.add_param('weights', np.zeros(nDirections),
+                       desc = 'vector containing the integration weight associated with each power')
 
         # define output
         self.add_output('mean', val=0.0, units='kWh', desc='mean annual energy output of wind farm')
@@ -34,6 +36,8 @@ class DakotaStatistics(ExternalCode):
 
         # Generate the file with the power vector for Dakota
         power = params['power']
+        weights = params['weights']
+        power = power*weights
         np.savetxt('powerInput.txt', power, header='power')
 
         # parent solve_nonlinear function actually runs the external code
@@ -146,6 +150,8 @@ class RectStatistics(Component):
                        desc = 'vector containing the power production at each wind direction ccw from north')
         self.add_param('method_dict', method_dict,
                        desc = 'parameters for the UQ method')
+        self.add_param('weights', np.zeros(nDirections),
+                       desc = 'vector containing the integration weight associated with each power')
 
         # define output
         self.add_output('mean', val=0.0, units='kWh', desc='mean annual energy output of wind farm')
@@ -156,7 +162,9 @@ class RectStatistics(Component):
         power = params['power']
         n = len(power)
         method_dict = params['method_dict']
-        unused, weights = quadrature_rules.rectangle(n, method_dict['distribution'])
+        # unused, weights = quadrature_rules.rectangle(n, method_dict['distribution'])
+        weights = params['weights']
+        print 'aloha', weights
         # print weights
 
         mean = sum(power*weights)

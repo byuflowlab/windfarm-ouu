@@ -14,7 +14,7 @@ class AEPGroup(Group):
     """
 
     def __init__(self, nTurbines, nDirections=1, use_rotor_components=False, datasize=0,
-                 differentiable=True, optimizingLayout=False, nSamples=0, method_dict=None):
+                 differentiable=True, optimizingLayout=False, nSamples=0, weights=0, method_dict=None):
 
         super(AEPGroup, self).__init__()
 
@@ -29,15 +29,16 @@ class AEPGroup(Group):
         # add necessary inputs for group
         self.add('dv0', IndepVarComp('windDirections', np.zeros(nDirections), units=direction_units), promotes=['*'])
         self.add('dv1', IndepVarComp('windSpeeds', np.zeros(nDirections), units=wind_speed_units), promotes=['*'])
+        self.add('dv2', IndepVarComp('weights', np.zeros(nDirections)), promotes=['*'])
 
-        self.add('dv2', IndepVarComp('turbineX', np.zeros(nTurbines), units=turbine_units), promotes=['*'])
-        self.add('dv3', IndepVarComp('turbineY', np.zeros(nTurbines), units=turbine_units), promotes=['*'])
+        self.add('dv3', IndepVarComp('turbineX', np.zeros(nTurbines), units=turbine_units), promotes=['*'])
+        self.add('dv4', IndepVarComp('turbineY', np.zeros(nTurbines), units=turbine_units), promotes=['*'])
 
         # add vars to be seen by MPI and gradient calculations
-        self.add('dv4', IndepVarComp('rotorDiameter', np.zeros(nTurbines), units=turbine_units), promotes=['*'])
-        self.add('dv5', IndepVarComp('axialInduction', np.zeros(nTurbines)), promotes=['*'])
-        self.add('dv6', IndepVarComp('generatorEfficiency', np.zeros(nTurbines)), promotes=['*'])
-        self.add('dv7', IndepVarComp('air_density', val=1.1716, units='kg/(m*m*m)'), promotes=['*'])
+        self.add('dv5', IndepVarComp('rotorDiameter', np.zeros(nTurbines), units=turbine_units), promotes=['*'])
+        self.add('dv6', IndepVarComp('axialInduction', np.zeros(nTurbines)), promotes=['*'])
+        self.add('dv7', IndepVarComp('generatorEfficiency', np.zeros(nTurbines)), promotes=['*'])
+        self.add('dv8', IndepVarComp('air_density', val=1.1716, units='kg/(m*m*m)'), promotes=['*'])
 
 
         # add variable tree IndepVarComps
@@ -52,8 +53,8 @@ class AEPGroup(Group):
 
         # Can probably simplify the below rotor components logic
         if not use_rotor_components:
-            self.add('dv8', IndepVarComp('Ct_in', np.zeros(nTurbines)), promotes=['*'])
-            self.add('dv9', IndepVarComp('Cp_in', np.zeros(nTurbines)), promotes=['*'])
+            self.add('dv9', IndepVarComp('Ct_in', np.zeros(nTurbines)), promotes=['*'])
+            self.add('dv10', IndepVarComp('Cp_in', np.zeros(nTurbines)), promotes=['*'])
 
         #The if nSamples == 0 is left in for visualization
         if use_rotor_components:
