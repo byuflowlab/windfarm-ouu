@@ -17,6 +17,7 @@ def run():
     keys of method_dict:
         'method' = 'dakota', 'rect' or 'chaospy'  # 'chaospy needs updating
         'uncertain_var' = 'speed' or 'direction'
+        'layout' = 'amalia', 'optimized', 'grid', 'random', 'lhs'
         'dakota_filename' = 'dakotaInput.in', applicable for dakota method
         'distribution' = a distribution applicable for rect and chaospy methods, it gets set in getPoints()
     Returns:
@@ -26,6 +27,7 @@ def run():
     method_dict = {}
     method_dict['method']           = 'rect'
     method_dict['uncertain_var']    = 'direction'
+    method_dict['layout']             = 'lhs'
 
     if method_dict['uncertain_var'] == 'speed':
         dist = distributions.getWeibull()
@@ -262,47 +264,73 @@ def problem_set_up(windspeeds, winddirections, weights, method_dict=None):
 
     """
 
-    # define the size of farm, turbine size and operating conditions
-    nRows = 10   # number of rows and columns in grid
-    spacing = 5  # turbine grid spacing in diameters
-    rotor_diameter = 126.4  # (m)
-    air_density = 1.1716    # kg/m^3
+
+
 
     ### Set up the farm ###
 
     # Set up position of each turbine
 
-    # Grid farm
-    # points = np.linspace(start=spacing*rotor_diameter, stop=nRows*spacing*rotor_diameter, num=nRows)
-    # xpoints, ypoints = np.meshgrid(points, points)
-    # turbineX = np.ndarray.flatten(xpoints)
-    # turbineY = np.ndarray.flatten(ypoints)
-
-    # Random farm
-    np.random.seed(101)
-    turbineX = np.random.rand(100)*spacing*(nRows-1)*rotor_diameter
-    turbineY = np.random.rand(100)*spacing*(nRows-1)*rotor_diameter
-
-    # Latin Hypercube farm
-    # dist = cp.Iid(cp.Uniform(0, spacing*(nRows-1)*rotor_diameter), 2)
-    # x = dist.sample(100, 'L')
-    # turbineX = x[0]
-    # turbineY = x[1]
-
+    # Find the bounds of the amalia wind farm to 2 significant digits
+    # Use this information to generate the other layouts
     # Amalia wind farm
     locations = np.genfromtxt('../WindFarms/layout_amalia.txt', delimiter=' ')
     turbineX = locations[:,0]
     turbineY = locations[:,1]
 
-    # Amalia optimized with 4 wind dir
-    # locations = np.genfromtxt('../WindFarms/layout_amalia_optimized4dir.csv', delimiter=',')
-    # turbineX = locations[:,0]
-    # turbineY = locations[:,1]
+    # Find the bounds of the amalia wind farm to 2 significant digits
+    round_sig = lambda x, sig=2: np.round(x, sig-int(np.floor(np.log10(x)))-1)
+    xlim = round_sig(np.max(turbineX))
+    ylim = round_sig(np.max(turbineY))
 
-    # Amalia optimized Jared
-    # locations = np.genfromtxt('../WindFarms/AmaliaOptimizedXY.txt', delimiter=' ')
-    # turbineX = locations[:,0]
-    # turbineY = locations[:,1]
+    layout = method_dict['layout']
+    if layout == 'grid':
+
+        # Grid farm (same number of turbines as Amalia 60)
+        nRows = 10   # number of rows and columns in grid
+        nCols = 6
+        # spacing = 5  # turbine grid spacing in diameters, original spacing for the grid
+        spacingX = xlim/(nCols)
+        spacingY = ylim/(nRows)
+        pointsx = np.linspace(start=0, stop=nCols*spacingX, num=nCols)
+        pointsy = np.linspace(start=0, stop=nRows*spacingY, num=nRows)
+        xpoints, ypoints = np.meshgrid(pointsx, pointsy)
+        turbineX = np.ndarray.flatten(xpoints)
+        turbineY = np.ndarray.flatten(ypoints)
+
+    elif layout == 'random':
+
+        # Random farm
+        np.random.seed(101)
+        turbineX = np.random.rand(60)*xlim
+        turbineY = np.random.rand(60)*ylim
+
+    elif layout == 'lhs':
+
+        # Latin Hypercube farm
+        distx = cp.Uniform(0, xlim)
+        disty = cp.Uniform(0, ylim)
+        dist = cp.J(distx, disty)
+        x = dist.sample(60, 'L')
+        turbineX = x[0]
+        turbineY = x[1]
+
+    elif layout == 'amalia':
+
+        # Amalia wind farm
+        locations = np.genfromtxt('../WindFarms/layout_amalia.txt', delimiter=' ')
+        turbineX = locations[:,0]
+        turbineY = locations[:,1]
+
+    elif layout == 'optimized':
+
+        # Amalia optimized Jared
+        locations = np.genfromtxt('../WindFarms/AmaliaOptimizedXY.txt', delimiter=' ')
+        turbineX = locations[:,0]
+        turbineY = locations[:,1]
+
+    else:
+        raise ValueError('unknown layout option "%s", \nvalid options ["amalia", "optimized", "random", "lhs", "grid"]' %layout)
 
     # For printing the location as an array
     # print turbineX
@@ -320,6 +348,11 @@ def problem_set_up(windspeeds, winddirections, weights, method_dict=None):
     plt.figure()
     plt.scatter(turbineX, turbineY)
     plt.show()
+
+    # turbine size and operating conditions
+
+    rotor_diameter = 126.4  # (m)
+    air_density = 1.1716    # kg/m^3
 
     # initialize arrays for each turbine properties
     nTurbs = turbineX.size
