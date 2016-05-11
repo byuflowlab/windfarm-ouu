@@ -24,7 +24,7 @@ class amaliaWindRose(object):
         self.hi = 360.0
         self.A = 110  # Left boundary of zero probability region
         self.B = 140  # Right boundary of zero probability region
-        self.C = 225  # Location of max probability
+        # self.C = 225  # Location of max probability
 
     def pdf(self, x):
         x = x.flatten()  # In the constructor of the distribution it gets made a 2d array for some reason. But not for cdf
@@ -207,10 +207,12 @@ def getWindRose():
     return windrose_dist
 
 # amalia_wind_rose = amaliaWindRose()
-# x = np.linspace(-0.5, 0.5, 361)
+# x = np.linspace(-0.5, 0.5, 51)
 # dx = x[1]-x[0]
-# y = amalia_wind_rose._windrose_polyfit(x)
+# print x+dx/2
+# y = amalia_wind_rose._windrose_polyfit(x+dx/2)
 # print np.sum(y)*dx
+# print y
 # imax = np.argmax(y)
 # print x[imax]
 # print y[imax]
@@ -249,8 +251,9 @@ def getWindRose():
 # b = 470
 # xnew = ((b+a)/2. + (b-a)*x)%360
 # index = np.argsort(xnew)
-# # print xnew[index]
-#
+# print index
+# print xnew[index]
+
 # y = windrose_polyfit(x)
 # # print y
 # # print np.sum(y*dx)

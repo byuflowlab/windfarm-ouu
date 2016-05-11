@@ -137,7 +137,37 @@ class RedirectOutput(object):
 #: class output()
 
 
-def updateDakotaFile(dakotaFilename, quadrature_points, bounds):
+def updateDakotaFile(dakotaFilename, quadrature_points, x, f):
+    """Rewrite number of quadrature points in Dakota file."""
+
+    filein = dakotaFilename
+    fileout = dakotaFilename + '.tmp'
+    fr = open(filein, 'r')
+    fw = open(fileout, 'w')
+    for line in fr:
+        if 'quadrature_order' in line:
+            towrite = 'quadrature_order  ' + str(quadrature_points) + '\n'
+            fw.write(towrite)
+        elif 'abscissas' in line:
+            towrite = 'abscissas = '
+            for xi in x:
+                towrite = towrite + str(xi) + ' '
+            towrite += '\n'
+            fw.write(towrite)
+        elif 'ordinates' in line:
+            towrite = 'ordinates = '
+            for fi in f:
+                towrite = towrite + str(fi) + ' '
+            towrite += '0.0\n'
+            fw.write(towrite)
+        else:
+            fw.write(line)
+    fr.close()
+    fw.close()
+    shutil.move(fileout, filein)
+
+
+def updateDakotaFile5(dakotaFilename, quadrature_points, bounds):
     """Rewrite number of quadrature points in Dakota file."""
 
     filein = dakotaFilename

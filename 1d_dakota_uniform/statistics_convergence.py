@@ -44,7 +44,7 @@ def run():
     std = []
     samples = []
 
-    for n in range(5,6,1):
+    for n in range(20,21,1):
 
         points, weights = getPoints(method_dict, n)
 
@@ -85,7 +85,8 @@ def run():
 
     obj = {'mean': mean, 'std': std, 'samples': samples, 'winddirections': winddirections.tolist(),
            'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
-           'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var']}
+           'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
+           'layout': method_dict['layout']}
     jsonfile = open('record.json','w')
     json.dump(obj, jsonfile, indent=2)
     jsonfile.close()
@@ -120,54 +121,45 @@ def getPoints(method_dict, n):
         C = 225  # Location of max probability
         r = b-a  # original range
         R = r - (B-A) # modified range
-        x = np.linspace(a, R, n+1)
-        dx = x[1]-x[0]  # I could also get dx from dx = R/n
+        dx = R/n
         # Modify with offset, manually choose the offset you want
         N = 5
         i = 0  # [-2, -1, 0, 1, 2] choose from for N=5, for general N [-int(np.floor(N/2)), ... , int(np.floor(N/2)+1]
         offset = i*dx/N
         bounds = [a+offset, R+offset]
-        if method == 'rect':
-            x = np.linspace(bounds[0], bounds[1], n+1)
-            x = x[:-1]+dx/2  # Take the midpoints of the bins
-        if method == 'dakota':
-            # Update dakota file with desired number of sample points
-            updateDakotaFile(method_dict['dakota_filename'], n, bounds)
-            # run Dakota file to get the points locations
-            x, wd = getSamplePoints(method_dict['dakota_filename'])
+        x = np.linspace(bounds[0], bounds[1], n+1)
+        x = x[:-1]+dx/2  # Take the midpoints of the bins
 
         # Modify x, to start from the max probability location
-        x = (C+x)%r
-        y = []
-        for xi in x:
-            if A<C:
-                if xi > A and xi < C:
-                    xi = (xi + B-A)%r
-                y.append(xi)
-            else:
-                if xi > A:
-                    xi = (xi + B-A)%r
-                y.append(xi)
-        x = np.array(y)
+        x = modifyx(x, A, B, C, r)
+
+        if method == 'dakota':
+            # Update dakota file with desired number of sample points
+            # Use the x to set the abscissas, and the pdf to set the ordinates
+            y = np.linspace(bounds[0], bounds[1], 51)  # play with the number here
+            dy = y[1]-y[0]
+            mid = y[:-1]+dy/2
+            ynew = modifyx(mid, A, B, C, r)
+            # print ynew
+            f = dist.pdf(ynew)
+            # print f*R
+
+            # Modify y to zero to 1 range, I think makes dakota generation of polynomials easier
+            y = 2*y / 330 - 1
+            updateDakotaFile(method_dict['dakota_filename'], n, y, f)
+            # run Dakota file to get the points locations
+            x, wd = getSamplePoints(method_dict['dakota_filename'])
+            # Rescale x
+            x = 330/2. + 330/2.*x
+            # Call modify x with the new x. Here also account for the offset.
+            # print x
+            x = modifyx(x, A, B, C, r)
+
 
         # Get the weights associated with the points locations
 
         if method == 'rect':
-            # Logic to get the weights from integrating the pdf between the bins
-            w = []
-            for xi in x:
-                xleft = xi-dx/2.
-                xright = xi+dx/2.
-                if xright > 360.0:
-                    w.append(1 - dist._cdf(xleft) + dist._cdf(xright-360))
-                elif xleft < 0.0:
-                    w.append(dist._cdf(xright) + (1 - dist._cdf(360+xleft)))
-                else:
-                    w.append(dist._cdf(xright) - dist._cdf(xleft))
-                print xi+dx/2., xi-dx/2.
-            w = np.array(w).flatten()
-            print w  # all weights should be positive
-            print np.sum(w)   # this should sum to 1
+            w = getWeights(x, dx, dist)
 
         if method == 'dakota':
             # Logic to get the weights from integrating the pdf between the bins
@@ -198,9 +190,9 @@ def getPoints(method_dict, n):
                     w.append(dist._cdf(xright) - dist._cdf(xleft))
 
             w = np.array(w).flatten()
-            print w  # all weights should be positive
-            print np.sum(w)  # this should sum to 1
-            print np.sum(wd)  # this should sum to 1
+            # print w  # all weights should be positive
+            # print np.sum(w)  # this should sum to 1
+            # print np.sum(wd)  # this should sum to 1
 
             w = w#*wd  # Modify the weight with with the dakota integration weight
             # print np.sum(w)
@@ -227,6 +219,40 @@ def getPoints(method_dict, n):
         w = np.array(w).flatten()
     # return [x], w
 
+
+def modifyx(x, A=110, B=140, C=225, r=360):
+
+    # Modify x, to start from the max probability location
+    x = (C+x)%r
+    y = []
+    for xi in x:
+        if A<C:
+            if xi > A and xi < C:
+                xi = (xi + B-A)%r
+            y.append(xi)
+        else:
+            if xi > A:
+                xi = (xi + B-A)%r
+            y.append(xi)
+    return np.array(y)
+
+def getWeights(x, dx, dist):
+    # Logic to get the weights from integrating the pdf between the bins
+    w = []
+    for xi in x:
+        xleft = xi-dx/2.
+        xright = xi+dx/2.
+        if xright > 360.0:
+            w.append(1 - dist._cdf(xleft) + dist._cdf(xright-360))
+        elif xleft < 0.0:
+            w.append(dist._cdf(xright) + (1 - dist._cdf(360+xleft)))
+        else:
+            w.append(dist._cdf(xright) - dist._cdf(xleft))
+        print xi+dx/2., xi-dx/2.
+    w = np.array(w).flatten()
+    print w  # all weights should be positive
+    print np.sum(w)   # this should sum to 1
+    return w
 
 def plot():
     jsonfile = open('record.json','r')
@@ -308,6 +334,7 @@ def problem_set_up(windspeeds, winddirections, weights, method_dict=None):
     elif layout == 'lhs':
 
         # Latin Hypercube farm
+        np.random.seed(101)
         distx = cp.Uniform(0, xlim)
         disty = cp.Uniform(0, ylim)
         dist = cp.J(distx, disty)
@@ -345,9 +372,9 @@ def problem_set_up(windspeeds, winddirections, weights, method_dict=None):
     # print 'turbineY', a
 
 
-    plt.figure()
-    plt.scatter(turbineX, turbineY)
-    plt.show()
+    # plt.figure()
+    # plt.scatter(turbineX, turbineY)
+    # plt.show()
 
     # turbine size and operating conditions
 

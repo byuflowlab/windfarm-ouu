@@ -37,7 +37,8 @@ class DakotaStatistics(ExternalCode):
         # Generate the file with the power vector for Dakota
         power = params['power']
         weights = params['weights']
-        power = power*weights
+        # power = power*weights
+        power = power
         np.savetxt('powerInput.txt', power, header='power')
 
         # parent solve_nonlinear function actually runs the external code
