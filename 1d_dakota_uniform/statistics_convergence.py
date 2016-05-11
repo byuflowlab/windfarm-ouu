@@ -25,7 +25,7 @@ def run():
     """
 
     method_dict = {}
-    method_dict['method']           = 'rect'
+    method_dict['method']           = 'dakota'
     method_dict['uncertain_var']    = 'direction'
     method_dict['layout']             = 'lhs'
 
@@ -248,10 +248,10 @@ def getWeights(x, dx, dist):
             w.append(dist._cdf(xright) + (1 - dist._cdf(360+xleft)))
         else:
             w.append(dist._cdf(xright) - dist._cdf(xleft))
-        print xi+dx/2., xi-dx/2.
+        # print xi+dx/2., xi-dx/2.
     w = np.array(w).flatten()
-    print w  # all weights should be positive
-    print np.sum(w)   # this should sum to 1
+    # print w  # all weights should be positive
+    # print np.sum(w)   # this should sum to 1
     return w
 
 def plot():

@@ -165,8 +165,7 @@ class RectStatistics(Component):
         method_dict = params['method_dict']
         # unused, weights = quadrature_rules.rectangle(n, method_dict['distribution'])
         weights = params['weights']
-        print 'aloha', weights
-        # print weights
+        # print 'aloha', weights
 
         mean = sum(power*weights)
         # Calculate std to ensure it is positive, first method could have issues for small number of samples
