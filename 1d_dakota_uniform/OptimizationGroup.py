@@ -1,6 +1,6 @@
 import numpy as np
 from openmdao.api import Group, IndepVarComp, ExecComp
-from florisse.GeneralWindFarmComponents import SpacingComp
+from florisse.GeneralWindFarmComponents import SpacingComp, BoundaryComp
 from AEPGroups import AEPGroup
 
 class OptAEP(Group):
@@ -63,19 +63,22 @@ class OptAEP(Group):
     """
 
     def __init__(self, nTurbines, nDirections=1, minSpacing=2., use_rotor_components=True,
-                 datasize=0, differentiable=True, force_fd=False, nSamples=0, method='', method_dict=None):
+                 datasize=0, differentiable=True, force_fd=False, nVertices=0, method_dict=None):
 
         super(OptAEP, self).__init__()
         self.fd_options['force_fd'] = force_fd
+        self.fd_options['form'] = 'forward'
 
         # add major components and groups
-        self.add('AEPgroup', AEPGroup(nTurbines, nDirections=nDirections, datasize=0,
-                            use_rotor_components=False, differentiable=True,
-                            optimizingLayout=False, nSamples=0, method=method,
+        self.add('AEPgroup', AEPGroup(nTurbines, nDirections=nDirections,
+                            use_rotor_components=use_rotor_components, differentiable=differentiable,
                             method_dict=method_dict), promotes=['*'])                                      
-                                         
 
         self.add('spacing_comp', SpacingComp(nTurbines=nTurbines), promotes=['*'])
+
+        if nVertices > 0:
+            # add component that enforces a convex hull wind farm boundary
+            self.add('boundary_con', BoundaryComp(nVertices=nVertices, nTurbines=nTurbines), promotes=['*'])
 
         # add constraint definitions
         self.add('spacing_con', ExecComp('sc = wtSeparationSquared-(minSpacing*rotorDiameter[0])**2',

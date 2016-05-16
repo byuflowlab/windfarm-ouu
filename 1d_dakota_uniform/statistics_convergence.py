@@ -25,9 +25,9 @@ def run():
     """
 
     method_dict = {}
-    method_dict['method']           = 'dakota'
+    method_dict['method']           = 'rect'
     method_dict['uncertain_var']    = 'direction'
-    method_dict['layout']             = 'lhs'
+    method_dict['layout']             = 'optimized'
 
     if method_dict['uncertain_var'] == 'speed':
         dist = distributions.getWeibull()
@@ -44,7 +44,7 @@ def run():
     std = []
     samples = []
 
-    for n in range(20,21,1):
+    for n in range(5,6,1):
 
         points, weights = getPoints(method_dict, n)
 
@@ -150,6 +150,7 @@ def getPoints(method_dict, n):
             # run Dakota file to get the points locations
             x, wd = getSamplePoints(method_dict['dakota_filename'])
             # Rescale x
+            print x
             x = 330/2. + 330/2.*x
             # Call modify x with the new x. Here also account for the offset.
             # print x
@@ -158,47 +159,47 @@ def getPoints(method_dict, n):
 
         # Get the weights associated with the points locations
 
-        if method == 'rect':
-            w = getWeights(x, dx, dist)
+        # if method == 'rect':
+        w = getWeights(x, dx, dist)
 
-        if method == 'dakota':
-            # Logic to get the weights from integrating the pdf between the bins
-            w = []
-            for i, xi in enumerate(x):
-                if i == 0:
-                    dxleft = x[i] - C
-                    dxright = (x[i+1] - x[i])/2.
-                elif i == (len(x)-1):
-                    dxleft = (x[i] - x[i-1])/2.
-                    dxright = C - x[i]
-                else:
-                    dxleft = x[i] - x[i-1]
-                    dxright = x[i+1] - x[i]
-                    if dxleft < 0.0:
-                        dxleft = dxleft + 360
-                    if dxright < 0.0:
-                        dxright = dxright + 360
-                    dxleft = dxleft/2.
-                    dxright = dxright/2.
-                xleft = xi-dxleft
-                xright = xi+dxright
-                if xright > 360.0:
-                    w.append(1 - dist._cdf(xleft) + dist._cdf(xright-360))
-                elif xleft < 0.0:
-                    w.append(dist._cdf(xright) + (1 - dist._cdf(360+xleft)))
-                else:
-                    w.append(dist._cdf(xright) - dist._cdf(xleft))
-
-            w = np.array(w).flatten()
-            # print w  # all weights should be positive
-            # print np.sum(w)  # this should sum to 1
-            # print np.sum(wd)  # this should sum to 1
-
-            w = w#*wd  # Modify the weight with with the dakota integration weight
-            # print np.sum(w)
-            # w = w*R   # Modify with the range, the effect of this gets undone withing dakota (This is due to the "tricking" of the problem)
-            # w = w*R/len(w)
-            w = w*len(w)
+        # if method == 'dakota':
+        #     # Logic to get the weights from integrating the pdf between the bins
+        #     w = []
+        #     for i, xi in enumerate(x):
+        #         if i == 0:
+        #             dxleft = x[i] - C
+        #             dxright = (x[i+1] - x[i])/2.
+        #         elif i == (len(x)-1):
+        #             dxleft = (x[i] - x[i-1])/2.
+        #             dxright = C - x[i]
+        #         else:
+        #             dxleft = x[i] - x[i-1]
+        #             dxright = x[i+1] - x[i]
+        #             if dxleft < 0.0:
+        #                 dxleft = dxleft + 360
+        #             if dxright < 0.0:
+        #                 dxright = dxright + 360
+        #             dxleft = dxleft/2.
+        #             dxright = dxright/2.
+        #         xleft = xi-dxleft
+        #         xright = xi+dxright
+        #         if xright > 360.0:
+        #             w.append(1 - dist._cdf(xleft) + dist._cdf(xright-360))
+        #         elif xleft < 0.0:
+        #             w.append(dist._cdf(xright) + (1 - dist._cdf(360+xleft)))
+        #         else:
+        #             w.append(dist._cdf(xright) - dist._cdf(xleft))
+        #
+        #     w = np.array(w).flatten()
+        #     # print w  # all weights should be positive
+        #     # print np.sum(w)  # this should sum to 1
+        #     # print np.sum(wd)  # this should sum to 1
+        #
+        #     w = w#*wd  # Modify the weight with with the dakota integration weight
+        #     # print np.sum(w)
+        #     # w = w*R   # Modify with the range, the effect of this gets undone withing dakota (This is due to the "tricking" of the problem)
+        #     # w = w*R/len(w)
+        #     w = w*len(w)
 
         points = x
         weights = w
@@ -362,14 +363,14 @@ def problem_set_up(windspeeds, winddirections, weights, method_dict=None):
     # For printing the location as an array
     # print turbineX
     # print turbineY
-    # a = '['
-    # for x in turbineX:
-    #     a = a + '%.0f' % x + ', '
-    # print 'turbineX', a
-    # a = '['
-    # for y in turbineY:
-    #     a = a + '%.0f' % y + ', '
-    # print 'turbineY', a
+    a = '['
+    for x in turbineX:
+        a = a + '%.0f' % x + ', '
+    print 'turbineX', a
+    a = '['
+    for y in turbineY:
+        a = a + '%.0f' % y + ', '
+    print 'turbineY', a
 
 
     # plt.figure()
@@ -401,7 +402,7 @@ def problem_set_up(windspeeds, winddirections, weights, method_dict=None):
 
     # initialize problem
     prob = Problem(AEPGroup(nTurbines=nTurbs, nDirections=winddirections.size,
-                            weights=weights, method_dict=method_dict))
+                            method_dict=method_dict))
 
     # initialize problem
     prob.setup(check=False)

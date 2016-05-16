@@ -14,7 +14,7 @@ class AEPGroup(Group):
     """
 
     def __init__(self, nTurbines, nDirections=1, use_rotor_components=False, datasize=0,
-                 differentiable=True, optimizingLayout=False, nSamples=0, weights=0, method_dict=None):
+                 differentiable=True, optimizingLayout=False, nSamples=0, method_dict=None):
 
         super(AEPGroup, self).__init__()
 

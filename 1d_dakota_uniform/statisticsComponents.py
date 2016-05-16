@@ -178,7 +178,8 @@ class RectStatistics(Component):
         # promote statistics to class attribute
         unknowns['mean'] = mean*hours
         unknowns['std'] = std*hours
-
+        print weights
+        print unknowns['mean']
 
         print 'In RectStatistics'
 
@@ -195,6 +196,9 @@ def linearize_function(params):
     method_dict = params['method_dict']
     dist = method_dict['distribution']
     unused, weights = quadrature_rules.rectangle(n, method_dict['distribution'])
+
+    # I just added this
+    weights = params['weights']
 
     # number of hours in a year
     hours = 8760.0
