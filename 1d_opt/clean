@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+#
+# My first shell script
+#
+echo "removing files"
+#rm error.err
+#rm output.out
+rm error.out
+rm record.json
+rm dakota.rst
+rm dakota_tabular.dat
+rm dakota_quadrature_tabular.dat
+rm results.out.*
+rm params.in.*
+rm mean.txt
+rm std.txt
+rm logDakota.out
