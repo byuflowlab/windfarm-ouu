@@ -7,6 +7,7 @@ from florisse.GeneralWindFarmComponents import calculate_boundary
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import json
 import windfarm_setup
 import distributions
 
@@ -177,6 +178,17 @@ if __name__ == "__main__":
     ybounds = [min(turbineY), max(turbineY), max(turbineY), min(turbineY), min(turbineX)]
 
     np.savetxt('AmaliaOptimizedXY.txt', np.c_[prob['turbineX'], prob['turbineY']], header="turbineX, turbineY")
+
+    # Save details of the simulation
+    obj = {'mean': prob['mean']/1e6, 'std': prob['std']/1e6, 'samples': n, 'winddirections': winddirections.tolist(),
+           'windspeeds': windspeeds.tolist(), 'power': prob['power'].tolist(),
+           'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
+           'layout': method_dict['layout'], 'turbineX': turbineX.tolist(), 'turbineY': turbineY.tolist(),
+           'turbineXopt': prob['turbineX'].tolist(), 'turbineYopt': prob['turbineY'].tolist()}
+    jsonfile = open('record_opt.json','w')
+    json.dump(obj, jsonfile, indent=2)
+    jsonfile.close()
+
 
     plt.figure()
     plt.plot(turbineX, turbineY, 'ok', label='Original')
