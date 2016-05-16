@@ -122,9 +122,10 @@ def getPoints(method_dict, n):
 
         # Get the weights associated with the points locations
 
-        # if method == 'rect':
-        w = getWeights(x, dx, dist)
-
+        if method == 'rect':
+            w = getWeights(x, dx, dist)
+        elif method == 'dakota':
+            w = wd
         # if method == 'dakota':
         #     # Logic to get the weights from integrating the pdf between the bins
         #     w = []
@@ -278,7 +279,7 @@ if __name__ == "__main__":
     #########################################################################
 
     method_dict = {}
-    method_dict['method']           = 'rect'
+    method_dict['method']           = 'dakota'
     method_dict['uncertain_var']    = 'direction'
     method_dict['layout']           = 'optimized'
 
@@ -294,7 +295,7 @@ if __name__ == "__main__":
     method_dict['dakota_filename'] = 'dakotageneral.in'
 
     # n = 10  # number of processors (and number of wind directions to run)
-    n = 20
+    n = 10
 
     points, weights = getPoints(method_dict, n)
 

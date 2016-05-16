@@ -27,7 +27,7 @@ def run():
     method_dict = {}
     method_dict['method']           = 'rect'
     method_dict['uncertain_var']    = 'direction'
-    method_dict['layout']             = 'optimized'
+    method_dict['layout']           = 'optimized'
 
     if method_dict['uncertain_var'] == 'speed':
         dist = distributions.getWeibull()
@@ -159,8 +159,10 @@ def getPoints(method_dict, n):
 
         # Get the weights associated with the points locations
 
-        # if method == 'rect':
-        w = getWeights(x, dx, dist)
+        if method == 'rect':
+            w = getWeights(x, dx, dist)
+        elif method == 'dakota':
+            w = wd
 
         # if method == 'dakota':
         #     # Logic to get the weights from integrating the pdf between the bins
@@ -277,23 +279,7 @@ def plot():
     # plt.show()
 
 
-def problem_set_up(windspeeds, winddirections, weights, method_dict=None):
-    """Set up wind farm problem.
-
-    Args:
-        windspeeds (np.array): wind speeds vector
-        winddirections (np.array): wind directions vector
-        weights (np.array): integration weights associated with the windspeeds and winddirections
-        method_dict (dict): UQ method and parameters for the UQ method
-
-    Returns:
-        prob (openMDAO problem class): The set up wind farm.
-
-    """
-
-
-
-
+def getLayout(layout='grid'):
     ### Set up the farm ###
 
     # Set up position of each turbine
@@ -310,7 +296,6 @@ def problem_set_up(windspeeds, winddirections, weights, method_dict=None):
     xlim = round_sig(np.max(turbineX))
     ylim = round_sig(np.max(turbineY))
 
-    layout = method_dict['layout']
     if layout == 'grid':
 
         # Grid farm (same number of turbines as Amalia 60)
@@ -363,19 +348,38 @@ def problem_set_up(windspeeds, winddirections, weights, method_dict=None):
     # For printing the location as an array
     # print turbineX
     # print turbineY
-    a = '['
-    for x in turbineX:
-        a = a + '%.0f' % x + ', '
-    print 'turbineX', a
-    a = '['
-    for y in turbineY:
-        a = a + '%.0f' % y + ', '
-    print 'turbineY', a
+    # a = '['
+    # for x in turbineX:
+    #     a = a + '%.0f' % x + ', '
+    # print 'turbineX', a
+    # a = '['
+    # for y in turbineY:
+    #     a = a + '%.0f' % y + ', '
+    # print 'turbineY', a
 
 
     # plt.figure()
     # plt.scatter(turbineX, turbineY)
     # plt.show()
+
+    return turbineX, turbineY
+
+
+def problem_set_up(windspeeds, winddirections, weights, method_dict=None):
+    """Set up wind farm problem.
+
+    Args:
+        windspeeds (np.array): wind speeds vector
+        winddirections (np.array): wind directions vector
+        weights (np.array): integration weights associated with the windspeeds and winddirections
+        method_dict (dict): UQ method and parameters for the UQ method
+
+    Returns:
+        prob (openMDAO problem class): The set up wind farm.
+
+    """
+
+    turbineX, turbineY = getLayout(method_dict['layout'])
 
     # turbine size and operating conditions
 
