@@ -11,7 +11,7 @@ def getPoints(method_dict, n):
     method = method_dict['method']
     dist = method_dict['distribution']
 
-    if dist._str() == 'Amalia windrose':
+    if dist._str() == 'Amalia windrose':  # For direction case
         # Modify the input range to start at max probability location
         # and account for zero probability regions.
 
@@ -58,13 +58,13 @@ def getPoints(method_dict, n):
             f = dist.pdf(ynew)
             # print f*R
 
-            # Modify y to zero to 1 range, I think makes dakota generation of polynomials easier
+            # Modify y to -1 to 1 range, I think makes dakota generation of polynomials easier
             y = 2*y / 330 - 1
             updateDakotaFile(method_dict['dakota_filename'], n, y, f)
             # run Dakota file to get the points locations
             x, wd = getSamplePoints(method_dict['dakota_filename'])
             # Rescale x
-            print x
+            # print x
             x = 330/2. + 330/2.*x
             # Call modify x with the new x. Here also account for the offset.
             # print x
@@ -119,22 +119,72 @@ def getPoints(method_dict, n):
 
         points = x
         weights = w
-        return points, weights
 
-    else:
+    else:  # This is mostly for speed case
         # Don't modify the range at all.
         bnd = dist.range()
         a = bnd[0]
         b = bnd[1]
+        a = a[0]  # get rid of the list
+        b = b[0]  # get rid of the list
         dx = (b-a)/n
-        x = np.linspace(a+dx/2, b-dx/2, n) # Maybe modify this and then take the midpoints.
+        # x = np.linspace(a+dx/2, b-dx/2, n) # Maybe modify this and then take the midpoints.
+        # Modify with offset, manually choose the offset you want
+        N = 5
+        i = 0  # [-2, -1, 0, 1, 2] choose from for N=5, for general N [-int(np.floor(N/2)), ... , int(np.floor(N/2)+1]
+        offset = i*dx/N
+        bounds = [a+offset, b+offset]
+        x = np.linspace(bounds[0], bounds[1], n+1)
+        x = x[:-1]+dx/2  # Take the midpoints of the bins
+
+        if method == 'dakota':
+            # Update dakota file with desired number of sample points
+            # Use the x to set the abscissas, and the pdf to set the ordinates
+            y = np.linspace(bounds[0], bounds[1], 51)  # play with the number here
+            dy = y[1]-y[0]
+            ymid = y[:-1]+dy/2
+            f = dist.pdf(ymid)
+
+            # Modify y to -1 to 1 range, I think makes dakota generation of polynomials easier
+            y = 2*y / 30 - 1
+
+
+            ####### Revise this to make sure it works with Dakota
+
+
+            updateDakotaFile(method_dict['dakota_filename'], n, y, f)
+            # run Dakota file to get the points locations
+            x, wd = getSamplePoints(method_dict['dakota_filename'])
+            # Rescale x
+            x = 30/2. + 30/2.*x
 
         # Get the weights associated with the points locations
-        w = []
-        for xi in x:
-            w.append(dist._cdf(xi+dx/2.) - dist._cdf(xi-dx/2.))
-        w = np.array(w).flatten()
-    # return [x], w
+
+        if method == 'rect':
+            w = []
+            for xi in x:
+                xleft = xi-dx/2.
+                xright = xi+dx/2.
+                if xleft < a:
+                    # print 'I am in xleft'
+                    xleft = a
+                if xright > b:
+                    # print 'I am in xright'
+                    xright = b
+                w.append(dist._cdf(xright) - dist._cdf(xleft))
+            w = np.array(w).flatten()
+            # print np.sum(w)
+            # print dist._cdf(b)  # this value should weight dakota weights. b=30
+        elif method == 'dakota':
+            w = wd * dist._cdf(b)  # The dakota weights assume all of the pdf is between 0-30 so we weigh it by the actual amount. This will correct the derivatives, need to also correct the mean and std values. These corrections are done in statisticsComponents.
+
+
+        points = x
+        weights = w
+        # print weights
+        # print np.sum(weights)
+
+    return points, weights
 
 
 def modifyx(x, A=110, B=140, C=225, r=360):
