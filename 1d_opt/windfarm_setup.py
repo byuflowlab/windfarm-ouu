@@ -11,6 +11,10 @@ def getPoints(method_dict, n):
     method = method_dict['method']
     dist = method_dict['distribution']
 
+    # Modify with offset, manually choose the offset you want
+    N = 5
+    i = 0  # [-2, -1, 0, 1, 2] choose from for N=5, for general N [-int(np.floor(N/2)), ... , int(np.floor(N/2)+1]
+
     if dist._str() == 'Amalia windrose':  # For direction case
         # Modify the input range to start at max probability location
         # and account for zero probability regions.
@@ -35,28 +39,32 @@ def getPoints(method_dict, n):
         C = 225  # Location of max probability
         r = b-a  # original range
         R = r - (B-A) # modified range
-        dx = R/n
-        # Modify with offset, manually choose the offset you want
-        N = 5
-        i = 0  # [-2, -1, 0, 1, 2] choose from for N=5, for general N [-int(np.floor(N/2)), ... , int(np.floor(N/2)+1]
-        offset = i*dx/N
-        bounds = [a+offset, R+offset]
-        x = np.linspace(bounds[0], bounds[1], n+1)
-        x = x[:-1]+dx/2  # Take the midpoints of the bins
 
-        # Modify x, to start from the max probability location
-        x = modifyx(x, A, B, C, r)
+        if method == 'rect':
+            # the offset fits N points in the given dx interval
+            dx = R/n
+            offset = i*dx/N
+            bounds = [a+offset, R+offset]
+            x = np.linspace(bounds[0], bounds[1], n+1)
+            x = x[:-1]+dx/2  # Take the midpoints of the bins
+            print x
+            # Modify x, to start from the max probability location
+            x = modifyx(x, A, B, C, r)
+            # Get the weights associated with the points locations
+            w = getWeights(x, dx, dist)
 
         if method == 'dakota':
+            # the offset modifies the starting point for 5 locations within the whole interval
             # Update dakota file with desired number of sample points
-            # Use the x to set the abscissas, and the pdf to set the ordinates
-            y = np.linspace(bounds[0], bounds[1], 51)  # play with the number here
+            # Use the y to set the abscissas, and the pdf to set the ordinates
+            y = np.linspace(a, R, 51)  # play with the number here
             dy = y[1]-y[0]
             mid = y[:-1]+dy/2
+            # Modify the starting point C with offset
+            offset = i*r/N
+            C = (C + offset) % r
             ynew = modifyx(mid, A, B, C, r)
-            # print ynew
             f = dist.pdf(ynew)
-            # print f*R
 
             # Modify y to -1 to 1 range, I think makes dakota generation of polynomials easier
             y = 2*y / 330 - 1
@@ -64,58 +72,11 @@ def getPoints(method_dict, n):
             # run Dakota file to get the points locations
             x, wd = getSamplePoints(method_dict['dakota_filename'])
             # Rescale x
-            # print x
             x = 330/2. + 330/2.*x
-            # Call modify x with the new x. Here also account for the offset.
-            # print x
+            # Call modify x with the new x.
             x = modifyx(x, A, B, C, r)
-
-
-        # Get the weights associated with the points locations
-
-        if method == 'rect':
-            w = getWeights(x, dx, dist)
-        elif method == 'dakota':
+            # Get the weights associated with the points locations
             w = wd
-
-        # if method == 'dakota':
-        #     # Logic to get the weights from integrating the pdf between the bins
-        #     w = []
-        #     for i, xi in enumerate(x):
-        #         if i == 0:
-        #             dxleft = x[i] - C
-        #             dxright = (x[i+1] - x[i])/2.
-        #         elif i == (len(x)-1):
-        #             dxleft = (x[i] - x[i-1])/2.
-        #             dxright = C - x[i]
-        #         else:
-        #             dxleft = x[i] - x[i-1]
-        #             dxright = x[i+1] - x[i]
-        #             if dxleft < 0.0:
-        #                 dxleft = dxleft + 360
-        #             if dxright < 0.0:
-        #                 dxright = dxright + 360
-        #             dxleft = dxleft/2.
-        #             dxright = dxright/2.
-        #         xleft = xi-dxleft
-        #         xright = xi+dxright
-        #         if xright > 360.0:
-        #             w.append(1 - dist._cdf(xleft) + dist._cdf(xright-360))
-        #         elif xleft < 0.0:
-        #             w.append(dist._cdf(xright) + (1 - dist._cdf(360+xleft)))
-        #         else:
-        #             w.append(dist._cdf(xright) - dist._cdf(xleft))
-        #
-        #     w = np.array(w).flatten()
-        #     # print w  # all weights should be positive
-        #     # print np.sum(w)  # this should sum to 1
-        #     # print np.sum(wd)  # this should sum to 1
-        #
-        #     w = w#*wd  # Modify the weight with with the dakota integration weight
-        #     # print np.sum(w)
-        #     # w = w*R   # Modify with the range, the effect of this gets undone withing dakota (This is due to the "tricking" of the problem)
-        #     # w = w*R/len(w)
-        #     w = w*len(w)
 
         points = x
         weights = w
@@ -127,40 +88,16 @@ def getPoints(method_dict, n):
         b = bnd[1]
         a = a[0]  # get rid of the list
         b = b[0]  # get rid of the list
-        dx = (b-a)/n
-        # x = np.linspace(a+dx/2, b-dx/2, n) # Maybe modify this and then take the midpoints.
-        # Modify with offset, manually choose the offset you want
-        N = 5
-        i = 0  # [-2, -1, 0, 1, 2] choose from for N=5, for general N [-int(np.floor(N/2)), ... , int(np.floor(N/2)+1]
-        offset = i*dx/N
-        bounds = [a+offset, b+offset]
-        x = np.linspace(bounds[0], bounds[1], n+1)
-        x = x[:-1]+dx/2  # Take the midpoints of the bins
-
-        if method == 'dakota':
-            # Update dakota file with desired number of sample points
-            # Use the x to set the abscissas, and the pdf to set the ordinates
-            y = np.linspace(bounds[0], bounds[1], 51)  # play with the number here
-            dy = y[1]-y[0]
-            ymid = y[:-1]+dy/2
-            f = dist.pdf(ymid)
-
-            # Modify y to -1 to 1 range, I think makes dakota generation of polynomials easier
-            y = 2*y / 30 - 1
-
-
-            ####### Revise this to make sure it works with Dakota
-
-
-            updateDakotaFile(method_dict['dakota_filename'], n, y, f)
-            # run Dakota file to get the points locations
-            x, wd = getSamplePoints(method_dict['dakota_filename'])
-            # Rescale x
-            x = 30/2. + 30/2.*x
-
-        # Get the weights associated with the points locations
 
         if method == 'rect':
+            # the offset fits N points in the given dx interval
+            dx = (b-a)/n
+            offset = i*dx/N
+            bounds = [a+offset, b+offset]
+            x = np.linspace(bounds[0], bounds[1], n+1)
+            x = x[:-1]+dx/2  # Take the midpoints of the bins
+            print x
+            # Get the weights associated with the points locations
             w = []
             for xi in x:
                 xleft = xi-dx/2.
@@ -175,7 +112,34 @@ def getPoints(method_dict, n):
             w = np.array(w).flatten()
             # print np.sum(w)
             # print dist._cdf(b)  # this value should weight dakota weights. b=30
-        elif method == 'dakota':
+
+
+        if method == 'dakota':
+            # the offset modifies the starting point for 5 locations within the whole interval
+            # Update dakota file with desired number of sample points
+            # Use the x to set the abscissas, and the pdf to set the ordinates
+            y = np.linspace(a, b, 51)  # play with the number here
+            dy = y[1]-y[0]
+            ymid = y[:-1]+dy/2
+            f = dist.pdf(ymid)
+            print y
+            print ymid
+            # Modify y to -1 to 1 range, I think makes dakota generation of polynomials easier
+            y = 2*y / 30 - 1
+            print y
+
+            # offset = i*r/N
+
+            ####### Revise this to make sure it works with Dakota
+
+
+            updateDakotaFile(method_dict['dakota_filename'], n, y, f)
+            # run Dakota file to get the points locations
+            x, wd = getSamplePoints(method_dict['dakota_filename'])
+            # Rescale x
+            x = 30/2. + 30/2.*x
+
+            # Get the weights associated with the points locations
             w = wd * dist._cdf(b)  # The dakota weights assume all of the pdf is between 0-30 so we weigh it by the actual amount. This will correct the derivatives, need to also correct the mean and std values. These corrections are done in statisticsComponents.
 
 

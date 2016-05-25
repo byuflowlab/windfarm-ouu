@@ -137,6 +137,13 @@ def run():
     json.dump(obj, jsonfile, indent=2)
     jsonfile.close()
 
+    # fig, ax = plt.subplots()
+    # #ax.plot(windspeeds, power)
+    # ax.plot(winddirections, power)
+    # ax.set_xlabel('wind speed (m/s)')
+    # ax.set_ylabel('power')
+    #
+    # plt.show()
 
 def plot():
     jsonfile = open('record.json','r')
