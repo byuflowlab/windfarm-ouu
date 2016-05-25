@@ -11,10 +11,6 @@ def getPoints(method_dict, n):
     method = method_dict['method']
     dist = method_dict['distribution']
 
-    # Modify with offset, manually choose the offset you want
-    N = 5
-    i = 0  # [-2, -1, 0, 1, 2] choose from for N=5, for general N [-int(np.floor(N/2)), ... , int(np.floor(N/2)+1]
-
     if dist._str() == 'Amalia windrose':  # For direction case
         # Modify the input range to start at max probability location
         # and account for zero probability regions.
@@ -39,6 +35,10 @@ def getPoints(method_dict, n):
         C = 225  # Location of max probability
         r = b-a  # original range
         R = r - (B-A) # modified range
+
+        # Modify with offset, manually choose the offset you want
+        N = 5
+        i = 0  # [-2, -1, 0, 1, 2] choose from for N=5, for general N [-int(np.floor(N/2)), ... , int(np.floor(N/2)+1]
 
         if method == 'rect':
             # the offset fits N points in the given dx interval
@@ -91,6 +91,9 @@ def getPoints(method_dict, n):
 
         if method == 'rect':
             # the offset fits N points in the given dx interval
+            # Modify with offset, manually choose the offset you want
+            N = 5
+            i = 0  # [-2, -1, 0, 1, 2] choose from for N=5, for general N [-int(np.floor(N/2)), ... , int(np.floor(N/2)+1]
             dx = (b-a)/n
             offset = i*dx/N
             bounds = [a+offset, b+offset]
@@ -115,23 +118,15 @@ def getPoints(method_dict, n):
 
 
         if method == 'dakota':
-            # the offset modifies the starting point for 5 locations within the whole interval
+            # The offset doesn't really make sense for this case
             # Update dakota file with desired number of sample points
-            # Use the x to set the abscissas, and the pdf to set the ordinates
+            # Use the y to set the abscissas, and the pdf to set the ordinates
             y = np.linspace(a, b, 51)  # play with the number here
             dy = y[1]-y[0]
             ymid = y[:-1]+dy/2
             f = dist.pdf(ymid)
-            print y
-            print ymid
             # Modify y to -1 to 1 range, I think makes dakota generation of polynomials easier
             y = 2*y / 30 - 1
-            print y
-
-            # offset = i*r/N
-
-            ####### Revise this to make sure it works with Dakota
-
 
             updateDakotaFile(method_dict['dakota_filename'], n, y, f)
             # run Dakota file to get the points locations
