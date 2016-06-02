@@ -1,0 +1,5 @@
+layout_optimized.txt is from dakota 30 optimized with 0 offset.
+AmaliaOptimizedXY.txt got it from Jared, its an optimization with the rectangle rule and speed averaged per direction, as opposed to constant speed
+I got the random and the grid layouts from scripts in the convexHull directory
+
+
