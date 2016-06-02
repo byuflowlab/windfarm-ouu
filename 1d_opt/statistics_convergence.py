@@ -14,7 +14,7 @@ def run():
     keys of method_dict:
         'method' = 'dakota', 'rect' or 'chaospy'  # 'chaospy needs updating
         'uncertain_var' = 'speed' or 'direction'
-        'layout' = 'amalia', 'optimized', 'grid', 'random', 'lhs'
+        'layout' = 'amalia', 'optimized', 'grid', 'random', 'test'
         'distribution' = a distribution object
         'dakota_filename' = 'dakotaInput.in', applicable for dakota method
     Returns:

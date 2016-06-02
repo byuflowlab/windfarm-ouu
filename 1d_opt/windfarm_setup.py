@@ -1,9 +1,7 @@
 import numpy as np
-import chaospy as cp
-
+# import matplotlib.pyplot as plt
 from getSamplePoints import getSamplePoints
 from dakotaInterface import updateDakotaFile
-
 
 
 def getPoints(method_dict, n):
@@ -186,31 +184,12 @@ def getLayout(layout='grid'):
 
     # Set up position of each turbine
 
-    # Find the bounds of the amalia wind farm to 2 significant digits
-    # Use this information to generate the other layouts
-    # Amalia wind farm
-    locations = np.genfromtxt('../WindFarms/layout_amalia.txt', delimiter=' ')
-    turbineX = locations[:,0]
-    turbineY = locations[:,1]
-
-    # Find the bounds of the amalia wind farm to 2 significant digits
-    round_sig = lambda x, sig=2: np.round(x, sig-int(np.floor(np.log10(x)))-1)
-    xlim = round_sig(np.max(turbineX))
-    ylim = round_sig(np.max(turbineY))
-
     if layout == 'grid':
 
-        # Grid farm (same number of turbines as Amalia 60)
-        nRows = 10   # number of rows and columns in grid
-        nCols = 6
-        # spacing = 5  # turbine grid spacing in diameters, original spacing for the grid
-        spacingX = xlim/(nCols)
-        spacingY = ylim/(nRows)
-        pointsx = np.linspace(start=0, stop=nCols*spacingX, num=nCols)
-        pointsy = np.linspace(start=0, stop=nRows*spacingY, num=nRows)
-        xpoints, ypoints = np.meshgrid(pointsx, pointsy)
-        turbineX = np.ndarray.flatten(xpoints)
-        turbineY = np.ndarray.flatten(ypoints)
+        # Grid wind farm
+        locations = np.genfromtxt('../WindFarms/layout_grid.txt', delimiter=' ')
+        turbineX = locations[:, 0]
+        turbineY = locations[:, 1]
 
     elif layout == 'test':
         # Small Farm
@@ -227,50 +206,27 @@ def getLayout(layout='grid'):
     elif layout == 'random':
 
         # Random farm
-        np.random.seed(101)
-        turbineX = np.random.rand(60)*xlim
-        turbineY = np.random.rand(60)*ylim
-
-    elif layout == 'lhs':
-
-        # Latin Hypercube farm
-        np.random.seed(101)
-        distx = cp.Uniform(0, xlim)
-        disty = cp.Uniform(0, ylim)
-        dist = cp.J(distx, disty)
-        x = dist.sample(60, 'L')
-        turbineX = x[0]
-        turbineY = x[1]
+        locations = np.genfromtxt('../WindFarms/layout_random.txt', delimiter=' ')
+        turbineX = locations[:, 0]
+        turbineY = locations[:, 1]
 
     elif layout == 'amalia':
 
         # Amalia wind farm
         locations = np.genfromtxt('../WindFarms/layout_amalia.txt', delimiter=' ')
-        turbineX = locations[:,0]
-        turbineY = locations[:,1]
+        turbineX = locations[:, 0]
+        turbineY = locations[:, 1]
 
     elif layout == 'optimized':
 
-        # Amalia optimized Jared
-        locations = np.genfromtxt('../WindFarms/AmaliaOptimizedXY.txt', delimiter=' ')
+        # Amalia optimized
+        # locations = np.genfromtxt('../WindFarms/AmaliaOptimizedXY.txt', delimiter=' ') # Amalia optimized Jared
+        locations = np.genfromtxt('../WindFarms/layout_optimized.txt', delimiter=' ')
         turbineX = locations[:,0]
         turbineY = locations[:,1]
 
     else:
-        raise ValueError('unknown layout option "%s", \nvalid options ["amalia", "optimized", "random", "lhs", "grid"]' %layout)
-
-    # For printing the location as an array
-    # print turbineX
-    # print turbineY
-    # a = '['
-    # for x in turbineX:
-    #     a = a + '%.0f' % x + ', '
-    # print 'turbineX', a
-    # a = '['
-    # for y in turbineY:
-    #     a = a + '%.0f' % y + ', '
-    # print 'turbineY', a
-
+        raise ValueError('unknown layout option "%s", \nvalid options ["amalia", "optimized", "random", "test", "grid"]' %layout)
 
     # plt.figure()
     # plt.scatter(turbineX, turbineY)
