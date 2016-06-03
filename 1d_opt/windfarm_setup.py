@@ -35,8 +35,8 @@ def getPoints(method_dict, n):
         R = r - (B-A) # modified range
 
         # Modify with offset, manually choose the offset you want
-        N = 5
-        i = 0  # [-2, -1, 0, 1, 2] choose from for N=5, for general N [-int(np.floor(N/2)), ... , int(np.floor(N/2)+1]
+        N = 10
+        i = 0  # [0, 1, 2, N-1]
 
         if method == 'rect':
             # the offset fits N points in the given dx interval
@@ -45,7 +45,6 @@ def getPoints(method_dict, n):
             bounds = [a+offset, R+offset]
             x = np.linspace(bounds[0], bounds[1], n+1)
             x = x[:-1]+dx/2  # Take the midpoints of the bins
-            print x
             # Modify x, to start from the max probability location
             x = modifyx(x, A, B, C, r)
             # Get the weights associated with the points locations
@@ -61,6 +60,10 @@ def getPoints(method_dict, n):
             # Modify the starting point C with offset
             offset = i*r/N
             C = (C + offset) % r
+            # Make sure the offset is not between A and B
+            if A < C and C < B:
+                C = min([A, B], key=lambda x:abs(x-C))  # It doesn't really matter if C gets set to A or B
+
             ynew = modifyx(mid, A, B, C, r)
             f = dist.pdf(ynew)
 
@@ -97,7 +100,6 @@ def getPoints(method_dict, n):
             bounds = [a+offset, b+offset]
             x = np.linspace(bounds[0], bounds[1], n+1)
             x = x[:-1]+dx/2  # Take the midpoints of the bins
-            print x
             # Get the weights associated with the points locations
             w = []
             for xi in x:
@@ -135,7 +137,6 @@ def getPoints(method_dict, n):
             # Get the weights associated with the points locations
             w = wd * dist._cdf(b)  # The dakota weights assume all of the pdf is between 0-30 so we weigh it by the actual amount. This will correct the derivatives, need to also correct the mean and std values. These corrections are done in statisticsComponents.
 
-
         points = x
         weights = w
         # print weights
@@ -152,11 +153,14 @@ def modifyx(x, A=110, B=140, C=225, r=360):
     for xi in x:
         if A<C:
             if xi > A and xi < C:
-                xi = (xi + B-A)%r
+                xi = (xi + B-A)%r  # I don't think the mod r is necessary for all of these.
             y.append(xi)
         else:
             if xi > A:
                 xi = (xi + B-A)%r
+            else:
+                if xi < C:
+                    xi = (xi + B-A)%r
             y.append(xi)
     return np.array(y)
 
