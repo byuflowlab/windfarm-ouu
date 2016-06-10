@@ -1,5 +1,5 @@
 from openmdao.api import Problem, Group
-from florisse.floris import DirectionGroupFLORIS
+from florisse.floris import DirectionGroup
 import matplotlib.pyplot as plt
 import random
 import time
@@ -10,7 +10,7 @@ if __name__ == "__main__":
 
     # define turbine locations in global reference frame
     rotor_diameter = 126.4  # (m)
-
+    """
     # Scaling grid case
     nRows = 10   # number of rows and columns in grid
     spacing = 5     # turbine grid spacing in diameters
@@ -20,7 +20,7 @@ if __name__ == "__main__":
     xpoints, ypoints = np.meshgrid(points, points)
     turbineX = np.ndarray.flatten(xpoints)
     turbineY = np.ndarray.flatten(ypoints)
-
+    """
     # turbineX = np.zeros(100)
     # turbineY = np.zeros(100)
     # for i in range(100):
@@ -31,6 +31,9 @@ if __name__ == "__main__":
     # plt.scatter(turbineX, turbineY)
 
     # initialize input variable arrays
+    turbineX = np.loadtxt('amalia_x.txt')
+    turbineY = np.loadtxt('amalia_y.txt')
+
     nTurbs = turbineX.size
     rotorDiameter = np.zeros(nTurbs)
     axialInduction = np.zeros(nTurbs)
@@ -53,13 +56,13 @@ if __name__ == "__main__":
     wind_speed = np.linspace(0, v_max, v_max*10)        # m/s
     air_density = 1.1716    # kg/m^3
 
-    wind_direction = -90.
+    wind_direction = 225.
     power = np.zeros(len(wind_speed))
     # wind_direction = 240    # deg (N = 0 deg., using direction FROM, as in met-mast data)
     # set up problem
     for i in range(0, len(wind_speed)):
         prob = Problem(root=Group())
-        prob.root.add('FLORIS', DirectionGroupFLORIS(nTurbs, resolution=0), promotes=['*'])
+        prob.root.add('FLORIS', DirectionGroup(nTurbs), promotes=['*'])
 
         # initialize problem
         prob.setup()
@@ -72,7 +75,7 @@ if __name__ == "__main__":
         # assign values to constant inputs (not design variables)
         prob['rotorDiameter'] = rotorDiameter
         prob['axialInduction'] = axialInduction
-        prob['generator_efficiency'] = generator_efficiency
+        prob['generatorEfficiency'] = generator_efficiency
         prob['wind_speed'] = wind_speed[i]
         prob['air_density'] = air_density
         prob['wind_direction'] = wind_direction
@@ -86,11 +89,11 @@ if __name__ == "__main__":
         toc = time.time()
 
         # print the results
-        print 'wind farm power (kW): %s' % prob['power0']
+        print 'wind farm power (kW): %s' % prob['dir_power0']
         print i
-        power[i] = prob['power0']
+        power[i] = prob['dir_power0']
 
-    np.savetxt("powerVSspeed0_degrees"+"%s"%v_max+".txt", np.c_[wind_speed, power])
+    np.savetxt("powerVSspeedAMALIA225deg.txt", np.c_[wind_speed, power])
     plt.figure(2)
     plt.plot(wind_speed, power)
     plt.xlabel('speed (m/s)')

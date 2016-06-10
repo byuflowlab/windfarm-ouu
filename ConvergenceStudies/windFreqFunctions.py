@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
 from scipy.interpolate import interp1d
 import scipy.integrate as integrate
 from math import exp
@@ -109,9 +110,9 @@ if __name__ == '__main__':
     # dx=72./bins3
     # f1 = f(x3)
     # print np.trapz(f1, dx=dx)
-    frequencies = frequ('windrose_lissett_single_average_speed', 5)
-    print frequencies
-    print np.sum(frequencies)
+    #frequencies = frequ('windrose_lissett_single_average_speed', 5)
+    #print frequencies
+    #print np.sum(frequencies)
     """f = wind_frequency_cubic()
     x = np.linspace(0.,72.,1000)
     x_wind = np.linspace(0.,72,72)
@@ -133,11 +134,14 @@ if __name__ == '__main__':
     plt.ylabel('Frequency')
     plt.show()"""
 
-    """f = speed_frequ(1000)
+    f = speed_frequ(1000)
     print f
     print np.sum(f)
 
-
+    font = {'family' : 'sans',
+        'weight' : 'medium',
+        'size'   : 20}
+    matplotlib.rc('font', **font)
     
     x = np.linspace(0, 30, 1000)
     y = np.zeros(len(x))
@@ -146,7 +150,7 @@ if __name__ == '__main__':
     plt.plot(x,y)
     plt.xlabel('Wind Speed (m/s)')
     plt.ylabel('Probability')
-    plt.show()"""
+    plt.show()
 
 
 
