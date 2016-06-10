@@ -9,10 +9,10 @@ tYama = np.array([10, 0, 20, 509, 494, 509, 539, 580, 1003, 978, 988, 1023, 1059
 
 
 method = ['dakota_opt_muactual.json', 'rect_opt_muactual.json']
-samples = [['10', '20', '30', '40'], ['10', '20', '30', '40', '66', '100']]
+samples = [['5', '10', '15', '20', '30', '40'], ['5', '10', '15', '20', '30', '40', '66', '100']]
 # values = ['std', 'obj', 'tX', 'tY', 'iter', 'mu', 'mu_actual']
 case = '0'
-fig, ax = plt.subplots(2, 7, figsize=(24,8))
+fig, ax = plt.subplots(2, 9, figsize=(24,8))
 for j, m in enumerate(method):
     # Load the json file with all the information
     f = open(m, 'r')
@@ -48,8 +48,8 @@ ax[1][0].set_ylim([-245, 5145])
 ax[1][0].set_aspect('equal')
 
 # Clear the last grids
-ax[0][5].set_axis_off()
-ax[0][6].set_axis_off()
+ax[0][7].set_axis_off()
+ax[0][8].set_axis_off()
 
 
 # ax[0][0].text(3200, 5000, 'aloha')
@@ -57,5 +57,6 @@ ax[0][6].set_axis_off()
 
 ax[0][4].text(4100, 5000, 'GWh - AEP of the layout as measured by using rectangular integration with n=100 directions')
 #plt.savefig('optimizaton.pdf')
+
 
 plt.show()
