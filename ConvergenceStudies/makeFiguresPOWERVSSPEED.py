@@ -4,11 +4,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 if __name__=="__main__":
-    filename = "powerVSspeed30.0.txt"
+    filename = "powerVSspeedAMALIAneg90deg.txt"
     file = open(filename)
     data = np.loadtxt(file)
     x = np.zeros(len(data))
     y = np.zeros(len(data))
+    """
     variance = np.zeros(len(data))
     error = np.zeros(len(data))
     
@@ -23,7 +24,7 @@ if __name__=="__main__":
     speed_points = np.array(record1['points'])
     AEPdirection = np.array(record2['AEP'])
     direction_points = np.array(record2['points'])
-    
+    """
     # print type(AEPspeed)
     # print AEPspeed.size
     # print "Speed Points: ", speed_points
@@ -36,14 +37,19 @@ if __name__=="__main__":
         x[i] = data[i][0]
         y[i] = data[i][1]/1000
 
+    font = {'family' : 'serif',
+        'weight' : 'normal',
+        'size'   : 15}
+    matplotlib.rc('font', **font)
+
     # plt.plot(speed_points, AEPspeed, 'g', label='Santiago')
     plt.plot(x, y)
     plt.xlim([0,30])
-    plt.ylim([0, 600])
+    plt.ylim([0, 350])
     plt.xlabel('Wind Speed (m/s)')
-    plt.ylabel('Power (kW)')
+    plt.ylabel('Power (MW)')
     # plt.title('AEP vs Number of Wind directions: 10x10 grid')
-
+    """
     converged = y[len(y)-1]
     
     top1percent = converged+0.01*converged
@@ -52,11 +58,8 @@ if __name__=="__main__":
     topy = (top1percent, top1percent)
     bottomy = (bottom1percent, bottom1percent)	
     topx = (0,150)
+    """
     
-    font = {'family' : 'sans',
-        'weight' : 'bold',
-        'size'   : 15}
-    matplotlib.rc('font', **font)
 
 
     plt.show()

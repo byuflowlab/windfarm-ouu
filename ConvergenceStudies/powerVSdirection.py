@@ -1,5 +1,5 @@
 from openmdao.api import Problem, Group
-from florisse.floris import DirectionGroupFLORIS
+from florisse.floris import DirectionGroup
 import matplotlib.pyplot as plt
 import random
 import time
@@ -10,7 +10,7 @@ if __name__ == "__main__":
 
     # define turbine locations in global reference frame
     rotor_diameter = 126.4  # (m)
-
+    """
     # Scaling grid case
     nRows = 10   # number of rows and columns in grid
     spacing = 5     # turbine grid spacing in diameters
@@ -20,15 +20,18 @@ if __name__ == "__main__":
     xpoints, ypoints = np.meshgrid(points, points)
     turbineX = np.ndarray.flatten(xpoints)
     turbineY = np.ndarray.flatten(ypoints)
-
+    """
     # turbineX = np.zeros(100)
     # turbineY = np.zeros(100)
     # for i in range(100):
     #    turbineX[i] = random.random()*6000
     #    turbineY[i]=  random.random()*6000
 
-    plt.figure(1)
-    plt.scatter(turbineX, turbineY)
+    turbineX = np.loadtxt('amalia_x.txt')
+    turbineY = np.loadtxt('amalia_y.txt')
+    #plt.figure(1)
+    #plt.plot(turbineX, turbineY, 'ok')
+    #plt.show()
 
     # initialize input variable arrays
     nTurbs = turbineX.size
@@ -58,7 +61,7 @@ if __name__ == "__main__":
     # set up problem
     for i in range(0, len(wind_direction)):
         prob = Problem(root=Group())
-        prob.root.add('FLORIS', DirectionGroupFLORIS(nTurbs, resolution=0), promotes=['*'])
+        prob.root.add('FLORIS', DirectionGroup(nTurbs), promotes=['*'])
 
         # initialize problem
         prob.setup()
@@ -71,7 +74,7 @@ if __name__ == "__main__":
         # assign values to constant inputs (not design variables)
         prob['rotorDiameter'] = rotorDiameter
         prob['axialInduction'] = axialInduction
-        prob['generator_efficiency'] = generator_efficiency
+        prob['generatorEfficiency'] = generator_efficiency
         prob['wind_speed'] = wind_speed
         prob['air_density'] = air_density
         prob['wind_direction'] = wind_direction[i]
@@ -85,11 +88,11 @@ if __name__ == "__main__":
         toc = time.time()
 
         # print the results
-        print 'wind farm power (kW): %s' % prob['power0']
+        print 'wind farm power (kW): %s' % prob['dir_power0']
         print i
-        power[i] = prob['power0']
+        power[i] = prob['dir_power0']
 
-    np.savetxt("powerVSdirection_10x10_grid"+".txt", np.c_[wind_direction, power])
+    np.savetxt("powerVSdirectionAMALIA"+".txt", np.c_[wind_direction, power])
     plt.figure(2)
     plt.plot(wind_direction, power)
     plt.xlabel('wind_direction (degrees)')

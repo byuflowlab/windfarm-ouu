@@ -55,7 +55,8 @@ ax[0][8].set_axis_off()
 # ax[0][0].text(3200, 5000, 'aloha')
 # ax[0][0].text(3200, 0, 'aloha')
 
-ax[0][6].text(4100, 5000, 'GWh - AEP of the layout as measured by using rectangular integration with n=100 directions')
-plt.savefig('optimizaton.pdf')
+ax[0][4].text(4100, 5000, 'GWh - AEP of the layout as measured by using rectangular integration with n=100 directions')
+#plt.savefig('optimizaton.pdf')
+
 
 plt.show()
