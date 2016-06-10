@@ -2,6 +2,8 @@
 import json
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
+sys.path.append('../')
 import prettify
 
 locations = np.genfromtxt('layout_grid.txt', delimiter='')
@@ -88,60 +90,60 @@ layout = ['grid', 'amalia', 'optimized', 'random']
 
 method = ['dir_rect.json', 'dir_dakota.json']
 layout = ['grid', 'amalia', 'optimized', 'random']
-#
-# n = 45  # number of points to consider
-#
-# fig, ax = plt.subplots(4, 3, figsize=(12, 12), gridspec_kw={'width_ratios': [0.2,1,1]})
-# # Loop over all the axes and prettify the graph.  # later have that in the prettify
-# for Ax in ax:
-#     for AX in Ax:
-#         prettify.set_color_cycle(AX)
-#         prettify.remove_junk(AX)
-#
-# for i, lay in enumerate(layout):
-#     # Get the baseline
-#     f = open(method[0], 'r')
-#     r = json.load(f)
-#     f.close()
-#     mu_base = r[lay]['average']['mu'][-1]
-#
-#     # Plot the layout
-#     ax[i][0].scatter(tx[i], ty[i])
-#     ax[i][0].set_axis_off()
-#     ax[i][0].set_xlim([-190, 3990])
-#     ax[i][0].set_ylim([-245, 5145])
-#     ax[i][0].set_aspect('equal')
-#
-#     for j, m in enumerate(method, 1):
-#         f = open(m, 'r')
-#         r = json.load(f)
-#         f.close()
-#
-#         # Baseline values for error bounds and mean values
-#         s = r[lay]['average']['s'][:n]
-#         mu_ave = r[lay]['average']['mu'][:n]
-#
-#         mu_max = r[lay]['max']['mu'][:n]
-#         mu_min = r[lay]['min']['mu'][:n]
-#
-#         # Plot the average values and the bounds
-#         ax[i][j].plot(s, mu_ave, label='average')
-#         ax[i][j].plot(s, np.ones(len(s))*mu_base+0.01*mu_base, 'k--', label='1% bounds')
-#         ax[i][j].plot(s, np.ones(len(s))*mu_base-0.01*mu_base, 'k--', label='1% bounds')
-#
-#         # Plot the min, max range
-#         ax[i][j].fill_between(s, mu_min, mu_max, facecolor='blue', alpha=0.2)
-#         ax[i][j].set_ylim([490, 810])
-#         ax[i][j].set_xlim([-1, 46])
-#
-#     ax[i][1].set_ylabel(r'$AEP\, (GWhs)$', rotation=90)
-#
-# ax[0][1].set_title(r'$rectangle\, rule$')
-# ax[0][2].set_title(r'$pc$')
-# ax[0][1].get_yaxis().set_label_coords(-0.1,0.5)
-# ax[3][1].set_xlabel(r'$\#\, wind\, directions$')
-# ax[3][2].set_xlabel(r'$\#\, wind\, directions$')
-# plt.savefig('Statistics_convergence_mean_min_max_direction.pdf', transparent=True)
+
+n = 45  # number of points to consider
+
+fig, ax = plt.subplots(4, 3, figsize=(12, 12), gridspec_kw={'width_ratios': [0.2,1,1]})
+# Loop over all the axes and prettify the graph.  # later have that in the prettify
+for Ax in ax:
+    for AX in Ax:
+        prettify.set_color_cycle(AX)
+        prettify.remove_junk(AX)
+
+for i, lay in enumerate(layout):
+    # Get the baseline
+    f = open(method[0], 'r')
+    r = json.load(f)
+    f.close()
+    mu_base = r[lay]['average']['mu'][-1]
+
+    # Plot the layout
+    ax[i][0].scatter(tx[i], ty[i])
+    ax[i][0].set_axis_off()
+    ax[i][0].set_xlim([-190, 3990])
+    ax[i][0].set_ylim([-245, 5145])
+    ax[i][0].set_aspect('equal')
+
+    for j, m in enumerate(method, 1):
+        f = open(m, 'r')
+        r = json.load(f)
+        f.close()
+
+        # Baseline values for error bounds and mean values
+        s = r[lay]['average']['s'][:n]
+        mu_ave = r[lay]['average']['mu'][:n]
+
+        mu_max = r[lay]['max']['mu'][:n]
+        mu_min = r[lay]['min']['mu'][:n]
+
+        # Plot the average values and the bounds
+        ax[i][j].plot(s, mu_ave, label='average')
+        ax[i][j].plot(s, np.ones(len(s))*mu_base+0.01*mu_base, 'k--', label='1% bounds')
+        ax[i][j].plot(s, np.ones(len(s))*mu_base-0.01*mu_base, 'k--', label='1% bounds')
+
+        # Plot the min, max range
+        ax[i][j].fill_between(s, mu_min, mu_max, facecolor='blue', alpha=0.2)
+        ax[i][j].set_ylim([490, 810])
+        ax[i][j].set_xlim([-1, 46])
+
+    ax[i][1].set_ylabel(r'$AEP\, (GWhs)$', rotation=90)
+
+ax[0][1].set_title(r'$rectangle\, rule$')
+ax[0][2].set_title(r'$pc$')
+ax[0][1].get_yaxis().set_label_coords(-0.1,0.5)
+ax[3][1].set_xlabel(r'$\#\, wind\, directions$')
+ax[3][2].set_xlabel(r'$\#\, wind\, directions$')
+plt.savefig('Statistics_convergence_mean_min_max_direction.pdf', transparent=True)
 
 
 # Figure 3 - Direction Mean Error

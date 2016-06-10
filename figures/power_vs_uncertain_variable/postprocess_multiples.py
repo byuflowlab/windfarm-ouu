@@ -2,6 +2,8 @@
 import json
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
+sys.path.append('../')
 import prettify
 
 f = open('figure1.json', 'r')
