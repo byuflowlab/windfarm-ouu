@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 sys.path.append('../')
-import prettify
+import prettifylocal as prettify
 
 locations = np.genfromtxt('layout_grid.txt', delimiter='')
 tXg = locations[:, 0]
@@ -79,7 +79,7 @@ layout = ['grid', 'amalia', 'optimized', 'random']
 # ax[3][1].legend()
 # ax[0][1].set_title('rectangle')
 # ax[0][2].set_title('pce')
-# ax[0][1].set_ylabel('AEP (GWhs)', rotation=90)
+# ax[0][1].set_ylabel('AEP (GWh)', rotation=90)
 # ax[0][1].get_yaxis().set_label_coords(-0.1,0.5)
 # ax[3][1].set_xlabel('# directions')
 # ax[3][2].set_xlabel('# directions')
@@ -136,13 +136,14 @@ for i, lay in enumerate(layout):
         ax[i][j].set_ylim([490, 810])
         ax[i][j].set_xlim([-1, 46])
 
-    ax[i][1].set_ylabel(r'$AEP\, (GWhs)$', rotation=90)
+    ax[i][1].set_ylabel(r'$AEP\, (GWh)$', rotation=90)
 
 ax[0][1].set_title(r'$rectangle\, rule$')
 ax[0][2].set_title(r'$pc$')
 ax[0][1].get_yaxis().set_label_coords(-0.1,0.5)
 ax[3][1].set_xlabel(r'$\#\, wind\, directions$')
 ax[3][2].set_xlabel(r'$\#\, wind\, directions$')
+fig.tight_layout()
 plt.savefig('Statistics_convergence_mean_min_max_direction.pdf', transparent=True)
 
 
@@ -235,7 +236,7 @@ for i, lay in enumerate(layout):
 ax[0][2].set_title(r'$\#\, wind\, speeds$')
 ax[3][2].set_xlabel(r'$\#\, wind\, speeds$')
 
-
+fig.tight_layout()
 plt.savefig('MeanError_statistics_convergence.pdf', transparent=True)
 
 
@@ -342,7 +343,7 @@ plt.savefig('MeanError_statistics_convergence.pdf', transparent=True)
 # ax[3][2].legend()
 # ax[0][1].set_title('rectangle')
 # ax[0][2].set_title('pce')
-# ax[0][1].set_ylabel('AEP (GWhs)', rotation=90)
+# ax[0][1].set_ylabel('AEP (GWh)', rotation=90)
 # ax[0][1].get_yaxis().set_label_coords(-0.1,0.5)
 # ax[3][1].set_xlabel('# speeds')
 # ax[3][2].set_xlabel('# speeds')

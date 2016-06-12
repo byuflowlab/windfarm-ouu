@@ -10,7 +10,8 @@ def remove_junk(ax):
     '''Remove the extra stuff in the plots and lighten the axes'''
 
     # Color for the axes
-    light_grey = (127/255.,127/255.,127/255.)
+    #light_grey = (127/255.,127/255.,127/255.)
+    light_grey = (64/255.,64/255.,64/255.)
 
     # Remove the top and right axes lines ('splines')
     ax.spines['top'].set_visible(False)

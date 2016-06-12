@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 sys.path.append('../')
-import prettify
+import prettifylocal as prettify
 
 f = open('figure1.json', 'r')
 r = json.load(f)
