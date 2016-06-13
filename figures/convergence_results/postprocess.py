@@ -136,13 +136,15 @@ for i, lay in enumerate(layout):
         ax[i][j].set_ylim([490, 810])
         ax[i][j].set_xlim([-1, 46])
 
-    ax[i][1].set_ylabel(r'$AEP\, (GWh)$', rotation=90)
+    # ax[i][1].set_ylabel(r'$AEP\, (GWh)$', rotation=90)
+    ax[i][1].set_ylabel('AEP (GWh)', rotation=90)
 
-ax[0][1].set_title(r'$rectangle\, rule$')
-ax[0][2].set_title(r'$pc$')
-ax[0][1].get_yaxis().set_label_coords(-0.1,0.5)
-ax[3][1].set_xlabel(r'$\#\, wind\, directions$')
-ax[3][2].set_xlabel(r'$\#\, wind\, directions$')
+
+ax[0][1].set_title('rectangle rule')
+ax[0][2].set_title('polynomial chaos')
+# ax[0][1].get_yaxis().set_label_coords(-0.1,0.5)
+ax[3][1].set_xlabel('number of wind directions')
+ax[3][2].set_xlabel('number of wind directions')
 fig.tight_layout()
 plt.savefig('Statistics_convergence_mean_min_max_direction.pdf', transparent=True)
 
@@ -195,15 +197,16 @@ for i, lay in enumerate(layout):
         ax[i][1].plot(s, mu_err) #, label=m.split('.')[0])
         # ax[i][1].plot(s, mu_err_max, '--')
         # ax[i][1].legend()
-    ax[i][1].legend([r'$rectangle\, rule$', r'$pc$'], frameon=False)
+    # ax[i][1].legend(['rectangle rule', 'polynomial chaos'], frameon=False)
         # Plot the min, max range
         # ax[i][1].fill_between(s, mu_min, mu_max, facecolor='blue', alpha=0.2 )
     ax[i][1].plot(s, np.ones(len(s)), 'k--', label='1% bounds')
     ax[i][1].set_ylim([-0.2, 10.2])
     ax[i][1].set_xlim([-1, 46])
-    ax[i][1].set_ylabel(r'$\%\, average\, error$', rotation=90)
-ax[0][1].set_title(r'$\#\, wind\, directions$')
-ax[3][1].set_xlabel(r'$\#\, wind\, directions$')
+    ax[i][1].set_ylabel('% average error', rotation=90)
+ax[0][1].legend(['rectangle rule', 'polynomial chaos'], frameon=False)
+ax[0][1].set_title('number of wind directions')
+ax[3][1].set_xlabel('number of wind directions')
 
 # Now add the speed information, later combine in just one loop
 method = ['speed_rect.json', 'speed_dakota.json']
@@ -228,13 +231,14 @@ for i, lay in enumerate(layout):
         ax[i][2].plot(s, mu_err) #, label=m.split('.')[0])
         # ax[i][1].plot(s, mu_err_max, '--')
         # ax[i][1].legend()
-    ax[i][2].legend([r'$rectangle\, rule$', r'$pc$'], frameon=False)
+    # ax[i][2].legend(['rectangle rule', 'polynomial chaos'], frameon=False)
     ax[i][2].plot(s, np.ones(len(s)), 'k--', label='1% bounds')
     ax[i][2].set_ylim([-0.2, 10.2])
     ax[i][2].set_xlim([-1, 46])
-    ax[i][2].set_ylabel(r'$\%\, error$', rotation=90)
-ax[0][2].set_title(r'$\#\, wind\, speeds$')
-ax[3][2].set_xlabel(r'$\#\, wind\, speeds$')
+    ax[i][2].set_ylabel('% error', rotation=90)
+ax[0][2].legend(['rectangle rule', 'polynomial chaos'], frameon=False)
+ax[0][2].set_title('number of wind speeds')
+ax[3][2].set_xlabel('number of wind speeds')
 
 fig.tight_layout()
 plt.savefig('MeanError_statistics_convergence.pdf', transparent=True)

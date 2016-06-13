@@ -88,7 +88,8 @@ for i, x in enumerate(tx):
 
     # The wind direction plot
     ax[i][1].plot(d, power_direction[i]/1000)
-    ax[i][1].set_ylabel(r'$power\, (MW)$')
+    # ax[i][1].set_ylabel(r'$power\, (MW)$')
+    ax[i][1].set_ylabel('power (MW)')
     ax[i][1].set_xlim([-10, 370])
     ax[i][1].set_ylim([38, 98])
     ax[i][1].set_xticks([0,90,180,270,360])
@@ -104,10 +105,14 @@ for i, x in enumerate(tx):
     #     line.set_color('w')
 
 # Titles, labels and stuff.
-ax[0][1].set_title(r'$wind\, direction\, (deg)$')
-ax[3][1].set_xlabel(r'$wind\, direction\, (deg)$')
-ax[0][2].set_title(r'$wind\, speed\, (m/s)$')
-ax[3][2].set_xlabel(r'$wind\, speed\, (m/s)$')
+# ax[0][1].set_title(r'$wind\, direction\, (deg)$')
+# ax[3][1].set_xlabel(r'$wind\, direction\, (deg)$')
+# ax[0][2].set_title(r'$wind\, speed\, (m/s)$')
+# ax[3][2].set_xlabel(r'$wind\, speed\, (m/s)$')
+ax[0][1].set_title('wind direction (deg)')
+ax[3][1].set_xlabel('wind direction (deg)')
+ax[0][2].set_title('wind speed (m/s)')
+ax[3][2].set_xlabel('wind speed (m/s)')
 
 
 fig.tight_layout()
