@@ -54,23 +54,6 @@ d = d1  # all the directions and the speeds are the same
 s = s1
 
 
-# fig, ax = plt.subplots(1, 3, figsize=(18, 6), gridspec_kw={'width_ratios': [0.2,1,1]})
-# ax[0].scatter(tXg, tYg)
-# ax[0].set_axis_off()
-# ax[0].set_xlim([-190, 3990])
-# ax[0].set_ylim([-245, 5145])
-# ax[0].set_aspect('equal')
-# ax[1].plot(d1, p1d)
-# ax[2].plot(s1, p1s)
-# fig.tight_layout()
-
-# fig, ax = plt.subplots(1, 1, figsize=(8, 6))
-# prettify.set_color_cycle(ax)
-# ax.plot(d1, p1d)
-# prettify.remove_junk(ax)
-
-
-
 fig, ax = plt.subplots(4, 3, figsize=(12, 12), gridspec_kw={'width_ratios': [0.2,1,1]})
 # Loop over all the axes and prettify the graph.  # later have that in the prettify
 for Ax in ax:
@@ -87,7 +70,7 @@ for i, x in enumerate(tx):
     ax[i][0].set_aspect('equal')
 
     # The wind direction plot
-    ax[i][1].plot(d, power_direction[i]/1000)
+    ax[i][1].plot(d, power_direction[i]/1000, linewidth=2)
     # ax[i][1].set_ylabel(r'$power\, (MW)$')
     ax[i][1].set_ylabel('power (MW)')
     ax[i][1].set_xlim([-10, 370])
@@ -95,7 +78,7 @@ for i, x in enumerate(tx):
     ax[i][1].set_xticks([0,90,180,270,360])
 
     # The wind speed plot
-    ax[i][2].plot(s, power_speed[i]/1000)
+    ax[i][2].plot(s, power_speed[i]/1000, linewidth=2)
     ax[i][2].set_xlim([-1, 31])
     ax[i][2].set_ylim([-10, 310])
     ax[i][2].grid(True)
@@ -113,7 +96,24 @@ ax[0][1].set_title('wind direction (deg)')
 ax[3][1].set_xlabel('wind direction (deg)')
 ax[0][2].set_title('wind speed (m/s)')
 ax[3][2].set_xlabel('wind speed (m/s)')
-
+ax[0][0].annotate('',
+    xy=(2090, 5000), xycoords='data',
+    xytext=(2090, 7000), textcoords='data',
+    arrowprops=dict(arrowstyle="<-",
+                    connectionstyle="arc3"),
+    )
+ax[0][0].annotate('',
+    xy=(-100, 0), xycoords='data',
+    xytext=(-1500, -1400), textcoords='data',
+    arrowprops=dict(arrowstyle="->",
+                    connectionstyle="arc3"),
+    )
+ax[0][0].annotate(
+    'N', xy=(2090, 5500), xycoords='data', annotation_clip=False,
+    xytext=(5, 0), textcoords='offset points')
+ax[0][0].annotate(
+    '225$^\circ$', xy=(-400, -1200), xycoords='data', annotation_clip=False,
+    xytext=(5, 0), textcoords='offset points')
 
 fig.tight_layout()
 plt.savefig('power_vs_winddirection_vs_windspeed.pdf', transparent=True)

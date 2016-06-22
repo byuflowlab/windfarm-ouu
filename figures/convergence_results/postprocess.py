@@ -2,6 +2,7 @@
 import json
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import sys
 sys.path.append('../')
 import prettifylocal as prettify
@@ -127,9 +128,13 @@ for i, lay in enumerate(layout):
         mu_min = r[lay]['min']['mu'][:n]
 
         # Plot the average values and the bounds
-        ax[i][j].plot(s, mu_ave, label='average')
+        ax[i][j].plot(s, mu_ave, label='average', linewidth=2)
         ax[i][j].plot(s, np.ones(len(s))*mu_base+0.01*mu_base, 'k--', label='1% bounds')
         ax[i][j].plot(s, np.ones(len(s))*mu_base-0.01*mu_base, 'k--', label='1% bounds')
+        print mu_base
+        print mu_base + 0.01*mu_base
+        print mu_base - 0.01*mu_base
+        print '\n'
 
         # Plot the min, max range
         ax[i][j].fill_between(s, mu_min, mu_max, facecolor='blue', alpha=0.2)
@@ -145,6 +150,24 @@ ax[0][2].set_title('polynomial chaos')
 # ax[0][1].get_yaxis().set_label_coords(-0.1,0.5)
 ax[3][1].set_xlabel('number of wind directions')
 ax[3][2].set_xlabel('number of wind directions')
+# Put 1% annotation
+ax[0][1].annotate('',
+    xy=(40, 731), xycoords='data',
+    xytext=(40, 781), textcoords='data',
+    arrowprops=dict(arrowstyle="->",
+                    connectionstyle="arc3"),
+    )
+ax[0][1].annotate('',
+    xy=(40, 717), xycoords='data',
+    xytext=(40, 667), textcoords='data',
+    arrowprops=dict(arrowstyle="->",
+                    connectionstyle="arc3"),
+    )
+ax[0][1].annotate(
+    r'$\pm$1%', xy=(40, 756), xycoords='data',
+    xytext=(5, 0), textcoords='offset points')
+
+
 fig.tight_layout()
 plt.savefig('Statistics_convergence_mean_min_max_direction.pdf', transparent=True)
 
@@ -194,7 +217,7 @@ for i, lay in enumerate(layout):
         mu_err = np.abs((mu_ave-mu_base))/mu_base *100
         mu_err_max = np.max((np.abs(mu_max-mu_base), np.abs(mu_min-mu_base)), axis=0)/mu_base *100
         # Plot the average values and the bounds
-        ax[i][1].plot(s, mu_err) #, label=m.split('.')[0])
+        ax[i][1].plot(s, mu_err, linewidth=2) #, label=m.split('.')[0])
         # ax[i][1].plot(s, mu_err_max, '--')
         # ax[i][1].legend()
     # ax[i][1].legend(['rectangle rule', 'polynomial chaos'], frameon=False)
@@ -204,6 +227,8 @@ for i, lay in enumerate(layout):
     ax[i][1].set_ylim([-0.2, 10.2])
     ax[i][1].set_xlim([-1, 46])
     ax[i][1].set_ylabel('% average error', rotation=90)
+    ax[i][1].yaxis.set_ticks([0, 1, 2, 5, 10])
+    ax[i][1].xaxis.set_ticks([0, 5, 10, 20, 30, 40])
 ax[0][1].legend(['rectangle rule', 'polynomial chaos'], frameon=False)
 ax[0][1].set_title('number of wind directions')
 ax[3][1].set_xlabel('number of wind directions')
@@ -228,7 +253,7 @@ for i, lay in enumerate(layout):
 
         mu_err = np.abs((mu_ave-mu_base))/mu_base * 100
         # Plot the average values and the bounds
-        ax[i][2].plot(s, mu_err) #, label=m.split('.')[0])
+        ax[i][2].plot(s, mu_err, linewidth=2) #, label=m.split('.')[0])
         # ax[i][1].plot(s, mu_err_max, '--')
         # ax[i][1].legend()
     # ax[i][2].legend(['rectangle rule', 'polynomial chaos'], frameon=False)
@@ -236,6 +261,9 @@ for i, lay in enumerate(layout):
     ax[i][2].set_ylim([-0.2, 10.2])
     ax[i][2].set_xlim([-1, 46])
     ax[i][2].set_ylabel('% error', rotation=90)
+    ax[i][2].yaxis.set_ticks([0, 1, 2, 5, 10])
+    ax[i][2].xaxis.set_ticks([0, 5, 10, 20, 30, 40])
+
 ax[0][2].legend(['rectangle rule', 'polynomial chaos'], frameon=False)
 ax[0][2].set_title('number of wind speeds')
 ax[3][2].set_xlabel('number of wind speeds')
