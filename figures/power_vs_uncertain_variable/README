@@ -1,1 +1,4 @@
-use the combine_record.py to create the json file for this figure. In 1d_opt
+Run statistics_convergence.py in src for each of the desired cases and then
+use the combine_record.py in src to create the json file for this figure.
+
+
