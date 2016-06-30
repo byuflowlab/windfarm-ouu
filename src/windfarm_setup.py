@@ -229,8 +229,32 @@ def getLayout(layout='grid'):
         turbineX = locations[:,0]
         turbineY = locations[:,1]
 
+    elif layout == 'layout1':
+
+        # Amalia optimized
+        # locations = np.genfromtxt('../WindFarms/AmaliaOptimizedXY.txt', delimiter=' ') # Amalia optimized Jared
+        locations = np.genfromtxt('../WindFarms/layout_1.txt', delimiter=' ')
+        turbineX = locations[:,0]
+        turbineY = locations[:,1]
+
+    elif layout == 'layout2':
+
+        # Amalia optimized
+        # locations = np.genfromtxt('../WindFarms/AmaliaOptimizedXY.txt', delimiter=' ') # Amalia optimized Jared
+        locations = np.genfromtxt('../WindFarms/layout_2.txt', delimiter=' ')
+        turbineX = locations[:,0]
+        turbineY = locations[:,1]
+
+    elif layout == 'layout3':
+
+        # Amalia optimized
+        # locations = np.genfromtxt('../WindFarms/AmaliaOptimizedXY.txt', delimiter=' ') # Amalia optimized Jared
+        locations = np.genfromtxt('../WindFarms/layout_3.txt', delimiter=' ')
+        turbineX = locations[:,0]
+        turbineY = locations[:,1]
+
     else:
-        raise ValueError('unknown layout option "%s", \nvalid options ["amalia", "optimized", "random", "test", "grid"]' %layout)
+        raise ValueError('unknown layout option "%s", \nvalid options ["amalia", "optimized", "random", "test", "grid", "layout1", "layout2", "layout3"]' %layout)
 
     # plt.figure()
     # plt.scatter(turbineX, turbineY)

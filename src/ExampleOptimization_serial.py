@@ -20,13 +20,14 @@ if __name__ == "__main__":
     #     'method' = 'dakota', 'rect' or 'chaospy'  # 'chaospy' needs updating
     #     'uncertain_var' = 'speed' or 'direction'
     #     'layout' = 'amalia', 'optimized', 'grid', 'random', 'lhs', 'test'
+    #                   'layout1', 'layout2', 'layout3'
     #     'distribution' = a distribution object
     #     'dakota_filename' = 'dakotaInput.in', applicable for dakota method
 
     method_dict = {}
     method_dict['method']           = 'rect'
     method_dict['uncertain_var']    = 'direction'
-    method_dict['layout']           = 'test' #optimized'
+    method_dict['layout']           = 'optimized'
 
     if method_dict['uncertain_var'] == 'speed':
         dist = distributions.getWeibull()
@@ -162,8 +163,8 @@ if __name__ == "__main__":
     # print the results
     print('FLORIS Opt. calculation took %.03f sec.' % (toc-tic))
 
-    for direction_id in range(0, n):
-        print('yaw%i (deg) = ' % direction_id, prob['yaw%i' % direction_id])
+    #for direction_id in range(0, n):
+    #    print('yaw%i (deg) = ' % direction_id, prob['yaw%i' % direction_id])
     # for direction_id in range(0, n):
         # mpi_print(prob,  'velocitiesTurbines%i (m/s) = ' % direction_id, prob['velocitiesTurbines%i' % direction_id])
     # for direction_id in range(0, n):
@@ -200,5 +201,3 @@ if __name__ == "__main__":
     plt.xlabel('Turbine X Position (m)')
     plt.ylabel('Turbine Y Position (m)')
     plt.show()
-
-
