@@ -35,8 +35,8 @@ def getPoints(method_dict, n):
         R = r - (B-A) # modified range
 
         # Modify with offset, manually choose the offset you want
-        N = 10
-        i = 0  # [0, 1, 2, N-1]
+        N = method_dict['Noffset']  # N = 10
+        i = method_dict['offset']  # i = [0, 1, 2, N-1]
 
         if method == 'rect':
             # the offset fits N points in the given dx interval

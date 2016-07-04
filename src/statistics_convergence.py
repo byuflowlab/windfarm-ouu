@@ -2,13 +2,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import json
+import argparse
 from openmdao.api import Problem
 from AEPGroups import AEPGroup
 import distributions
 import windfarm_setup
 
 
-def run():
+def run(method_dict):
     """
     method_dict = {}
     keys of method_dict:
@@ -17,25 +18,12 @@ def run():
         'layout' = 'amalia', 'optimized', 'grid', 'random', 'test'
         'distribution' = a distribution object
         'dakota_filename' = 'dakotaInput.in', applicable for dakota method
+        'offset' = [0, 1, 2, Noffset-1]
+        'Noffset' = 'number of starting directions to consider'
+
     Returns:
         Writes a json file 'record.json' with the run information.
     """
-
-    method_dict = {}
-    method_dict['method']           = 'dakota'
-    method_dict['uncertain_var']    = 'direction'
-    method_dict['layout']           = 'optimized'
-
-    if method_dict['uncertain_var'] == 'speed':
-        dist = distributions.getWeibull()
-        method_dict['distribution'] = dist
-    elif method_dict['uncertain_var'] == 'direction':
-        dist = distributions.getWindRose()
-        method_dict['distribution'] = dist
-    else:
-        raise ValueError('unknown uncertain_var option "%s", valid options "speed" or "direction".' %method_dict['uncertain_var'])
-
-    method_dict['dakota_filename'] = 'dakotageneral.in'
 
     mean = []
     std = []
@@ -166,8 +154,46 @@ def plot():
     #
     # plt.show()
 
+
+def get_args():
+    parser = argparse.ArgumentParser(description='Run statistics convergence')
+    parser.add_argument('-l', '--layout', default='optimized', help="specify layout ['amalia', 'optimized', 'grid', 'random', 'test']")
+    parser.add_argument('--offset', default=0, type=int, help='offset for starting direction. offset=[0, 1, 2, Noffset-1]')
+    parser.add_argument('--Noffset', default=10, type=int, help='number of starting directions to consider')
+    parser.add_argument('--version', action='version', version='Statistics convergence 0.0')
+    args = parser.parse_args()
+    # print args
+    # print args.offset
+    # print args.Noffset
+    # print args.layout
+    return args
+
 if __name__ == "__main__":
-    run()
+
+    # Get arguments
+    args = get_args()
+
+    # Specify the rest of arguments
+    # method_dict = {}
+    method_dict = vars(args)  # Start a dictionary with the arguments specified in the command line
+    method_dict['method']           = 'dakota'
+    method_dict['uncertain_var']    = 'direction'
+    # method_dict['layout']           = 'optimized'  # Now this is specified in the command line
+    method_dict['dakota_filename'] = 'dakotageneral.in'
+    # To Do specify the number of points (directions or speeds) as an option as well.
+
+    # Specify the distribution according to the uncertain variable
+    if method_dict['uncertain_var'] == 'speed':
+        dist = distributions.getWeibull()
+        method_dict['distribution'] = dist
+    elif method_dict['uncertain_var'] == 'direction':
+        dist = distributions.getWindRose()
+        method_dict['distribution'] = dist
+    else:
+        raise ValueError('unknown uncertain_var option "%s", valid options "speed" or "direction".' %method_dict['uncertain_var'])
+
+    # Run the problem
+    run(method_dict)
     # plot()
 
 
