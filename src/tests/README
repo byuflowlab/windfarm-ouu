@@ -1,0 +1,4 @@
+To run tests to the command
+py.test
+from the src/ directory
+
