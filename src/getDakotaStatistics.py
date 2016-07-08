@@ -20,12 +20,23 @@ def getDakotaStatistics(dakotaFile):
     print 'finished calling Dakota.'
 
     # Postprocess the results
-    mean, std, coeff = postprocess()
+    mean, std, coeff = postprocess(dakotaInput)
     return mean, std, coeff
 
 
-def postprocess():
+def postprocess(dakotaFile):
     """Read the Mean and the coefficients from the Dakota output."""
+
+    # Read the input file to determine which case we ran quadrature or regression
+    # Then we know how the read the statistics from the output file
+    skipline = True
+    f = open(dakotaFile, 'r')
+    for line in f:
+        if 'expansion_order' in line and not line.strip().startswith('#'):
+            skipline = False
+            break
+    f.close()
+
 
     filename = 'logDakota.out'
 
@@ -51,7 +62,8 @@ def postprocess():
             line = f.readline()
             if 'Mean' in line:
                 # function value
-                f.readline()  # for the least squares case
+                if skipline:
+                    f.readline()
                 line = f.readline()
                 mean = float(line.split()[1])
                 std = float(line.split()[2])

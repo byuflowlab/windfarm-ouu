@@ -15,3 +15,5 @@ rm params.in.*
 rm mean.txt
 rm std.txt
 rm logDakota.out
+rm LHS_*
+rm S4

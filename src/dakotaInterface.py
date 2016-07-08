@@ -137,7 +137,7 @@ class RedirectOutput(object):
 #: class output()
 
 
-def updateDakotaFile(dakotaFilename, quadrature_points, x, f):
+def updateDakotaFile(dakotaFilename, sample_number, x, f):
     """Rewrite number of quadrature points in Dakota file."""
 
     filein = dakotaFilename
@@ -145,9 +145,26 @@ def updateDakotaFile(dakotaFilename, quadrature_points, x, f):
     fr = open(filein, 'r')
     fw = open(fileout, 'w')
     for line in fr:
-        if 'quadrature_order' in line:
-            towrite = 'quadrature_order  ' + str(quadrature_points) + '\n'
+        # Method for calculating the coefficients
+        if 'quadrature_order' in line and not line.strip().startswith('#'):
+            towrite = 'quadrature_order  ' + str(sample_number) + '\n'
             fw.write(towrite)
+        elif 'sparse_grid_level' in line and not line.strip().startswith('#'):
+            towrite = 'sparse_grid_level  ' + str(sample_number) + '\n'
+            fw.write(towrite)
+        elif 'expansion_order' in line and not line.strip().startswith('#'):
+            towrite = 'expansion_order  ' + str(sample_number-1) + '\n'
+            fw.write(towrite)
+        # The next 3 are options of the expansion order.
+        elif 'collocation_points' in line and not line.strip().startswith('#'):
+            towrite = 'collocation_points  ' + str(sample_number) + '\n'
+            fw.write(towrite)
+        elif 'expansion_samples' in line and not line.strip().startswith('#'):
+            towrite = 'expansion_samples  ' + str(sample_number) + '\n'
+            fw.write(towrite)
+        elif 'collocation_ratio' in line and not line.strip().startswith('#'):
+            fw.write(line)  # Don't do anything assume the collocation ratio given is what you want.
+        # Update the variables
         elif 'abscissas' in line:
             towrite = 'abscissas = '
             for xi in x:
@@ -159,101 +176,6 @@ def updateDakotaFile(dakotaFilename, quadrature_points, x, f):
             for fi in f:
                 towrite = towrite + str(fi) + ' '
             towrite += '0.0\n'
-            fw.write(towrite)
-        else:
-            fw.write(line)
-    fr.close()
-    fw.close()
-    shutil.move(fileout, filein)
-
-
-def updateDakotaFile5(dakotaFilename, quadrature_points, bounds):
-    """Rewrite number of quadrature points in Dakota file."""
-
-    filein = dakotaFilename
-    fileout = dakotaFilename + '.tmp'
-    fr = open(filein, 'r')
-    fw = open(fileout, 'w')
-    for line in fr:
-        if 'quadrature_order' in line:
-            towrite = 'quadrature_order  ' + str(quadrature_points) + '\n'
-            fw.write(towrite)
-        elif 'lower_bounds' in line:
-            towrite = 'lower_bounds = ' + str(bounds[0]) + '\n'
-            fw.write(towrite)
-        elif 'upper_bounds' in line:
-            towrite = 'upper_bounds = ' + str(bounds[1]) + '\n'
-            fw.write(towrite)
-        else:
-            fw.write(line)
-    fr.close()
-    fw.close()
-    shutil.move(fileout, filein)
-
-
-def updateDakotaFile_before_introducing_bounds(dakotaFilename, quadrature_points):
-    """Rewrite number of quadrature points in Dakota file."""
-
-    filein = dakotaFilename
-    fileout = dakotaFilename + '.tmp'
-    fr = open(filein, 'r')
-    fw = open(fileout, 'w')
-    for line in fr:
-        if 'quadrature_order' in line:
-            towrite = 'quadrature_order  ' + str(quadrature_points) + '\n'
-            fw.write(towrite)
-        else:
-            fw.write(line)
-    fr.close()
-    fw.close()
-    shutil.move(fileout, filein)
-
-
-def updateDakotaFile4(dakotaFilename, quadrature_points):
-    """Rewrite number of quadrature points in Dakota file."""
-
-    filein = dakotaFilename
-    fileout = dakotaFilename + '.tmp'
-    fr = open(filein, 'r')
-    fw = open(fileout, 'w')
-    for line in fr:
-        if 'sparse_grid_level' in line:
-            towrite = 'sparse_grid_level  ' + str(quadrature_points) + '\n'
-            fw.write(towrite)
-        else:
-            fw.write(line)
-    fr.close()
-    fw.close()
-    shutil.move(fileout, filein)
-
-
-def updateDakotaFile2(dakotaFilename, quadrature_points):
-    """Rewrite number of quadrature points in Dakota file."""
-
-    filein = dakotaFilename
-    fileout = dakotaFilename + '.tmp'
-    fr = open(filein, 'r')
-    fw = open(fileout, 'w')
-    for line in fr:
-        if 'collocation_points' in line:
-            towrite = 'collocation_points  ' + str(quadrature_points) + '\n'
-            fw.write(towrite)
-        else:
-            fw.write(line)
-    fr.close()
-    fw.close()
-    shutil.move(fileout, filein)
-
-def updateDakotaFile3(dakotaFilename, quadrature_points):
-    """Rewrite number of quadrature points in Dakota file."""
-
-    filein = dakotaFilename
-    fileout = dakotaFilename + '.tmp'
-    fr = open(filein, 'r')
-    fw = open(fileout, 'w')
-    for line in fr:
-        if 'samples' in line:
-            towrite = 'samples  ' + str(quadrature_points) + '\n'
             fw.write(towrite)
         else:
             fw.write(line)

@@ -5,6 +5,9 @@ environment
 method
     polynomial_chaos
 quadrature_order  5
+#sparse_grid_level  1
+#expansion_order  4
+#    collocation_ratio 1
     normalized
     output verbose
 

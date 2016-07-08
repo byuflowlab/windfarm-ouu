@@ -34,14 +34,15 @@ def run(method_dict):
         ### Set up the wind speeds and wind directions for the problem ###
 
         points, weights = windfarm_setup.getPoints(method_dict, n)
+        N = points.size  # actual number of samples
 
         if method_dict['uncertain_var'] == 'speed':
             # For wind speed
             windspeeds = points
-            winddirections = np.ones(n)*225
+            winddirections = np.ones(N)*225
         elif method_dict['uncertain_var'] == 'direction':
             # For wind direction
-            windspeeds = np.ones(n)*8
+            windspeeds = np.ones(N)*8
             winddirections = points
         else:
             raise ValueError('unknown uncertain_var option "%s", valid options "speed" or "direction".' %method_dict['uncertain_var'])
@@ -49,7 +50,7 @@ def run(method_dict):
 
         print 'Locations at which power is evaluated'
         print '\twindspeed \t winddirection'
-        for i in range(n):
+        for i in range(N):
             print i+1, '\t', '%.2f' % windspeeds[i], '\t', '%.2f' % winddirections[i]
 
 
@@ -80,7 +81,7 @@ def run(method_dict):
             yaw[turbI] = 0.     # deg.
 
         # initialize problem
-        prob = Problem(AEPGroup(nTurbines=nTurbs, nDirections=n,
+        prob = Problem(AEPGroup(nTurbines=nTurbs, nDirections=N,
                                 method_dict=method_dict))
         prob.setup(check=False)
 
@@ -97,7 +98,7 @@ def run(method_dict):
 
         prob['turbineX'] = turbineX
         prob['turbineY'] = turbineY
-        for direction_id in range(0, n):
+        for direction_id in range(0, N):
             prob['yaw%i' % direction_id] = yaw
 
         # Run the problem

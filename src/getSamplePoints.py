@@ -39,16 +39,32 @@ def getSamplePoints(dakotaFile):
     x = np.array(x)
     f.close()
 
-    # read the weights from the dakota quadrature tabular file (Only prints when running verbose)
-    dakotaTabular = 'dakota_quadrature_tabular.dat'
-    f = open(dakotaTabular, 'r')
-    f.readline()
-    w = []
+    # Read the input file to determine what to do for the weights
+    f = open(dakotaFile, 'r')
     for line in f:
-        w.append(float(line.split()[1]))
+        if 'quadrature_order' in line and not line.strip().startswith('#'):
+            dakotaTabular = 'dakota_quadrature_tabular.dat'
+        elif 'sparse_grid_level' in line and not line.strip().startswith('#'):
+            dakotaTabular = 'dakota_sparse_tabular.dat'
+        elif 'expansion_order' in line and not line.strip().startswith('#'):
+            dakotaTabular = ''
+        else:
+            pass
 
-    w = np.array(w)
     f.close()
+
+    # read the weights from the dakota quadrature tabular file (Only prints when running verbose)
+    if dakotaTabular:
+        f = open(dakotaTabular, 'r')
+        f.readline()
+        w = []
+        for line in f:
+            w.append(float(line.split()[1]))
+
+        w = np.array(w)
+        f.close()
+    else:
+        w = np.array(None)  # The array is necessary because of OpenMDAO
 
     return x, w
 
