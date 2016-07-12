@@ -133,6 +133,52 @@ class amaliaWindRoseRaw(object):
         return (self.lo, self.hi)
 
 
+class amaliaWindRoseRaw01(object):
+    """The raw amalia distribution."""
+
+    def __init__(self):
+        self.lo = 0.0
+        self.hi = 1.0
+        self.inputfile = '../WindRoses/windrose_amalia_8ms.txt'
+
+    def _wind_rose_func(self):
+        wind_data = np.loadtxt(self.inputfile)
+        # direction = wind_data[:, 0]
+        # speed = wind_data[:, 1]
+        probability = wind_data[:, 2]
+        N = len(probability)
+        probability[probability == 0] = 2e-5  # think about this, # Update were the wind data is zero to the next lowest value
+        probability = np.append(probability, probability[0])  # Include the value at 360, which is the same as 0.
+        probability = probability*N  # normalize for the [0, 1] range.
+        x = np.linspace(0, 1, N+1)
+        f = interp1d(x, probability)
+        return f
+
+    def pdf(self, x):
+        x = x.flatten()  # In the constructor of the distribution it gets made a 2d array for some reason. For this amalia class this flattening is unnecesary
+        f = self._wind_rose_func()
+        return f(x)
+
+    def cdf(self, x):
+        # Integrate by rectangle rule
+        # dx = 0.001  # interval spacing
+        cdf = []
+        for x_i in np.array(x, copy=False, ndmin=1):  # makes it work if x is a scalar
+            dx = x_i/100.  # interval spacing
+            if x_i == 0:
+                cdf.append(0.0)
+            else:
+                X = np.arange(dx/2, x_i, dx)
+                cdf.append(np.sum(self.pdf(X)*dx))  # integration by rectangle rule
+        return np.array(cdf)
+
+    def str(self):
+        return "Amalia windrose raw [0,1]"
+
+    def bnd(self):
+        return (self.lo, self.hi)
+
+
 class myWeibull(object):
     def __init__(self):
         self.a = 1.8
@@ -170,6 +216,46 @@ class myWeibull(object):
         return (self.lo, self.hi)
 
 
+class myWeibull01(object):
+    def __init__(self):
+        self.a = 1.8
+        self.b = 12.552983
+        self.lo = 0.0
+        self.hi = 30.0/30.
+
+    def cdf(self, x):
+        x = x*30
+        a = self.a
+        b = self.b
+        F = 1-np.exp(-(x/b)**a)
+        return F
+
+    def pdf(self, x):
+        x = x*30
+        a = self.a
+        b = self.b
+        f = a/b * (x/b)**(a-1) * np.exp(-(x/b)**a)
+        f = f * 30
+        return f
+
+    def mom(self, k):
+        # I don't think providing the moments here changes anything down the road when
+        # doing PC expansions. Although if I don't pass mom the moments calculated are
+        # bad. It appears that they just take the moments assuming a uniform with
+        # a range, as that obtained from the bounds.
+        # Actually it does affect the PC expansions, this comes into play when getting
+        # the orthogonal polynomials.
+        a = self.a
+        b = self.b
+        return b * special.gamma(1.+k*1./a)
+
+    def str(self):
+        return "weibull(%s, %s)" % (self.a, self.b)
+
+    def bnd(self):
+        return (self.lo, self.hi)
+
+
 def getWeibull():
 
     my_weibull = myWeibull()
@@ -178,7 +264,23 @@ def getWeibull():
         cdf=lambda self, x: my_weibull.cdf(x),
         bnd=lambda self: my_weibull.bnd(),
         pdf=lambda self, x: my_weibull.pdf(x),
-        mom=lambda self, k: my_weibull.mom(k),
+        # mom=lambda self, k: my_weibull.mom(k),
+        str=lambda self: my_weibull.str()
+    )
+
+    weibull_dist = Weibull()
+    return weibull_dist
+
+
+def getWeibull01():
+
+    my_weibull = myWeibull01()
+    # Set the necessary functions to construct a chaospy distribution
+    Weibull = cp.construct(
+        cdf=lambda self, x: my_weibull.cdf(x),
+        bnd=lambda self: my_weibull.bnd(),
+        pdf=lambda self, x: my_weibull.pdf(x),
+        # mom=lambda self, k: my_weibull.mom(k),
         str=lambda self: my_weibull.str()
     )
 
@@ -190,6 +292,8 @@ def getWindRose():
 
     amalia_wind_rose = amaliaWindRose()
     # amalia_wind_rose = amaliaWindRoseRaw()  # Using this option needs updating
+    # amalia_wind_rose = amaliaWindRoseRaw01()
+
 
     # Set the necessary functions to construct a chaospy distribution
     windRose = cp.construct(

@@ -83,9 +83,11 @@ class ChaospyStatistics(Component):
 
         # define inputs
         self.add_param('power', np.zeros(nDirections), units ='kW',
-                       desc = 'vector containing the power production at each wind direction ccw from north')
+                       desc='vector containing the power production for each winddirection and windspeed pair')
         self.add_param('method_dict', method_dict,
-                       desc = 'parameters for the UQ method')
+                       desc='parameters for the UQ method')
+        self.add_param('weights', np.zeros(nDirections),
+                       desc='vector containing the integration weight associated with each power')
 
         # define output
         self.add_output('mean', val=0.0, units='kWh', desc='mean annual energy output of wind farm')
@@ -97,36 +99,29 @@ class ChaospyStatistics(Component):
         power = params['power']
         method_dict = params['method_dict']
         dist = method_dict['distribution']
-        rule = method_dict['rule']
         n = len(power)
-        if rule != 'rectangle':
-            points, weights = cp.generate_quadrature(order=n-1, domain=dist, rule=rule)
-        # else:
-        #     points, weights = quadrature_rules.rectangle(n, method_dict['distribution'])
+        points, weights = cp.generate_quadrature(order=n-1, domain=dist, rule='G')
+        poly = cp.orth_ttr(n-1, dist)  # Think about the n-1
+        # Double check if giving me orthogonal polynomials
+        # p2 = cp.outer(poly, poly)
+        # norms = np.diagonal(cp.E(p2, dist))
+        # print 'diag', norms
 
-        poly = cp.orth_chol(n-1, dist)
-        # poly = cp.orth_bert(n-1, dist)
-        # double check this is giving me good orthogonal polynomials.
-        # print poly, '\n'
-        p2 = cp.outer(poly, poly)
-        # print 'chol', cp.E(p2, dist)
-        norms = np.diagonal(cp.E(p2, dist))
-        print 'diag', norms
+        # expansion, coeff = cp.fit_quadrature(poly, points, weights, power, retall=True, norms=norms)
+        expansion, coeff = cp.fit_quadrature(poly, points, weights, power, retall=True)
+        # expansion, coeff = cp.fit_regression(poly, points, power, retall=True)
 
-        expansion, coeff = cp.fit_quadrature(poly, points, weights, power, retall=True, norms=norms)
-        # expansion, coeff = cp.fit_quadrature(poly, points, weights, power, retall=True)
+        mean = cp.E(expansion, dist, rule='G')
+        # print 'mean cp.E =', mean
+        # # mean = sum(power*weights)
+        # print 'mean sum =', sum(power*weights)
+        # print 'mean coeff =', coeff[0]*8760/1e6
+        std = cp.Std(expansion, dist, rule='G')
 
-        mean = cp.E(expansion, dist)
-        print 'mean cp.E =', mean
-        # mean = sum(power*weights)
-        print 'mean sum =', sum(power*weights)
-        print 'mean coeff =', coeff[0]
-        std = cp.Std(expansion, dist)
-
-        print mean
-        print std
-        print np.sqrt(np.sum(coeff[1:]**2 * cp.E(poly**2, dist)[1:]))
-        # std = np.sqrt(np.sum(coeff[1:]**2 * cp.E(poly**2, dist)[1:]))
+        # print mean
+        # print std
+        # print np.sqrt(np.sum(coeff[1:]**2 * cp.E(poly**2, dist)[1:]))
+        # # std = np.sqrt(np.sum(coeff[1:]**2 * cp.E(poly**2, dist)[1:]))
         # number of hours in a year
         hours = 8760.0
         # promote statistics to class attribute

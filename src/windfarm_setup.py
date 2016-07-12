@@ -1,5 +1,6 @@
 import numpy as np
 # import matplotlib.pyplot as plt
+import chaospy as cp
 from getSamplePoints import getSamplePoints
 from dakotaInterface import updateDakotaFile
 
@@ -137,6 +138,9 @@ def getPoints(method_dict, n):
             # Get the weights associated with the points locations
             w = wd * dist._cdf(b)  # The dakota weights assume all of the pdf is between 0-30 so we weigh it by the actual amount. This will correct the derivatives, need to also correct the mean and std values. These corrections are done in statisticsComponents.
 
+        if method == 'chaospy':
+            x, w = cp.generate_quadrature(n-1, dist, rule='G')
+            x = x[0]
         points = x
         weights = w
         # print weights
