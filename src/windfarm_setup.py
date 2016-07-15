@@ -84,39 +84,25 @@ def getPoints(method_dict, n):
         weights = w
 
     else:  # This is mostly for speed case
+        # For now leave as is, when later change to determine by uncertain variable, important in 2D
         # Don't modify the range at all.
         bnd = dist.range()
-        a = bnd[0]
-        b = bnd[1]
+        a = bnd[0]  # lower boundary
+        b = bnd[1]  # upper boundary
         a = a[0]  # get rid of the list
         b = b[0]  # get rid of the list
 
         if method == 'rect':
-            # the offset fits N points in the given dx interval
-            # Modify with offset, manually choose the offset you want
-            N = 5
-            i = 0  # [-2, -1, 0, 1, 2] choose from for N=5, for general N [-int(np.floor(N/2)), ... , int(np.floor(N/2)+1]
-            dx = (b-a)/n
-            offset = i*dx/N
-            bounds = [a+offset, b+offset]
-            x = np.linspace(bounds[0], bounds[1], n+1)
-            x = x[:-1]+dx/2  # Take the midpoints of the bins
+
+            X = np.linspace(a, b, n+1)
+            dx = X[1]-X[0]
+            x = X[:-1]+dx/2  # Take the midpoints of the bins
             # Get the weights associated with the points locations
             w = []
-            for xi in x:
-                xleft = xi-dx/2.
-                xright = xi+dx/2.
-                if xleft < a:
-                    # print 'I am in xleft'
-                    xleft = a
-                if xright > b:
-                    # print 'I am in xright'
-                    xright = b
-                w.append(dist._cdf(xright) - dist._cdf(xleft))
-            w = np.array(w).flatten()
-            # print np.sum(w)
-            # print dist._cdf(b)  # this value should weight dakota weights. b=30
+            for i in range(n):
+                w.append(dist._cdf(X[i+1]) - dist._cdf(X[i]))
 
+            w = np.array(w).flatten()
 
         if method == 'dakota':
             # The offset doesn't really make sense for this case
