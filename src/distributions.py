@@ -184,7 +184,7 @@ class myWeibull(object):
         self.a = 1.8
         self.b = 12.552983
         self.lo = 0.0
-        self.hi = 30.0
+        self.hi = 80.0  # cdf(80) = 1, to machine precision
 
     def cdf(self, x):
         a = self.a
@@ -211,6 +211,41 @@ class myWeibull(object):
 
     def str(self):
         return "weibull(%s, %s)" % (self.a, self.b)
+
+    def bnd(self):
+        return (self.lo, self.hi)
+
+
+class TruncatedWeibull(object):
+    def __init__(self):
+        self.a = 1.8
+        self.b = 12.552983
+        self.lo = 0.0
+        self.hi = 30.0
+        self.k = self.set_truncation_value()
+
+    def set_truncation_value(self):
+        """Sets k, which represents how much of the distribution is truncated"""
+        weibull = myWeibull()
+        k = weibull.cdf(self.lo) + (1.0 - weibull.cdf(self.hi))
+        return k
+
+    def cdf(self, x):
+        a = self.a
+        b = self.b
+        F = 1-np.exp(-(x/b)**a)
+        F = 1 / (1.0-self.k) * F  # Account for the truncation
+        return F
+
+    def pdf(self, x):
+        a = self.a
+        b = self.b
+        f = a/b * (x/b)**(a-1) * np.exp(-(x/b)**a)
+        f = 1 / (1.0-self.k) * f  # Account for the truncation
+        return f
+
+    def str(self):
+        return "Truncated [%s, %s] weibull(%s, %s)" % (self.lo, self.hi, self.a, self.b)
 
     def bnd(self):
         return (self.lo, self.hi)
@@ -258,7 +293,8 @@ class myWeibull01(object):
 
 def getWeibull():
 
-    my_weibull = myWeibull()
+    # my_weibull = myWeibull()
+    my_weibull = TruncatedWeibull()
     # Set the necessary functions to construct a chaospy distribution
     Weibull = cp.construct(
         cdf=lambda self, x: my_weibull.cdf(x),
