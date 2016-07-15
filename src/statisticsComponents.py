@@ -56,7 +56,7 @@ class DakotaStatistics(ExternalCode):
             k = dist.get_truncation_value()  # how much of the probability was truncated
             meant = unknowns['mean']  # the truncated mean
             stdt = unknowns['std']  # the truncated std
-            unknowns['mean'] = (1-k) * meant  # weighted by how much of probability is between 0 and 30
+            unknowns['mean'] = (1-k) * meant  # weighted by how much of probability is between 0 and 30 or a and b
             unknowns['std'] = np.sqrt(1-k) * stdt + np.sqrt(k*(1-k)) * meant  # formula found in truncation write up.
 
         print 'In DakotaStatistics'
@@ -178,8 +178,15 @@ class RectStatistics(Component):
         # promote statistics to class attribute
         unknowns['mean'] = mean*hours
         unknowns['std'] = std*hours
-        # print weights
-        # print unknowns['mean']
+
+        # Modify the statistics to account for the truncation of the weibull (speed) case.
+        dist = params['method_dict']['distribution']
+        if 'weibull' in dist._str():
+            k = dist.get_truncation_value()  # how much of the probability was truncated
+            meant = unknowns['mean']  # the truncated mean
+            stdt = unknowns['std']  # the truncated std
+            unknowns['mean'] = (1-k) * meant  # weighted by how much of probability is between 0 and 30 or a and b
+            unknowns['std'] = np.sqrt(1-k) * stdt + np.sqrt(k*(1-k)) * meant  # formula found in truncation write up.
 
         print 'In RectStatistics'
 
