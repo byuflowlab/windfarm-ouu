@@ -230,6 +230,9 @@ class TruncatedWeibull(object):
         k = weibull.cdf(self.lo) + (1.0 - weibull.cdf(self.hi))
         return k
 
+    def get_truncation_value(self):
+        return self.k
+
     def cdf(self, x):
         a = self.a
         b = self.b
@@ -305,6 +308,8 @@ def getWeibull():
     )
 
     weibull_dist = Weibull()
+    # Dynamically add method
+    weibull_dist.get_truncation_value = my_weibull.get_truncation_value
     return weibull_dist
 
 

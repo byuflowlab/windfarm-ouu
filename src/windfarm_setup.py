@@ -105,28 +105,26 @@ def getPoints(method_dict, n):
             w = np.array(w).flatten()
 
         if method == 'dakota':
-            # The offset doesn't really make sense for this case
+
             # Update dakota file with desired number of sample points
             # Use the y to set the abscissas, and the pdf to set the ordinates
-            y = np.linspace(a, b, 51)  # play with the number here
+            y = np.linspace(a, b, 51)  # play with the number of points here
             dy = y[1]-y[0]
             ymid = y[:-1]+dy/2
             f = dist.pdf(ymid)
             # Modify y to -1 to 1 range, I think makes dakota generation of polynomials easier
-            y = 2*y / 30 - 1
+            y = (2.0 / (b-a)) * (y-a) - 1.0
 
             updateDakotaFile(method_dict['dakota_filename'], n, y, f)
             # run Dakota file to get the points locations
-            x, wd = getSamplePoints(method_dict['dakota_filename'])
+            x, w = getSamplePoints(method_dict['dakota_filename'])
             # Rescale x
-            x = 30/2. + 30/2.*x
-
-            # Get the weights associated with the points locations
-            w = wd * dist._cdf(b)  # The dakota weights assume all of the pdf is between 0-30 so we weigh it by the actual amount. This will correct the derivatives, need to also correct the mean and std values. These corrections are done in statisticsComponents.
+            x = (b-a)/2. + (b-a)/2.*x + a
 
         if method == 'chaospy':
             x, w = cp.generate_quadrature(n-1, dist, rule='G')
             x = x[0]
+
         points = x
         weights = w
         # print weights

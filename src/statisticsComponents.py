@@ -50,14 +50,14 @@ class DakotaStatistics(ExternalCode):
         unknowns['mean'] = np.loadtxt('mean.txt')*hours
         unknowns['std'] = np.loadtxt('std.txt')*hours
 
-        # Modify the values for the weibull (speed) case. I need to think about this modification in 2d
+        # Modify the statistics to account for the truncation of the weibull (speed) case.
         dist = params['method_dict']['distribution']
         if 'weibull' in dist._str():
-            bnd = dist.range()
-            b = bnd[1][0]  # b=30
-            factor = dist._cdf(b)
-            unknowns['mean'] = unknowns['mean'] * factor  # weighted by how much of probability is between 0 and 30
-            unknowns['std'] = unknowns['std'] * np.sqrt(factor)  # if you look at PC formula for std you see why it is sqrt.
+            k = dist.get_truncation_value()  # how much of the probability was truncated
+            meant = unknowns['mean']  # the truncated mean
+            stdt = unknowns['std']  # the truncated std
+            unknowns['mean'] = (1-k) * meant  # weighted by how much of probability is between 0 and 30
+            unknowns['std'] = np.sqrt(1-k) * stdt + np.sqrt(k*(1-k)) * meant  # formula found in truncation write up.
 
         print 'In DakotaStatistics'
 
