@@ -101,7 +101,7 @@ class ChaospyStatistics(Component):
         dist = method_dict['distribution']
         n = len(power)
         points, weights = cp.generate_quadrature(order=n-1, domain=dist, rule='G')
-        poly = cp.orth_ttr(n-1, dist)  # Think about the n-1
+        poly = cp.orth_ttr(n-1, dist)  # Think about the n-1 for 1d for 2d or more it would be n-2. Details Dakota reference manual quadrature order.
         # Double check if giving me orthogonal polynomials
         # p2 = cp.outer(poly, poly)
         # norms = np.diagonal(cp.E(p2, dist))
@@ -127,6 +127,15 @@ class ChaospyStatistics(Component):
         # promote statistics to class attribute
         unknowns['mean'] = mean*hours
         unknowns['std'] = std*hours
+
+        # Modify the statistics to account for the truncation of the weibull (speed) case.
+        dist = params['method_dict']['distribution']
+        if 'weibull' in dist._str():
+            k = dist.get_truncation_value()  # how much of the probability was truncated
+            meant = unknowns['mean']  # the truncated mean
+            stdt = unknowns['std']  # the truncated std
+            unknowns['mean'] = (1-k) * meant  # weighted by how much of probability is between 0 and 30 or a and b
+            unknowns['std'] = np.sqrt(1-k) * stdt + np.sqrt(k*(1-k)) * meant  # formula found in truncation write up.
 
         print 'In ChaospyStatistics'
 

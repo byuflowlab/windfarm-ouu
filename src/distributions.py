@@ -48,7 +48,7 @@ class amaliaWindRose(object):
         return "Amalia windrose"
 
     def bnd(self):
-        return (self.lo, self.hi)
+        return self.lo, self.hi
 
     def _wind_rose_poly_func(self):
         def f(x):
@@ -130,7 +130,7 @@ class amaliaWindRoseRaw(object):
         return "Amalia windrose raw"
 
     def bnd(self):
-        return (self.lo, self.hi)
+        return self.lo, self.hi
 
 
 class amaliaWindRoseRaw01(object):
@@ -176,7 +176,7 @@ class amaliaWindRoseRaw01(object):
         return "Amalia windrose raw [0,1]"
 
     def bnd(self):
-        return (self.lo, self.hi)
+        return self.lo, self.hi
 
 
 class myWeibull(object):
@@ -213,7 +213,7 @@ class myWeibull(object):
         return "weibull(%s, %s)" % (self.a, self.b)
 
     def bnd(self):
-        return (self.lo, self.hi)
+        return self.lo, self.hi
 
 
 class TruncatedWeibull(object):
@@ -236,7 +236,7 @@ class TruncatedWeibull(object):
     def cdf(self, x):
         a = self.a
         b = self.b
-        F = 1-np.exp(-(x/b)**a)
+        F = np.exp(-(self.lo/b)**a) - np.exp(-(x/b)**a)  # Account for the truncation
         F = 1 / (1.0-self.k) * F  # Account for the truncation
         return F
 
@@ -251,53 +251,58 @@ class TruncatedWeibull(object):
         return "Truncated [%s, %s] weibull(%s, %s)" % (self.lo, self.hi, self.a, self.b)
 
     def bnd(self):
-        return (self.lo, self.hi)
+        return self.lo, self.hi
 
 
-class myWeibull01(object):
+class TruncatedWeibull01(object):
     def __init__(self):
         self.a = 1.8
         self.b = 12.552983
         self.lo = 0.0
-        self.hi = 30.0/30.
+        self.hi = 1.0
+        self.lo1 = 0.0  # The original low and high bounds
+        self.hi1 = 30.0  # The original low and high bounds
+        self.k = self.set_truncation_value()
+
+    def set_truncation_value(self):
+        """Sets k, which represents how much of the distribution is truncated"""
+        weibull = myWeibull()
+        k = weibull.cdf(self.lo1) + (1.0 - weibull.cdf(self.hi1))
+        return k
+
+    def get_truncation_value(self):
+        return self.k
 
     def cdf(self, x):
-        x = x*30
         a = self.a
         b = self.b
-        F = 1-np.exp(-(x/b)**a)
+        # Adjust x
+        x = self.lo1 + (self.hi1-self.lo1) * x
+        F = np.exp(-(self.lo/b)**a) - np.exp(-(x/b)**a)  # Account for the truncation
+        F = 1 / (1.0-self.k) * F  # Account for the truncation
         return F
 
     def pdf(self, x):
-        x = x*30
         a = self.a
         b = self.b
+        # Adjust x
+        x = self.lo1 + (self.hi1-self.lo1) * x
         f = a/b * (x/b)**(a-1) * np.exp(-(x/b)**a)
-        f = f * 30
+        f = 1 / (1.0-self.k) * f  # Account for the truncation
+        f = (self.hi1-self.lo1) * f  # Account for the rescaling
         return f
 
-    def mom(self, k):
-        # I don't think providing the moments here changes anything down the road when
-        # doing PC expansions. Although if I don't pass mom the moments calculated are
-        # bad. It appears that they just take the moments assuming a uniform with
-        # a range, as that obtained from the bounds.
-        # Actually it does affect the PC expansions, this comes into play when getting
-        # the orthogonal polynomials.
-        a = self.a
-        b = self.b
-        return b * special.gamma(1.+k*1./a)
-
     def str(self):
-        return "weibull(%s, %s)" % (self.a, self.b)
+        return "Truncated [%s, %s] weibull01(%s, %s)" % (self.lo, self.hi, self.a, self.b)
 
     def bnd(self):
-        return (self.lo, self.hi)
-
+        return self.lo, self.hi
 
 def getWeibull():
 
     # my_weibull = myWeibull()
     my_weibull = TruncatedWeibull()
+    # my_weibull = TruncatedWeibull01()
     # Set the necessary functions to construct a chaospy distribution
     Weibull = cp.construct(
         cdf=lambda self, x: my_weibull.cdf(x),
@@ -310,22 +315,7 @@ def getWeibull():
     weibull_dist = Weibull()
     # Dynamically add method
     weibull_dist.get_truncation_value = my_weibull.get_truncation_value
-    return weibull_dist
 
-
-def getWeibull01():
-
-    my_weibull = myWeibull01()
-    # Set the necessary functions to construct a chaospy distribution
-    Weibull = cp.construct(
-        cdf=lambda self, x: my_weibull.cdf(x),
-        bnd=lambda self: my_weibull.bnd(),
-        pdf=lambda self, x: my_weibull.pdf(x),
-        # mom=lambda self, k: my_weibull.mom(k),
-        str=lambda self: my_weibull.str()
-    )
-
-    weibull_dist = Weibull()
     return weibull_dist
 
 
