@@ -124,6 +124,24 @@ def test_dakota_speed_quadrature():
     test = obj
     assertions(test, baseline)
 
+def test_chaospy_speed_quadrature():
+    n = 5
+    method_dict = get_method_dict()
+    method_dict['method'] = 'chaospy'
+    method_dict['uncertain_var'] = 'speed'
+    method_dict = add_distribution(method_dict)
+
+    jsonfile = open('tests/record_test_chaospy_speed_quadrature.json','r')
+    baseline = json.load(jsonfile)
+    jsonfile.close()
+    mean, std, N, winddirections, windspeeds, power = run(method_dict, n)
+    obj = {'mean': [mean], 'std': [std], 'samples': [N], 'winddirections': winddirections.tolist(),
+           'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
+           'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
+           'layout': method_dict['layout']}
+    test = obj
+    assertions(test, baseline)
+
 def test_rect_direction_30points():
     n = 30
     method_dict = get_method_dict()
