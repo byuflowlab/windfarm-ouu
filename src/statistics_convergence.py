@@ -28,26 +28,16 @@ def run(method_dict, n):
 
     ### Set up the wind speeds and wind directions for the problem ###
 
-    points, weights = windfarm_setup.getPoints(method_dict, n)
-    N = points.size  # actual number of samples
-
-    if method_dict['uncertain_var'] == 'speed':
-        # For wind speed
-        windspeeds = points
-        winddirections = np.ones(N)*225
-    elif method_dict['uncertain_var'] == 'direction':
-        # For wind direction
-        windspeeds = np.ones(N)*8
-        winddirections = points
-    else:
-        raise ValueError('unknown uncertain_var option "%s", valid options "speed" or "direction".' %method_dict['uncertain_var'])
-
+    points = windfarm_setup.getPoints(method_dict, n)
+    winddirections = points['winddirections']
+    windspeeds = points['windspeeds']
+    weights = points['weights']  # This might be None depending on the method.
+    N = winddirections.size  # actual number of samples
 
     print 'Locations at which power is evaluated'
     print '\twindspeed \t winddirection'
     for i in range(N):
         print i+1, '\t', '%.2f' % windspeeds[i], '\t', '%.2f' % winddirections[i]
-
 
     # Turbines layout
     turbineX, turbineY = windfarm_setup.getLayout(method_dict['layout'])

@@ -10,7 +10,7 @@ def getPoints(method_dict, n):
     method = method_dict['method']
     dist = method_dict['distribution']
 
-    if dist._str() == 'Amalia windrose':  # For direction case
+    if method_dict['uncertain_var'] == 'direction':
         # Modify the input range to start at max probability location
         # and account for zero probability regions.
 
@@ -72,20 +72,19 @@ def getPoints(method_dict, n):
             y = 2*y / 330 - 1
             updateDakotaFile(method_dict['dakota_filename'], n, y, f)
             # run Dakota file to get the points locations
-            x, wd = getSamplePoints(method_dict['dakota_filename'])
+            x, w = getSamplePoints(method_dict['dakota_filename'])
+            # if particular method for the coefficients get weights (just read the file from get sample points)
             # Rescale x
             x = 330/2. + 330/2.*x
             # Call modify x with the new x.
             x = modifyx(x, A, B, C, r)
-            # Get the weights associated with the points locations
-            w = wd
 
-        points = x
-        weights = w
+        winddirections = x
+        windspeeds = np.ones(x.size)*8
+        points = {'winddirections': winddirections, 'windspeeds': windspeeds, 'weights': w}
 
-    else:  # This is mostly for speed case
-        # For now leave as is, when later change to determine by uncertain variable, important in 2D
-        # Don't modify the range at all.
+    elif method_dict['uncertain_var'] == 'speed':
+
         bnd = dist.range()
         a = bnd[0]  # lower boundary
         b = bnd[1]  # upper boundary
@@ -125,12 +124,15 @@ def getPoints(method_dict, n):
             x, w = cp.generate_quadrature(n-1, dist, rule='G')
             x = x[0]
 
-        points = x
-        weights = w
-        # print weights
-        # print np.sum(weights)
+        windspeeds = x
+        winddirections = np.ones(x.size)*225
+        points = {'winddirections': winddirections, 'windspeeds': windspeeds, 'weights': w}
 
-    return points, weights
+    # Add elif for 2d case
+    else:
+        raise ValueError('unknown uncertain_var option "%s", valid options "speed" or "direction".' %method_dict['uncertain_var'])
+
+    return points
 
 
 def modifyx(x, A=110, B=140, C=225, r=360):
