@@ -51,13 +51,7 @@ class DakotaStatistics(ExternalCode):
         unknowns['std'] = np.loadtxt('std.txt')*hours
 
         # Modify the statistics to account for the truncation of the weibull (speed) case.
-        dist = params['method_dict']['distribution']
-        if 'weibull' in dist._str():
-            k = dist.get_truncation_value()  # how much of the probability was truncated
-            meant = unknowns['mean']  # the truncated mean
-            stdt = unknowns['std']  # the truncated std
-            unknowns['mean'] = (1-k) * meant  # weighted by how much of probability is between 0 and 30 or a and b
-            unknowns['std'] = np.sqrt(1-k) * stdt + np.sqrt(k*(1-k)) * meant  # formula found in truncation write up.
+        modify_statistics(params, unknowns)  # It doesn't do anything for the direction case.
 
         print 'In DakotaStatistics'
 
@@ -129,13 +123,7 @@ class ChaospyStatistics(Component):
         unknowns['std'] = std*hours
 
         # Modify the statistics to account for the truncation of the weibull (speed) case.
-        dist = params['method_dict']['distribution']
-        if 'weibull' in dist._str():
-            k = dist.get_truncation_value()  # how much of the probability was truncated
-            meant = unknowns['mean']  # the truncated mean
-            stdt = unknowns['std']  # the truncated std
-            unknowns['mean'] = (1-k) * meant  # weighted by how much of probability is between 0 and 30 or a and b
-            unknowns['std'] = np.sqrt(1-k) * stdt + np.sqrt(k*(1-k)) * meant  # formula found in truncation write up.
+        modify_statistics(params, unknowns)  # It doesn't do anything for the direction case.
 
         print 'In ChaospyStatistics'
 
@@ -189,13 +177,7 @@ class RectStatistics(Component):
         unknowns['std'] = std*hours
 
         # Modify the statistics to account for the truncation of the weibull (speed) case.
-        dist = params['method_dict']['distribution']
-        if 'weibull' in dist._str():
-            k = dist.get_truncation_value()  # how much of the probability was truncated
-            meant = unknowns['mean']  # the truncated mean
-            stdt = unknowns['std']  # the truncated std
-            unknowns['mean'] = (1-k) * meant  # weighted by how much of probability is between 0 and 30 or a and b
-            unknowns['std'] = np.sqrt(1-k) * stdt + np.sqrt(k*(1-k)) * meant  # formula found in truncation write up.
+        modify_statistics(params, unknowns)  # It doesn't do anything for the direction case.
 
         print 'In RectStatistics'
 
@@ -219,6 +201,22 @@ def linearize_function(params):
 
     return J
 
+
+def modify_statistics(params, unknowns):
+    uncertain_var = params['method_dict']['uncertain_var']
+    if uncertain_var == 'direction':
+        pass
+    else:  # either the speed or the speed and direction case
+        dist = params['method_dict']['distribution']
+        if uncertain_var == 'speed':
+            k = dist.get_truncation_value()  # how much of the probability was truncated
+        if uncertain_var == 'direction_and_speed':
+            dist = dist[1]
+            k = dist.get_truncation_value()  # how much of the probability was truncated
+        meant = unknowns['mean']  # the truncated mean
+        stdt = unknowns['std']  # the truncated std
+        unknowns['mean'] = (1-k) * meant  # weighted by how much of probability is between 0 and 30 or a and b
+        unknowns['std'] = np.sqrt(1-k) * stdt + np.sqrt(k*(1-k)) * meant  # formula found in truncation write up.
 
 if __name__ == "__main__":
 

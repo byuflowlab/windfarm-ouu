@@ -3,6 +3,7 @@ import numpy as np
 # import matplotlib.pyplot as plt
 import json
 import argparse
+import chaospy as cp
 from openmdao.api import Problem
 from AEPGroups import AEPGroup
 import distributions
@@ -155,6 +156,11 @@ if __name__ == "__main__":
         method_dict['distribution'] = dist
     elif method_dict['uncertain_var'] == 'direction':
         dist = distributions.getWindRose()
+        method_dict['distribution'] = dist
+    elif method_dict['uncertain_var'] == 'direction_and_speed':
+        dist1 = distributions.getWindRose()
+        dist2 = distributions.getWeibull()
+        dist = cp.J(dist1, dist2)
         method_dict['distribution'] = dist
     else:
         raise ValueError('unknown uncertain_var option "%s", valid options "speed" or "direction".' %method_dict['uncertain_var'])
