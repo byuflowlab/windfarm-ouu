@@ -13,7 +13,6 @@ def getPoints(method_dict, n):
         windspeeds = np.ones(winddirections.size)*8
         points = {'winddirections': winddirections, 'windspeeds': windspeeds, 'weights': weights}
 
-
     elif method_dict['uncertain_var'] == 'speed':
         dist = method_dict['distribution']
         windspeeds, weights = getPointsSpeed(dist, method_dict, n)
@@ -22,6 +21,20 @@ def getPoints(method_dict, n):
 
     elif method_dict['uncertain_var'] == 'direction_and_speed':
         dist = method_dict['distribution']
+        winddirections, windspeeds, weights = getPointsDirectionSpeed(dist, method_dict, n)
+        points = {'winddirections': winddirections, 'windspeeds': windspeeds, 'weights': weights}
+
+    else:
+        raise ValueError('unknown uncertain_var option "%s", valid options "speed" or "direction".' %method_dict['uncertain_var'])
+
+    return points
+
+
+def getPointsDirectionSpeed(dist, method_dict, n):
+
+    method = method_dict['method']
+
+    if method == 'rect':
         dist_dir = dist[0]
         dist_speed = dist[1]
         winddirections, weights_dir = getPointsDirection(dist_dir, method_dict, n)
@@ -40,12 +53,57 @@ def getPoints(method_dict, n):
         winddirections = np.array(wind_dir)
         windspeeds = np.array(wind_spd)
         weights = np.array(weights)
-        points = {'winddirections': winddirections, 'windspeeds': windspeeds, 'weights': weights}
 
-    else:
-        raise ValueError('unknown uncertain_var option "%s", valid options "speed" or "direction".' %method_dict['uncertain_var'])
+    if method == 'dakota':
 
-    return points
+        bnd = dist.range()
+        a = bnd[0]  # left boundary
+        b = bnd[1]  # right boundary
+        a_d = a[0] # the left boundary for the direction
+        b_d = b[0] # the right boundary for the direction
+        a_s = a[1] # the left boundary for the direction
+        b_s = b[1] # the right boundary for the direction
+
+        ###### Do direction work
+        # Make sure the A, B, C values are the same than those in distribution
+        A = 110  # Left boundary of zero probability region
+        B = 140  # Right boundary of zero probability region
+        C = 225  # Location of max probability
+        r = b_d-a_d  # original range
+        R = r - (B-A) # modified range
+
+        # Modify with offset, manually choose the offset you want
+        N = method_dict['Noffset']  # N = 10
+        i = method_dict['offset']  # i = [0, 1, 2, N-1]
+
+        # Modify the starting point C with offset
+        offset = i*r/N  # the offset modifies the starting point for N locations within the whole interval
+        C = (C + offset) % r
+        dist_dir = dist[0]
+        x_d, f_d = generate_direction_abscissas_ordinates(a_d, A, B, C, r, R, dist_dir)
+
+        ####### Do the speed work
+        dist_speed = dist[1]
+        x_s, f_s = generate_speed_abscissas_ordinates(a_s, b_s, dist_speed)
+
+        print type(x_s)
+        # Need to be able to update for 1 and 2d cases
+        updateDakotaFile(method_dict['dakota_filename'], n, x_d, f_d)
+
+        # run Dakota file to get the points locations
+        # This one also needs to work for the 1 and 2d cases.
+        x, w = getSamplePoints(method_dict['dakota_filename'])
+
+        # Do stuff for the direction case
+        # if particular method for the coefficients get weights (just read the file from get sample points)
+        # Rescale x
+        x = 330/2. + 330/2.*x  # Should be in terms of the variables
+        # Call modify x with the new x.
+        x = modifyx(x, A, B, C, r)
+
+        # Do stuff for the speed case
+
+    return winddirections, windspeeds, weights
 
 
 def getPointsDirection(dist, method_dict, n):
@@ -92,25 +150,13 @@ def getPointsDirection(dist, method_dict, n):
         w = getWeights(x, dx, dist)
 
     if method == 'dakota':
-        # the offset modifies the starting point for N locations within the whole interval
-        # Update dakota file with desired number of sample points
-        # Use the y to set the abscissas, and the pdf to set the ordinates
-        y = np.linspace(a, R, 51)  # play with the number here
-        dy = y[1]-y[0]
-        mid = y[:-1]+dy/2
+
         # Modify the starting point C with offset
-        offset = i*r/N
+        offset = i*r/N  # the offset modifies the starting point for N locations within the whole interval
         C = (C + offset) % r
-        # Make sure the offset is not between A and B
-        if A < C and C < B:
-            C = min([A, B], key=lambda x:abs(x-C))  # It doesn't really matter if C gets set to A or B
+        x, f = generate_direction_abscissas_ordinates(a, A, B, C, r, R, dist)
 
-        ynew = modifyx(mid, A, B, C, r)
-        f = dist.pdf(ynew)
-
-        # Modify y to -1 to 1 range, I think makes dakota generation of polynomials easier
-        y = 2*y / 330 - 1
-        updateDakotaFile(method_dict['dakota_filename'], n, y, f)
+        updateDakotaFile(method_dict['dakota_filename'], n, x, f)
         # run Dakota file to get the points locations
         x, w = getSamplePoints(method_dict['dakota_filename'])
         # if particular method for the coefficients get weights (just read the file from get sample points)
@@ -150,25 +196,49 @@ def getPointsSpeed(dist, method_dict, n):
 
     if method == 'dakota':
 
-        # Update dakota file with desired number of sample points
-        # Use the y to set the abscissas, and the pdf to set the ordinates
-        y = np.linspace(a, b, 51)  # play with the number of points here
-        dy = y[1]-y[0]
-        ymid = y[:-1]+dy/2
-        f = dist.pdf(ymid)
-        # Modify y to -1 to 1 range, I think makes dakota generation of polynomials easier
-        y = (2.0 / (b-a)) * (y-a) - 1.0
-
-        updateDakotaFile(method_dict['dakota_filename'], n, y, f)
+        x, f = generate_speed_abscissas_ordinates(a, b, dist)
+        updateDakotaFile(method_dict['dakota_filename'], n, x, f)
         # run Dakota file to get the points locations
         x, w = getSamplePoints(method_dict['dakota_filename'])
         # Rescale x
         x = (b-a)/2. + (b-a)/2.*x + a
+
     if method == 'chaospy':
         x, w = cp.generate_quadrature(n-1, dist, rule='G')
         x = x[0]
 
     return x, w
+
+
+def generate_direction_abscissas_ordinates(a, A, B, C, r, R, dist):
+
+    # Use the y to set the abscissas, and the pdf to set the ordinates
+    y = np.linspace(a, R, 51)  # play with the number here
+    dy = y[1]-y[0]
+    mid = y[:-1]+dy/2
+
+    # Make sure the offset is not between A and B
+    if A < C and C < B:
+        C = min([A, B], key=lambda x:abs(x-C))  # It doesn't really matter if C gets set to A or B
+
+    ynew = modifyx(mid, A, B, C, r)
+    f = dist.pdf(ynew)
+
+    # Modify y to -1 to 1 range, I think makes dakota generation of polynomials easier
+    y = 2*y / 330 - 1
+    return y, f
+
+
+def generate_speed_abscissas_ordinates(a, b, dist):
+
+    # Use the y to set the abscissas, and the pdf to set the ordinates
+    y = np.linspace(a, b, 51)  # play with the number of points here
+    dy = y[1]-y[0]
+    ymid = y[:-1]+dy/2
+    f = dist.pdf(ymid)
+    # Modify y to -1 to 1 range, I think makes dakota generation of polynomials easier
+    y = (2.0 / (b-a)) * (y-a) - 1.0
+    return y, f
 
 
 def modifyx(x, A=110, B=140, C=225, r=360):

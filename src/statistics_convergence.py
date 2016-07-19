@@ -15,7 +15,8 @@ def run(method_dict, n):
     method_dict = {}
     keys of method_dict:
         'method' = 'dakota', 'rect' or 'chaospy'  # 'chaospy needs updating
-        'uncertain_var' = 'speed' or 'direction'
+        'coeff_method' = 'quadrature', 'sparse_grid' or 'regression'
+        'uncertain_var' = 'speed', 'direction' or 'direction_and_speed'
         'layout' = 'amalia', 'optimized', 'grid', 'random', 'test'
         'distribution' = a distribution object
         'dakota_filename' = 'dakotaInput.in', applicable for dakota method
@@ -149,6 +150,7 @@ if __name__ == "__main__":
     # method_dict['layout']           = 'optimized'  # Now this is specified in the command line
     method_dict['dakota_filename'] = 'dakotageneral.in'
     # To Do specify the number of points (directions or speeds) as an option as well.
+    method_dict['coeff_method'] = 'quadrature'
 
     # Specify the distribution according to the uncertain variable
     if method_dict['uncertain_var'] == 'speed':

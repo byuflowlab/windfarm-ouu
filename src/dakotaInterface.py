@@ -140,6 +140,10 @@ class RedirectOutput(object):
 def updateDakotaFile(dakotaFilename, sample_number, x, f):
     """Rewrite number of quadrature points in Dakota file."""
 
+    # Make the elements lists this way it can handle multiple dimensions
+    if type(x) is not list: x = [x]
+    if type(f) is not list: f = [f]
+
     filein = dakotaFilename
     fileout = dakotaFilename + '.tmp'
     fr = open(filein, 'r')
@@ -168,13 +172,15 @@ def updateDakotaFile(dakotaFilename, sample_number, x, f):
         elif 'abscissas' in line:
             towrite = 'abscissas = '
             for xi in x:
-                towrite = towrite + str(xi) + ' '
+                for xj in xi:
+                    towrite = towrite + str(xj) + ' '
             towrite += '\n'
             fw.write(towrite)
         elif 'ordinates' in line:
             towrite = 'ordinates = '
             for fi in f:
-                towrite = towrite + str(fi) + ' '
+                for fj in fi:
+                    towrite = towrite + str(fj) + ' '
             towrite += '0.0\n'
             fw.write(towrite)
         else:
