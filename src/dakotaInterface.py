@@ -224,44 +224,8 @@ def updateDakotaFile(method_dict, sample_number, x, f):
             already_updated = True
 
     for line in lines:
-        print line.values()
         towrite = line.keys()[0] + ' ' + ' '.join(line.values()[0]) + ' \n'
         fw.write(towrite)
     fw.close()
 
-    # filein = dakotaFilename
-    # fileout = dakotaFilename + '.tmp'
-    # fr = open(filein, 'r')
-    # fw = open(fileout, 'w')
-    # for line in fr:
-    #     # Method for calculating the coefficients
-    #     if 'quadrature_order' in line and not line.strip().startswith('#'):
-    #         towrite = 'quadrature_order  ' + str(sample_number) + '\n'
-    #         fw.write(towrite)
-    #     elif 'sparse_grid_level' in line and not line.strip().startswith('#'):
-    #         towrite = 'sparse_grid_level  ' + str(sample_number) + '\n'
-    #         fw.write(towrite)
-    #     elif 'expansion_order' in line and not line.strip().startswith('#'):
-    #         towrite = 'expansion_order  ' + str(sample_number-1) + '\n'
-    #         fw.write(towrite)
-    #     # The next 3 are options of the expansion order.
-    #     elif 'collocation_points' in line and not line.strip().startswith('#'):
-    #         towrite = 'collocation_points  ' + str(sample_number) + '\n'
-    #         fw.write(towrite)
-    #     elif 'expansion_samples' in line and not line.strip().startswith('#'):
-    #         towrite = 'expansion_samples  ' + str(sample_number) + '\n'
-    #         fw.write(towrite)
-    #     elif 'collocation_ratio' in line and not line.strip().startswith('#'):
-    #         fw.write(line)  # Don't do anything assume the collocation ratio given is what you want.
-    #     # Update the variables
-    #     elif 'abscissas' in line:
-    #         towrite = 'abscissas = ' + ' '.join(x) + ' \n'
-    #         fw.write(towrite)
-    #     elif 'ordinates' in line:
-    #         towrite = 'ordinates = ' + ' '.join(f) + ' \n'
-    #         fw.write(towrite)
-    #     else:
-    #         fw.write(line)
-    # fr.close()
-    # fw.close()
     # shutil.move(fileout, filein)
