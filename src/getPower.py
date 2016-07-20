@@ -29,8 +29,9 @@ def main():
     # Set up your application
     # ------------------------
 
-    nVarUncertain = 1
-    dakotaInterface.checknVar(nVarUncertain, paramsdict)
+    # The number of uncertain variables is automated now.
+    # nVarUncertain = 1
+    # dakotaInterface.checknVar(nVarUncertain, paramsdict)
 
     active_set_vector = [int(paramsdict['ASV_1:power'])]
 

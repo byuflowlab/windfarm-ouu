@@ -15,13 +15,13 @@ def getSamplePoints(dakotaFile):
         x (np.array): A vector of sample points
 
     """
+    dakotaInput = dakotaFile + '.tmp'
 
     print 'Calling Dakota...'
     # Pipe the output
     log = 'logDakota.out'
     err = log  # will append the error to the output
     with RedirectOutput(log, err):
-        dakotaInput = dakotaFile
         # dakotaInput = '--version'
         subprocess.check_call(['dakota', dakotaInput], stdout=sys.stdout,
                               stderr=sys.stderr)
@@ -40,7 +40,7 @@ def getSamplePoints(dakotaFile):
     f.close()
 
     # Read the input file to determine what to do for the weights
-    f = open(dakotaFile, 'r')
+    f = open(dakotaInput, 'r')
     for line in f:
         if 'quadrature_order' in line and not line.strip().startswith('#'):
             dakotaTabular = 'dakota_quadrature_tabular.dat'

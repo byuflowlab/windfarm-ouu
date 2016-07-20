@@ -88,7 +88,7 @@ def getPointsDirectionSpeed(dist, method_dict, n):
 
         print type(x_s)
         # Need to be able to update for 1 and 2d cases
-        updateDakotaFile(method_dict['dakota_filename'], n, x_d, f_d)
+        updateDakotaFile(method_dict, n, [x_d, x_s], [f_d, f_s])
 
         # run Dakota file to get the points locations
         # This one also needs to work for the 1 and 2d cases.
@@ -156,7 +156,7 @@ def getPointsDirection(dist, method_dict, n):
         C = (C + offset) % r
         x, f = generate_direction_abscissas_ordinates(a, A, B, C, r, R, dist)
 
-        updateDakotaFile(method_dict['dakota_filename'], n, x, f)
+        updateDakotaFile(method_dict, n, x, f)
         # run Dakota file to get the points locations
         x, w = getSamplePoints(method_dict['dakota_filename'])
         # if particular method for the coefficients get weights (just read the file from get sample points)
@@ -197,7 +197,7 @@ def getPointsSpeed(dist, method_dict, n):
     if method == 'dakota':
 
         x, f = generate_speed_abscissas_ordinates(a, b, dist)
-        updateDakotaFile(method_dict['dakota_filename'], n, x, f)
+        updateDakotaFile(method_dict, n, x, f)
         # run Dakota file to get the points locations
         x, w = getSamplePoints(method_dict['dakota_filename'])
         # Rescale x

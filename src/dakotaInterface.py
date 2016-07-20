@@ -2,7 +2,7 @@
 import re
 import sys
 import shutil
-
+import itertools
 
 def parseDakotaParametersFile(paramsfilename):
     """Return parameters for application."""
@@ -137,54 +137,131 @@ class RedirectOutput(object):
 #: class output()
 
 
-def updateDakotaFile(dakotaFilename, sample_number, x, f):
+def updateDakotaFile(method_dict, sample_number, x, f):
     """Rewrite number of quadrature points in Dakota file."""
 
     # Make the elements lists this way it can handle multiple dimensions
-    if type(x) is not list: x = [x]
-    if type(f) is not list: f = [f]
+    if type(x) is not list:
+        x = [x]
+    if type(f) is not list:
+        f = [f]
 
+    assert len(x) == len(f), 'Make sure the abscissas and the ordinates have the same outer dimension.'
+    n = len(x)  # number of uncertain variables
+
+    # Convert the abscissas to a list of strings for writing
+    y = []
+    for xi in x:
+        yi = ['%.2f' % xj for xj in xi]
+        y.append(yi)
+    x = list(itertools.chain.from_iterable(y))
+
+    # Convert the ordinates to a list of strings for writing
+    g = []
+    for fi in f:
+        gi = ['%.14f' % fj for fj in fi]
+        gi.append('0.0')
+        g.append(gi)
+    f = list(itertools.chain.from_iterable(g))
+
+    # Read in the dakota input file (assumes it is a working input file with histogram_bin_uncertain variables)
+    # and write out an updated strip out file
+    dakotaFilename = method_dict['dakota_filename']
     filein = dakotaFilename
     fileout = dakotaFilename + '.tmp'
     fr = open(filein, 'r')
     fw = open(fileout, 'w')
-    for line in fr:
-        # Method for calculating the coefficients
-        if 'quadrature_order' in line and not line.strip().startswith('#'):
-            towrite = 'quadrature_order  ' + str(sample_number) + '\n'
-            fw.write(towrite)
-        elif 'sparse_grid_level' in line and not line.strip().startswith('#'):
-            towrite = 'sparse_grid_level  ' + str(sample_number) + '\n'
-            fw.write(towrite)
-        elif 'expansion_order' in line and not line.strip().startswith('#'):
-            towrite = 'expansion_order  ' + str(sample_number-1) + '\n'
-            fw.write(towrite)
-        # The next 3 are options of the expansion order.
-        elif 'collocation_points' in line and not line.strip().startswith('#'):
-            towrite = 'collocation_points  ' + str(sample_number) + '\n'
-            fw.write(towrite)
-        elif 'expansion_samples' in line and not line.strip().startswith('#'):
-            towrite = 'expansion_samples  ' + str(sample_number) + '\n'
-            fw.write(towrite)
-        elif 'collocation_ratio' in line and not line.strip().startswith('#'):
-            fw.write(line)  # Don't do anything assume the collocation ratio given is what you want.
-        # Update the variables
-        elif 'abscissas' in line:
-            towrite = 'abscissas = '
-            for xi in x:
-                for xj in xi:
-                    towrite = towrite + str(xj) + ' '
-            towrite += '\n'
-            fw.write(towrite)
-        elif 'ordinates' in line:
-            towrite = 'ordinates = '
-            for fi in f:
-                for fj in fi:
-                    towrite = towrite + str(fj) + ' '
-            towrite += '0.0\n'
-            fw.write(towrite)
-        else:
-            fw.write(line)
+    filelines = fr.readlines()
+    lines = []
     fr.close()
+
+    for line in filelines:
+        if not line.strip().startswith('#') and line.rstrip():  # Remove comment lines and blank lines
+            # parse input, assign values to variables
+            line = line.replace('=', ' ')  # Replace the = with a space, so the split below takes care of it.
+            splitline = line.split()
+            key = splitline[0]
+            value = splitline[1:]
+            lines.append({key: value})
+
+    # Remove expansion order options
+    expansion_order_options = ['collocation_points', 'expansion_samples', 'collocation_ratio']
+    lines = [line for line in lines if line.keys()[0] not in expansion_order_options]
+
+    # Write the desired method to select the coefficients
+    coeff_method_map = {'quadrature': 'quadrature_order', 'sparse_grid': 'sparse_grid_level',
+                        'regression': 'expansion_order'}
+    coeff_method =  coeff_method_map[method_dict['coeff_method']]
+    coeff_methods = ['quadrature_order', 'sparse_grid_level', 'expansion_order']
+    for i, line in enumerate(lines):
+        if line.keys()[0] in coeff_methods:
+            if coeff_method == 'expansion_order':
+                lines[i] = {coeff_method: [str(sample_number-1)]}
+                lines.insert(i+1, {'collocation_ratio': ['1']})
+                # Here I could insert the other options for this case.
+                # lines.insert(i+1, {'collocation_points': [str(sample_number)]})
+                # lines.insert(i+1, {'expansion_samples': [str(sample_number)]})
+                # lines.insert(i+2, {'seed': ['15347']})
+            else:
+                lines[i] = {coeff_method: str(sample_number)}
+            break
+
+    # Update the variables
+    already_updated = False  # Because the descriptor keyword can exist multiple times
+    for i, line in enumerate(lines):
+        if 'histogram_bin_uncertain' in line:
+            lines[i] = {'histogram_bin_uncertain': str(n)}
+        if 'abscissas' in line:
+            lines[i] = {'abscissas': x}
+        if 'ordinates' in line:
+            lines[i] = {'ordinates': f}
+        if 'descriptors' in line and not already_updated:
+            descriptor = []
+            for j in range(n):
+                value = "'x%s'" % str(j+1)
+                descriptor.append(value)
+            lines[i] = {'descriptors': descriptor}
+            already_updated = True
+
+    for line in lines:
+        print line.values()
+        towrite = line.keys()[0] + ' ' + ' '.join(line.values()[0]) + ' \n'
+        fw.write(towrite)
     fw.close()
-    shutil.move(fileout, filein)
+
+    # filein = dakotaFilename
+    # fileout = dakotaFilename + '.tmp'
+    # fr = open(filein, 'r')
+    # fw = open(fileout, 'w')
+    # for line in fr:
+    #     # Method for calculating the coefficients
+    #     if 'quadrature_order' in line and not line.strip().startswith('#'):
+    #         towrite = 'quadrature_order  ' + str(sample_number) + '\n'
+    #         fw.write(towrite)
+    #     elif 'sparse_grid_level' in line and not line.strip().startswith('#'):
+    #         towrite = 'sparse_grid_level  ' + str(sample_number) + '\n'
+    #         fw.write(towrite)
+    #     elif 'expansion_order' in line and not line.strip().startswith('#'):
+    #         towrite = 'expansion_order  ' + str(sample_number-1) + '\n'
+    #         fw.write(towrite)
+    #     # The next 3 are options of the expansion order.
+    #     elif 'collocation_points' in line and not line.strip().startswith('#'):
+    #         towrite = 'collocation_points  ' + str(sample_number) + '\n'
+    #         fw.write(towrite)
+    #     elif 'expansion_samples' in line and not line.strip().startswith('#'):
+    #         towrite = 'expansion_samples  ' + str(sample_number) + '\n'
+    #         fw.write(towrite)
+    #     elif 'collocation_ratio' in line and not line.strip().startswith('#'):
+    #         fw.write(line)  # Don't do anything assume the collocation ratio given is what you want.
+    #     # Update the variables
+    #     elif 'abscissas' in line:
+    #         towrite = 'abscissas = ' + ' '.join(x) + ' \n'
+    #         fw.write(towrite)
+    #     elif 'ordinates' in line:
+    #         towrite = 'ordinates = ' + ' '.join(f) + ' \n'
+    #         fw.write(towrite)
+    #     else:
+    #         fw.write(line)
+    # fr.close()
+    # fw.close()
+    # shutil.move(fileout, filein)

@@ -6,7 +6,7 @@ from dakotaInterface import RedirectOutput
 
 def getDakotaStatistics(dakotaFile):
 
-    dakotaInput = dakotaFile
+    dakotaInput = dakotaFile + '.tmp'
 
     print 'Calling Dakota...'
     # Pipe the output

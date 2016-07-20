@@ -20,7 +20,8 @@ def get_method_dict():
                    'layout': 'optimized',
                    'offset': 0,
                    'Noffset': 10,
-                   'dakota_filename': 'dakotageneral.in'}
+                   'dakota_filename': 'tests/dakotageneral.in',
+                   'coeff_method': 'quadrature'}
     return method_dict
 
 
@@ -41,6 +42,7 @@ def test_dakota_direction_expansion():
     n = 5
     method_dict = get_method_dict()
     method_dict['dakota_filename'] = 'tests/dakotagenerale.in'
+    method_dict['coeff_method'] = 'regression'
     method_dict = add_distribution(method_dict)
 
     jsonfile = open('tests/record_test_dakota_direction_expansion.json','r')
@@ -57,7 +59,6 @@ def test_dakota_direction_expansion():
 def test_dakota_direction_quadrature_offset1():
     n = 5
     method_dict = get_method_dict()
-    method_dict['dakota_filename'] = 'tests/dakotageneralq.in'
     method_dict['offset'] = 1
     method_dict = add_distribution(method_dict)
 
@@ -75,7 +76,6 @@ def test_dakota_direction_quadrature_offset1():
 def test_dakota_direction_quadrature():
     n = 5
     method_dict = get_method_dict()
-    method_dict['dakota_filename'] = 'tests/dakotageneralq.in'
     method_dict = add_distribution(method_dict)
 
     jsonfile = open('tests/record_test_dakota_direction_quadrature.json','r')
@@ -92,7 +92,7 @@ def test_dakota_direction_quadrature():
 def test_dakota_direction_sparse():
     n = 1
     method_dict = get_method_dict()
-    method_dict['dakota_filename'] = 'tests/dakotagenerals.in'
+    method_dict['coeff_method'] = 'sparse_grid'
     method_dict = add_distribution(method_dict)
 
     jsonfile = open('tests/record_test_dakota_direction_sparse.json','r')
@@ -109,7 +109,6 @@ def test_dakota_direction_sparse():
 def test_dakota_speed_quadrature():
     n = 5
     method_dict = get_method_dict()
-    method_dict['dakota_filename'] = 'tests/dakotageneralq.in'
     method_dict['uncertain_var'] = 'speed'
     method_dict = add_distribution(method_dict)
 
