@@ -203,7 +203,7 @@ def updateDakotaFile(method_dict, sample_number, x, f):
                 # lines.insert(i+1, {'expansion_samples': [str(sample_number)]})
                 # lines.insert(i+2, {'seed': ['15347']})
             else:
-                lines[i] = {coeff_method: str(sample_number)}
+                lines[i] = {coeff_method: [str(sample_number)]}
             break
 
     # Update the variables
