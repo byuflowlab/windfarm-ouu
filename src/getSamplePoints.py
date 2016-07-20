@@ -31,12 +31,14 @@ def getSamplePoints(dakotaFile):
     # read the points from the dakota tabular file
     dakotaTabular = 'dakota_tabular.dat'
     f = open(dakotaTabular, 'r')
-    f.readline()
-    x = []
-    for line in f:
-        x.append(float(line.split()[2]))
+    line = f.readline()
+    n = len(line.split())
+    x = [[] for i in range(2, n-1)]  # create list to hold the variables
 
-    x = np.array(x)
+    for line in f:
+        for i in range(len(x)):
+            x[i].append(float(line.split()[2+i]))
+
     f.close()
 
     # Read the input file to determine what to do for the weights

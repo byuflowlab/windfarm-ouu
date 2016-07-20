@@ -86,22 +86,30 @@ def getPointsDirectionSpeed(dist, method_dict, n):
         dist_speed = dist[1]
         x_s, f_s = generate_speed_abscissas_ordinates(a_s, b_s, dist_speed)
 
-        print type(x_s)
         # Need to be able to update for 1 and 2d cases
         updateDakotaFile(method_dict, n, [x_d, x_s], [f_d, f_s])
 
         # run Dakota file to get the points locations
         # This one also needs to work for the 1 and 2d cases.
         x, w = getSamplePoints(method_dict['dakota_filename'])
+        assert len(x) == 2, 'Should be returning the speeds and directions'
+        x_d = np.array(x[0])
+        x_s = np.array(x[1])
 
         # Do stuff for the direction case
         # if particular method for the coefficients get weights (just read the file from get sample points)
         # Rescale x
-        x = 330/2. + 330/2.*x  # Should be in terms of the variables
+        x_d = 330/2. + 330/2.*x_d  # Should be in terms of the variables
         # Call modify x with the new x.
-        x = modifyx(x, A, B, C, r)
+        x_d = modifyx(x_d, A, B, C, r)
 
         # Do stuff for the speed case
+        # Rescale x
+        x_s = (b_s-a_s)/2. + (b_s-a_s)/2.*x_s + a_s
+
+        winddirections = x_d
+        windspeeds = x_s
+        weights = w
 
     return winddirections, windspeeds, weights
 
@@ -159,6 +167,8 @@ def getPointsDirection(dist, method_dict, n):
         updateDakotaFile(method_dict, n, x, f)
         # run Dakota file to get the points locations
         x, w = getSamplePoints(method_dict['dakota_filename'])
+        assert len(x) == 1, 'Should only be returning the directions'
+        x = np.array(x[0])
         # if particular method for the coefficients get weights (just read the file from get sample points)
         # Rescale x
         x = 330/2. + 330/2.*x  # Should be in terms of the variables
@@ -200,6 +210,9 @@ def getPointsSpeed(dist, method_dict, n):
         updateDakotaFile(method_dict, n, x, f)
         # run Dakota file to get the points locations
         x, w = getSamplePoints(method_dict['dakota_filename'])
+        assert len(x) == 1, 'Should only be returning the speeds'
+        x = np.array(x[0])
+
         # Rescale x
         x = (b-a)/2. + (b-a)/2.*x + a
 
