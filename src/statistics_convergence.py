@@ -182,14 +182,14 @@ if __name__ == "__main__":
         std.append(std_data)
         samples.append(N)
 
-    # Save a record of the run
+        # Save a record of the run
 
-    obj = {'mean': mean, 'std': std, 'samples': samples, 'winddirections': winddirections.tolist(),
-           'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
-           'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
-           'layout': method_dict['layout']}
-    jsonfile = open('record.json','w')
-    json.dump(obj, jsonfile, indent=2)
-    jsonfile.close()
+        obj = {'mean': mean, 'std': std, 'samples': samples, 'winddirections': winddirections.tolist(),
+               'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
+               'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
+               'layout': method_dict['layout']}
+        jsonfile = open('record.json','w')
+        json.dump(obj, jsonfile, indent=2)
+        jsonfile.close()
 
     # plot()
