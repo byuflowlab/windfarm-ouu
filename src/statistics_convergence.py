@@ -70,12 +70,14 @@ def run(method_dict, n):
     # initialize problem
     prob = Problem(AEPGroup(nTurbines=nTurbs, nDirections=N,
                             method_dict=method_dict))
-    prob.setup(check=False)
+
+    prob.setup(check=True)
+
 
     # assign initial values to variables
     prob['windSpeeds'] = windspeeds
     prob['windDirections'] = winddirections
-    prob['weights'] = weights
+    prob['windWeights'] = weights
     prob['rotorDiameter'] = rotorDiameter
     prob['axialInduction'] = axialInduction
     prob['generatorEfficiency'] = generator_efficiency
@@ -89,6 +91,7 @@ def run(method_dict, n):
         prob['yaw%i' % direction_id] = yaw
 
     # Run the problem
+    prob.pre_run_check()
     prob.run()
 
     # print the results
@@ -97,7 +100,7 @@ def run(method_dict, n):
     factor = 1e6
     print 'mean = ', mean_data/factor, ' GWhrs'
     print 'std = ', std_data/factor, ' GWhrs'
-    power = prob['power']
+    power = prob['dirPowers']
 
     return mean_data/factor, std_data/factor, N, winddirections, windspeeds, power
 

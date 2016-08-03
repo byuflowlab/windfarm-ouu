@@ -1,6 +1,6 @@
 import numpy as np
 from openmdao.api import Group, IndepVarComp, ExecComp
-from florisse.GeneralWindFarmComponents import SpacingComp, BoundaryComp
+from wakeexchange.GeneralWindFarmComponents import SpacingComp, BoundaryComp
 from AEPGroups import AEPGroup
 
 class OptAEP(Group):

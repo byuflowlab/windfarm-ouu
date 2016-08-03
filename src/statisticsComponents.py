@@ -18,11 +18,11 @@ class DakotaStatistics(ExternalCode):
         self.fd_options['step_type'] = 'relative'
 
         # define inputs
-        self.add_param('power', np.zeros(nDirections), units ='kW',
+        self.add_param('dirPowers', np.zeros(nDirections), units ='kW',
                        desc='vector containing the power production for each winddirection and windspeed pair')
         self.add_param('method_dict', method_dict,
                        desc='parameters for the UQ method')
-        self.add_param('weights', np.zeros(nDirections),
+        self.add_param('windWeights', np.zeros(nDirections),
                        desc='vector containing the integration weight associated with each power')
 
         # define output
@@ -36,8 +36,8 @@ class DakotaStatistics(ExternalCode):
     def solve_nonlinear(self, params, unknowns, resids):
 
         # Generate the file with the power vector for Dakota
-        power = params['power']
-        np.savetxt('powerInput.txt', power, header='power')
+        power = params['dirPowers']
+        np.savetxt('powerInput.txt', power, header='dirPowers')
 
         # parent solve_nonlinear function actually runs the external code
         super(DakotaStatistics, self).solve_nonlinear(params,unknowns,resids)
@@ -76,11 +76,11 @@ class ChaospyStatistics(Component):
         self.fd_options['step_type'] = 'relative'
 
         # define inputs
-        self.add_param('power', np.zeros(nDirections), units ='kW',
+        self.add_param('dirPowers', np.zeros(nDirections), units ='kW',
                        desc='vector containing the power production for each winddirection and windspeed pair')
         self.add_param('method_dict', method_dict,
                        desc='parameters for the UQ method')
-        self.add_param('weights', np.zeros(nDirections),
+        self.add_param('windWeights', np.zeros(nDirections),
                        desc='vector containing the integration weight associated with each power')
 
         # define output
@@ -90,7 +90,7 @@ class ChaospyStatistics(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
 
-        power = params['power']
+        power = params['dirPowers']
         method_dict = params['method_dict']
         dist = method_dict['distribution']
         n = len(power)
@@ -148,11 +148,11 @@ class RectStatistics(Component):
         self.fd_options['step_type'] = 'relative'
 
         # define inputs
-        self.add_param('power', np.zeros(nDirections), units ='kW',
+        self.add_param('dirPowers', np.zeros(nDirections), units ='kW',
                        desc='vector containing the power production for each winddirection and windspeed pair')
         self.add_param('method_dict', method_dict,
                        desc='parameters for the UQ method')
-        self.add_param('weights', np.zeros(nDirections),
+        self.add_param('windWeights', np.zeros(nDirections),
                        desc='vector containing the integration weight associated with each power')
 
         # define output
@@ -161,8 +161,8 @@ class RectStatistics(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
 
-        power = params['power']
-        weights = params['weights']
+        power = params['dirPowers']
+        weights = params['windWeights']
 
         mean = sum(power*weights)
         # Calculate std to ensure it is positive, first method could have issues for small number of samples
@@ -190,14 +190,14 @@ class RectStatistics(Component):
 
 def linearize_function(params):
 
-    weights = params['weights']
+    weights = params['windWeights']
 
     # number of hours in a year
     hours = 8760.0
     dmean_dpower = weights*hours
 
     J = {}
-    J[('mean', 'power')] = np.array([dmean_dpower])
+    J[('mean', 'dirPowers')] = np.array([dmean_dpower])
 
     return J
 
@@ -241,18 +241,18 @@ if __name__ == "__main__":
     n = 10
     unused, weights = getPoints(method_dict, n)
     prob = Problem(root=Group())
-    prob.root.add('p', IndepVarComp('power', np.random.rand(n)))
-    prob.root.add('w', IndepVarComp('weight', weights))
+    prob.root.add('p', IndepVarComp('dirPowers', np.random.rand(n)))
+    prob.root.add('w', IndepVarComp('windWeights', weights))
     if method_dict['method'] == 'rect':
         prob.root.add('AEPComp', RectStatistics(nDirections=n, method_dict=method_dict))#, promotes=['*'])  # No need to promote because of the explicit connection below
     if method_dict['method'] == 'dakota':
         prob.root.add('AEPComp', DakotaStatistics(nDirections=n, method_dict=method_dict))#, promotes=['*'])
-    prob.root.connect('p.power', 'AEPComp.power')
-    prob.root.connect('w.weight', 'AEPComp.weights')
+    prob.root.connect('p.dirPowers', 'AEPComp.dirPowers')
+    prob.root.connect('w.windWeights', 'AEPComp.windWeights')
     prob.setup()
     prob.run()
     print 'AEP = ', (prob.root.AEPComp.unknowns['mean'])
-    print 'power = ', (prob.root.AEPComp.params['power'])
+    print 'power = ', (prob.root.AEPComp.params['dirPowers'])
     print prob.root.AEPComp.params.keys()
     # J = prob.calc_gradient(['AEPComp.mean'], ['p.power'])  # I'm not sure why this returns zero
     # print 'power directions gradient = ', J
