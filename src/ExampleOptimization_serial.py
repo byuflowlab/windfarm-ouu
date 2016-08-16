@@ -2,7 +2,7 @@ from __future__ import print_function
 
 from openmdao.api import Problem, pyOptSparseDriver
 from OptimizationGroup import OptAEP
-from florisse.GeneralWindFarmComponents import calculate_boundary
+from wakeexchange.GeneralWindFarmComponents import calculate_boundary
 
 import time
 import numpy as np

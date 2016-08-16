@@ -9,12 +9,16 @@ from AEPGroups import AEPGroup
 import distributions
 import windfarm_setup
 
+from wakeexchange.floris import floris_wrapper, add_floris_params_IndepVarComps
+from wakeexchange.jensen import jensen_wrapper, add_jensen_params_IndepVarComps
+from wakeexchange.gauss import gauss_wrapper, add_gauss_params_IndepVarComps
 
 def run(method_dict, n):
     """
     method_dict = {}
     keys of method_dict:
         'method' = 'dakota', 'rect' or 'chaospy'  # 'chaospy needs updating
+        'wake_model = 'floris', 'jensen', 'gauss', 'larsen' # larsen is not working
         'coeff_method' = 'quadrature', 'sparse_grid' or 'regression'
         'uncertain_var' = 'speed', 'direction' or 'direction_and_speed'
         'layout' = 'amalia', 'optimized', 'grid', 'random', 'test'
@@ -67,15 +71,31 @@ def run(method_dict, n):
         generator_efficiency[turbI] = 0.944
         yaw[turbI] = 0.     # deg.
 
+    # define wake model inputs
+    if method_dict['wake_model'] is 'floris':
+        wake_model = floris_wrapper
+        IndepVarFunc = add_floris_params_IndepVarComps
+    elif method_dict['wake_model'] is 'jensen':
+        wake_model = jensen_wrapper
+        IndepVarFunc = add_jensen_params_IndepVarComps
+    elif method_dict['wake_model'] is 'gauss':
+        wake_model = gauss_wrapper
+        IndepVarFunc = add_gauss_params_IndepVarComps
+    else:
+        raise KeyError('Invalid wake model selection. Must be one of [floris, jensen, gauss]')
+
     # initialize problem
     prob = Problem(AEPGroup(nTurbines=nTurbs, nDirections=N,
-                            method_dict=method_dict))
-    prob.setup(check=False)
+                            method_dict=method_dict, wake_model=wake_model,
+                            params_IdepVar_func=IndepVarFunc))
+
+    prob.setup(check=True)
+
 
     # assign initial values to variables
     prob['windSpeeds'] = windspeeds
     prob['windDirections'] = winddirections
-    prob['weights'] = weights
+    prob['windWeights'] = weights
     prob['rotorDiameter'] = rotorDiameter
     prob['axialInduction'] = axialInduction
     prob['generatorEfficiency'] = generator_efficiency
@@ -89,6 +109,7 @@ def run(method_dict, n):
         prob['yaw%i' % direction_id] = yaw
 
     # Run the problem
+    prob.pre_run_check()
     prob.run()
 
     # print the results
@@ -97,7 +118,7 @@ def run(method_dict, n):
     factor = 1e6
     print 'mean = ', mean_data/factor, ' GWhrs'
     print 'std = ', std_data/factor, ' GWhrs'
-    power = prob['power']
+    power = prob['dirPowers']
 
     return mean_data/factor, std_data/factor, N, winddirections, windspeeds, power
 
@@ -146,6 +167,8 @@ if __name__ == "__main__":
     # method_dict = {}
     method_dict = vars(args)  # Start a dictionary with the arguments specified in the command line
     method_dict['method']           = 'dakota'
+    # select model: floris, jensen, gauss, larsen (larsen not working yet) TODO get larsen model working
+    method_dict['wake_model'] = 'floris'
     method_dict['uncertain_var']    = 'direction'
     # method_dict['layout']           = 'optimized'  # Now this is specified in the command line
     method_dict['dakota_filename'] = 'dakotageneral.in'

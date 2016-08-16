@@ -16,6 +16,7 @@ def assertions(test, baseline):
 
 def get_method_dict():
     method_dict = {'method': 'dakota',
+                   'wake_model': 'floris',
                    'uncertain_var': 'direction',
                    'layout': 'optimized',
                    'offset': 0,

@@ -4,7 +4,7 @@ Date:           5/19/2016
 Author:         Jared J. Thomas
 """
 
-from florisse.GeneralWindFarmComponents import calculate_boundary, calculate_distance
+from wakeexchange.GeneralWindFarmComponents import calculate_boundary, calculate_distance
 
 import numpy as np
 import matplotlib.pyplot as plt
