@@ -12,10 +12,10 @@ class DakotaStatistics(ExternalCode):
         super(DakotaStatistics, self).__init__()
 
         # set finite difference options (fd used for testing only)
-        # self.fd_options['force_fd'] = True
-        self.fd_options['form'] = 'central'
-        self.fd_options['step_size'] = 1.0e-5
-        self.fd_options['step_type'] = 'relative'
+        # self.deriv_options['force_fd'] = True
+        self.deriv_options['form'] = 'central'
+        self.deriv_options['step_size'] = 1.0e-5
+        self.deriv_options['step_calc'] = 'relative'
 
         # define inputs
         self.add_param('dirPowers', np.zeros(nDirections), units ='kW',
@@ -70,10 +70,10 @@ class ChaospyStatistics(Component):
         super(ChaospyStatistics, self).__init__()
 
         # set finite difference options (fd used for testing only)
-        # self.fd_options['force_fd'] = True
-        self.fd_options['form'] = 'central'
-        self.fd_options['step_size'] = 1.0e-5
-        self.fd_options['step_type'] = 'relative'
+        # self.deriv_options['force_fd'] = True
+        self.deriv_options['form'] = 'central'
+        self.deriv_options['step_size'] = 1.0e-5
+        self.deriv_options['step_calc'] = 'relative'
 
         # define inputs
         self.add_param('dirPowers', np.zeros(nDirections), units ='kW',
@@ -142,10 +142,10 @@ class RectStatistics(Component):
         super(RectStatistics, self).__init__()
 
         # set finite difference options (fd used for testing only)
-        # self.fd_options['force_fd'] = True
-        self.fd_options['form'] = 'central'
-        self.fd_options['step_size'] = 1.0e-5
-        self.fd_options['step_type'] = 'relative'
+        # self.deriv_options['force_fd'] = True
+        self.deriv_options['form'] = 'central'
+        self.deriv_options['step_size'] = 1.0e-5
+        self.deriv_options['step_calc'] = 'relative'
 
         # define inputs
         self.add_param('dirPowers', np.zeros(nDirections), units ='kW',
