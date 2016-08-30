@@ -79,15 +79,16 @@ class amaliaWindRose(object):
         b = self.hi - self.lo + A  # 470
         if x >= B:
             x1 = (x - (b+a)/2.) / (b-a)
-            return self._windrose_polyfit(x1)/330  # The 330 comes from 360-(B-A)=R in quadrature rules
-            # return self._windrose_polyfit(x1)/360
+            return self._windrose_polyfit(x1)/(b-a)  # 330
         elif x <= A:
             x1 = (x + 360 - (b+a)/2.) / (b-a)
-            return self._windrose_polyfit(x1)/330
-            # return self._windrose_polyfit(x1)/360
+            return self._windrose_polyfit(x1)/(b-a)  # 330
         else:
             # If I'm only calling the pdf I should not go in here, but when calling the cdf I get in here.
             return 0.0
+
+    def get_zero_probability_region(self):
+        return self.A, self.B
 
 
 class amaliaWindRoseRaw(object):
@@ -320,6 +321,10 @@ def getWeibull():
 
 
 def getWindRose():
+    """Gets a chaospy distribution,
+        which is initialized with a distribution class I created
+        and extended by it.
+    """
 
     amalia_wind_rose = amaliaWindRose()
     # amalia_wind_rose = amaliaWindRoseRaw()  # Using this option needs updating
@@ -339,6 +344,11 @@ def getWindRose():
     # print windrose_dist.pdf(180)
     # print windrose_dist.pdf(365)
     # print windrose_dist.range()
+
+    # Dynamically add method
+    windrose_dist.get_zero_probability_region = amalia_wind_rose.get_zero_probability_region
+
+
     return windrose_dist
 
 # amalia_wind_rose = amaliaWindRose()

@@ -13,6 +13,7 @@ from wakeexchange.floris import floris_wrapper, add_floris_params_IndepVarComps
 from wakeexchange.jensen import jensen_wrapper, add_jensen_params_IndepVarComps
 from wakeexchange.gauss import gauss_wrapper, add_gauss_params_IndepVarComps
 
+
 def run(method_dict, n):
     """
     method_dict = {}
@@ -168,12 +169,12 @@ if __name__ == "__main__":
     method_dict = vars(args)  # Start a dictionary with the arguments specified in the command line
     method_dict['method']           = 'dakota'
     # select model: floris, jensen, gauss, larsen (larsen not working yet) TODO get larsen model working
-    method_dict['wake_model'] = 'floris'
+    method_dict['wake_model']       = 'floris'
     method_dict['uncertain_var']    = 'direction'
-    # method_dict['layout']           = 'optimized'  # Now this is specified in the command line
-    method_dict['dakota_filename'] = 'dakotageneral.in'
+    # method_dict['layout']         = 'optimized'  # Now this is specified in the command line
+    method_dict['dakota_filename']  = 'dakotageneral.in'
     # To Do specify the number of points (directions or speeds) as an option as well.
-    method_dict['coeff_method'] = 'quadrature'
+    method_dict['coeff_method']     = 'quadrature'
 
     # Specify the distribution according to the uncertain variable
     if method_dict['uncertain_var'] == 'speed':

@@ -132,12 +132,14 @@ def getPointsDirection(dist, method_dict, n):
     bnd = dist.range()
     a = bnd[0]  # left boundary
     b = bnd[1]  # right boundary
-    a = a[0] # get rid of the list
-    b = b[0] # get rid of the list
+    a = a[0]  # get rid of the list
+    b = b[0]  # get rid of the list
     # Make sure the A, B, C values are the same than those in distribution
-    A = 110  # Left boundary of zero probability region
-    B = 140  # Right boundary of zero probability region
-    C = 225  # Location of max probability
+    A, B = dist.get_zero_probability_region()
+    # A = 110  # Left boundary of zero probability region
+    # B = 140  # Right boundary of zero probability region
+
+    C = 225  # Location of max probability or desired starting location.
     r = b-a  # original range
     R = r - (B-A) # modified range
 
@@ -169,9 +171,9 @@ def getPointsDirection(dist, method_dict, n):
         x, w = getSamplePoints(method_dict['dakota_filename'])
         assert len(x) == 1, 'Should only be returning the directions'
         x = np.array(x[0])
-        # if particular method for the coefficients get weights (just read the file from get sample points)
         # Rescale x
-        x = 330/2. + 330/2.*x  # Should be in terms of the variables
+        x = (R-a)/2.*x + (R-a)/2. + a
+        # x = (330/2. + 330/2.*x  # Should be in terms of the variables
         # Call modify x with the new x.
         x = modifyx(x, A, B, C, r)
 
@@ -232,13 +234,13 @@ def generate_direction_abscissas_ordinates(a, A, B, C, r, R, dist):
 
     # Make sure the offset is not between A and B
     if A < C and C < B:
-        C = min([A, B], key=lambda x:abs(x-C))  # It doesn't really matter if C gets set to A or B
+        C = min([A, B], key=lambda x: abs(x-C))  # It doesn't really matter if C gets set to A or B
 
     ynew = modifyx(mid, A, B, C, r)
     f = dist.pdf(ynew)
 
     # Modify y to -1 to 1 range, I think makes dakota generation of polynomials easier
-    y = 2*y / 330 - 1
+    y = 2*(y-a) / (R-a) - 1
     return y, f
 
 
@@ -257,19 +259,19 @@ def generate_speed_abscissas_ordinates(a, b, dist):
 def modifyx(x, A=110, B=140, C=225, r=360):
 
     # Modify x, to start from the max probability location
-    x = (C+x)%r
+    x = (C+x) % r
     y = []
     for xi in x:
         if A<C:
             if xi > A and xi < C:
-                xi = (xi + B-A)%r  # I don't think the mod r is necessary for all of these.
+                xi = (xi + B-A) % r  # I don't think the mod r is necessary for all of these.
             y.append(xi)
         else:
             if xi > A:
-                xi = (xi + B-A)%r
+                xi = (xi + B-A) % r
             else:
                 if xi < C:
-                    xi = (xi + B-A)%r
+                    xi = (xi + B-A) % r
             y.append(xi)
     return np.array(y)
 

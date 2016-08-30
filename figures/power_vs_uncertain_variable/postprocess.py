@@ -96,6 +96,7 @@ ax[0][1].set_title('wind direction (deg)')
 ax[3][1].set_xlabel('wind direction (deg)')
 ax[0][2].set_title('wind speed (m/s)')
 ax[3][2].set_xlabel('wind speed (m/s)')
+ax[0][0].set_title('layout', position=(0.5, 1.6))
 ax[0][0].annotate('',
     xy=(2090, 5000), xycoords='data',
     xytext=(2090, 7000), textcoords='data',
