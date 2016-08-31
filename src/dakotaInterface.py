@@ -204,7 +204,8 @@ def updateDakotaFile(method_dict, sample_number, x, f):
                 # lines.insert(i+1, {'collocation_points': [str(sample_number)]})
                 # lines.insert(i+1, {'expansion_samples': [str(sample_number)]})
                 # lines.insert(i+2, {'tensor_grid': []})
-                # lines.insert(i+2, {'cross_validation': []})
+                # if sample_number > 9:  # The 9 works at least for the 1d case
+                #     lines.insert(i+2, {'cross_validation': []})
                 # Use a random seed
                 # We want a consistent seed for when dakota gets called for the points and then with the actual powers
                 # lines.insert(i+2, {'seed': ['15347']})
