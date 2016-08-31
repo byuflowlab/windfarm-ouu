@@ -3,6 +3,8 @@ import re
 import sys
 import shutil
 import itertools
+import random
+
 
 def parseDakotaParametersFile(paramsfilename):
     """Return parameters for application."""
@@ -201,7 +203,13 @@ def updateDakotaFile(method_dict, sample_number, x, f):
                 # Here I could insert the other options for this case.
                 # lines.insert(i+1, {'collocation_points': [str(sample_number)]})
                 # lines.insert(i+1, {'expansion_samples': [str(sample_number)]})
+                # lines.insert(i+2, {'tensor_grid': []})
+                # lines.insert(i+2, {'cross_validation': []})
+                # Use a random seed
+                # We want a consistent seed for when dakota gets called for the points and then with the actual powers
                 # lines.insert(i+2, {'seed': ['15347']})
+                # seed = random.randrange(1, 100000000)  # As long as the seed is less the max int (2147483647)should be fine
+                # lines.insert(i+2, {'seed': [str(seed)]})
             else:
                 lines[i] = {coeff_method: [str(sample_number)]}
             break
