@@ -10,6 +10,7 @@ rm record.json
 rm dakota.rst
 rm dakota_tabular.dat
 rm dakota_quadrature_tabular.dat
+rm dakota_sparse_tabular.dat
 rm results.out.*
 rm params.in.*
 rm mean.txt
@@ -17,3 +18,4 @@ rm std.txt
 rm logDakota.out
 rm LHS_*
 rm S4
+rm approximated.dat

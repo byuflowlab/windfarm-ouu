@@ -22,7 +22,9 @@ def get_method_dict():
                    'offset': 0,
                    'Noffset': 10,
                    'dakota_filename': 'tests/dakotageneral.in',
-                   'coeff_method': 'quadrature'}
+                   'coeff_method': 'quadrature',
+                   'windspeed_ref': 8,
+                   'winddirection_ref': 225}
     return method_dict
 
 
@@ -38,6 +40,7 @@ def add_distribution(method_dict):
         raise ValueError('unknown uncertain_var option "%s", valid options "speed" or "direction".' %method_dict['uncertain_var'])
     return method_dict
 
+
 ##### TESTS #####
 def test_dakota_direction_expansion():
     n = 5
@@ -49,13 +52,16 @@ def test_dakota_direction_expansion():
     jsonfile = open('tests/record_test_dakota_direction_expansion.json','r')
     baseline = json.load(jsonfile)
     jsonfile.close()
-    mean, std, N, winddirections, windspeeds, power = run(method_dict, n)
+    mean, std, N, winddirections, windspeeds, power, \
+        winddirections_approx, windspeeds_approx, power_approx \
+            = run(method_dict, n)
     obj = {'mean': [mean], 'std': [std], 'samples': [N], 'winddirections': winddirections.tolist(),
            'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
            'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
            'layout': method_dict['layout']}
     test = obj
     assertions(test, baseline)
+
 
 def test_dakota_direction_quadrature_offset1():
     n = 5
@@ -66,13 +72,16 @@ def test_dakota_direction_quadrature_offset1():
     jsonfile = open('tests/record_test_dakota_direction_quadrature_offset1.json','r')
     baseline = json.load(jsonfile)
     jsonfile.close()
-    mean, std, N, winddirections, windspeeds, power = run(method_dict, n)
+    mean, std, N, winddirections, windspeeds, power, \
+        winddirections_approx, windspeeds_approx, power_approx \
+            = run(method_dict, n)
     obj = {'mean': [mean], 'std': [std], 'samples': [N], 'winddirections': winddirections.tolist(),
            'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
            'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
            'layout': method_dict['layout']}
     test = obj
     assertions(test, baseline)
+
 
 def test_dakota_direction_quadrature():
     n = 5
@@ -82,13 +91,16 @@ def test_dakota_direction_quadrature():
     jsonfile = open('tests/record_test_dakota_direction_quadrature.json','r')
     baseline = json.load(jsonfile)
     jsonfile.close()
-    mean, std, N, winddirections, windspeeds, power = run(method_dict, n)
+    mean, std, N, winddirections, windspeeds, power, \
+        winddirections_approx, windspeeds_approx, power_approx \
+            = run(method_dict, n)
     obj = {'mean': [mean], 'std': [std], 'samples': [N], 'winddirections': winddirections.tolist(),
            'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
            'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
            'layout': method_dict['layout']}
     test = obj
     assertions(test, baseline)
+
 
 def test_dakota_direction_sparse():
     n = 1
@@ -99,13 +111,16 @@ def test_dakota_direction_sparse():
     jsonfile = open('tests/record_test_dakota_direction_sparse.json','r')
     baseline = json.load(jsonfile)
     jsonfile.close()
-    mean, std, N, winddirections, windspeeds, power = run(method_dict, n)
+    mean, std, N, winddirections, windspeeds, power, \
+        winddirections_approx, windspeeds_approx, power_approx \
+            = run(method_dict, n)
     obj = {'mean': [mean], 'std': [std], 'samples': [N], 'winddirections': winddirections.tolist(),
            'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
            'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
            'layout': method_dict['layout']}
     test = obj
     assertions(test, baseline)
+
 
 def test_dakota_speed_quadrature():
     n = 5
@@ -116,13 +131,16 @@ def test_dakota_speed_quadrature():
     jsonfile = open('tests/record_test_dakota_speed_quadrature.json','r')
     baseline = json.load(jsonfile)
     jsonfile.close()
-    mean, std, N, winddirections, windspeeds, power = run(method_dict, n)
+    mean, std, N, winddirections, windspeeds, power, \
+        winddirections_approx, windspeeds_approx, power_approx \
+            = run(method_dict, n)
     obj = {'mean': [mean], 'std': [std], 'samples': [N], 'winddirections': winddirections.tolist(),
            'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
            'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
            'layout': method_dict['layout']}
     test = obj
     assertions(test, baseline)
+
 
 def test_chaospy_speed_quadrature():
     n = 5
@@ -134,13 +152,16 @@ def test_chaospy_speed_quadrature():
     jsonfile = open('tests/record_test_chaospy_speed_quadrature.json','r')
     baseline = json.load(jsonfile)
     jsonfile.close()
-    mean, std, N, winddirections, windspeeds, power = run(method_dict, n)
+    mean, std, N, winddirections, windspeeds, power, \
+        winddirections_approx, windspeeds_approx, power_approx \
+            = run(method_dict, n)
     obj = {'mean': [mean], 'std': [std], 'samples': [N], 'winddirections': winddirections.tolist(),
            'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
            'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
            'layout': method_dict['layout']}
     test = obj
     assertions(test, baseline)
+
 
 def test_rect_direction_30points():
     n = 30
@@ -151,13 +172,16 @@ def test_rect_direction_30points():
     jsonfile = open('tests/record_test_rect_direction_30points.json','r')
     baseline = json.load(jsonfile)
     jsonfile.close()
-    mean, std, N, winddirections, windspeeds, power = run(method_dict, n)
+    mean, std, N, winddirections, windspeeds, power, \
+        winddirections_approx, windspeeds_approx, power_approx \
+            = run(method_dict, n)
     obj = {'mean': [mean], 'std': [std], 'samples': [N], 'winddirections': winddirections.tolist(),
            'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
            'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
            'layout': method_dict['layout']}
     test = obj
     assertions(test, baseline)
+
 
 def test_rect_direction_amalia():
     n = 5
@@ -169,13 +193,16 @@ def test_rect_direction_amalia():
     jsonfile = open('tests/record_test_rect_direction_amalia.json','r')
     baseline = json.load(jsonfile)
     jsonfile.close()
-    mean, std, N, winddirections, windspeeds, power = run(method_dict, n)
+    mean, std, N, winddirections, windspeeds, power, \
+        winddirections_approx, windspeeds_approx, power_approx \
+            = run(method_dict, n)
     obj = {'mean': [mean], 'std': [std], 'samples': [N], 'winddirections': winddirections.tolist(),
            'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
            'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
            'layout': method_dict['layout']}
     test = obj
     assertions(test, baseline)
+
 
 def test_rect_direction_grid():
     n = 5
@@ -187,13 +214,16 @@ def test_rect_direction_grid():
     jsonfile = open('tests/record_test_rect_direction_grid.json','r')
     baseline = json.load(jsonfile)
     jsonfile.close()
-    mean, std, N, winddirections, windspeeds, power = run(method_dict, n)
+    mean, std, N, winddirections, windspeeds, power, \
+        winddirections_approx, windspeeds_approx, power_approx \
+            = run(method_dict, n)
     obj = {'mean': [mean], 'std': [std], 'samples': [N], 'winddirections': winddirections.tolist(),
            'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
            'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
            'layout': method_dict['layout']}
     test = obj
     assertions(test, baseline)
+
 
 def test_rect_direction_offset1():
     n = 5
@@ -205,13 +235,16 @@ def test_rect_direction_offset1():
     jsonfile = open('tests/record_test_rect_direction_offset1.json','r')
     baseline = json.load(jsonfile)
     jsonfile.close()
-    mean, std, N, winddirections, windspeeds, power = run(method_dict, n)
+    mean, std, N, winddirections, windspeeds, power, \
+        winddirections_approx, windspeeds_approx, power_approx \
+            = run(method_dict, n)
     obj = {'mean': [mean], 'std': [std], 'samples': [N], 'winddirections': winddirections.tolist(),
            'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
            'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
            'layout': method_dict['layout']}
     test = obj
     assertions(test, baseline)
+
 
 def test_rect_direction_random():
     n = 5
@@ -223,13 +256,16 @@ def test_rect_direction_random():
     jsonfile = open('tests/record_test_rect_direction_random.json','r')
     baseline = json.load(jsonfile)
     jsonfile.close()
-    mean, std, N, winddirections, windspeeds, power = run(method_dict, n)
+    mean, std, N, winddirections, windspeeds, power, \
+        winddirections_approx, windspeeds_approx, power_approx \
+            = run(method_dict, n)
     obj = {'mean': [mean], 'std': [std], 'samples': [N], 'winddirections': winddirections.tolist(),
            'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
            'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
            'layout': method_dict['layout']}
     test = obj
     assertions(test, baseline)
+
 
 def test_rect_direction():  # This is for the optimized layout
     n = 5
@@ -240,13 +276,16 @@ def test_rect_direction():  # This is for the optimized layout
     jsonfile = open('tests/record_test_rect_direction.json','r')
     baseline = json.load(jsonfile)
     jsonfile.close()
-    mean, std, N, winddirections, windspeeds, power = run(method_dict, n)
+    mean, std, N, winddirections, windspeeds, power, \
+        winddirections_approx, windspeeds_approx, power_approx \
+            = run(method_dict, n)
     obj = {'mean': [mean], 'std': [std], 'samples': [N], 'winddirections': winddirections.tolist(),
            'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
            'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
            'layout': method_dict['layout']}
     test = obj
     assertions(test, baseline)
+
 
 def test_rect_speed():
     n = 5
@@ -258,13 +297,16 @@ def test_rect_speed():
     jsonfile = open('tests/record_test_rect_speed.json','r')
     baseline = json.load(jsonfile)
     jsonfile.close()
-    mean, std, N, winddirections, windspeeds, power = run(method_dict, n)
+    mean, std, N, winddirections, windspeeds, power, \
+        winddirections_approx, windspeeds_approx, power_approx \
+            = run(method_dict, n)
     obj = {'mean': [mean], 'std': [std], 'samples': [N], 'winddirections': winddirections.tolist(),
            'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
            'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
            'layout': method_dict['layout']}
     test = obj
     assertions(test, baseline)
+
 
 if __name__ == "__main__":
     test_dakota_direction_expansion()  # works if run from the src directory

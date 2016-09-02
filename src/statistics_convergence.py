@@ -8,6 +8,7 @@ from openmdao.api import Problem
 from AEPGroups import AEPGroup
 import distributions
 import windfarm_setup
+import approximate
 
 from wakeexchange.floris import floris_wrapper, add_floris_params_IndepVarComps
 from wakeexchange.jensen import jensen_wrapper, add_jensen_params_IndepVarComps
@@ -90,7 +91,7 @@ def run(method_dict, n):
                             method_dict=method_dict, wake_model=wake_model,
                             params_IdepVar_func=IndepVarFunc))
 
-    prob.setup(check=True)
+    prob.setup(check=False)
 
 
     # assign initial values to variables
@@ -113,6 +114,14 @@ def run(method_dict, n):
     prob.pre_run_check()
     prob.run()
 
+    # Get the PC approximation
+    if method_dict['method'] == 'dakota':
+        winddirections_approx, windspeeds_approx, power_approx = approximate.get_approximation(method_dict)
+    else:
+        winddirections_approx = np.array([])
+        windspeeds_approx = np.array([])
+        power_approx = np.array([])
+
     # print the results
     mean_data = prob['mean']
     std_data = prob['std']
@@ -121,7 +130,8 @@ def run(method_dict, n):
     print 'std = ', std_data/factor, ' GWhrs'
     power = prob['dirPowers']
 
-    return mean_data/factor, std_data/factor, N, winddirections, windspeeds, power
+    return mean_data/factor, std_data/factor, N, winddirections, windspeeds, power,\
+           winddirections_approx, windspeeds_approx, power_approx
 
 
 def plot():
@@ -148,15 +158,16 @@ def plot():
 
 def get_args():
     parser = argparse.ArgumentParser(description='Run statistics convergence')
+    parser.add_argument('--windspeed_ref', default=8, type=float, help='the wind speed for the wind direction case')
+    parser.add_argument('--winddirection_ref', default=225, type=float, help='the wind direction for the wind speed case')
     parser.add_argument('-l', '--layout', default='optimized', help="specify layout ['amalia', 'optimized', 'grid', 'random', 'test']")
     parser.add_argument('--offset', default=0, type=int, help='offset for starting direction. offset=[0, 1, 2, Noffset-1]')
     parser.add_argument('--Noffset', default=10, type=int, help='number of starting directions to consider')
+    parser.add_argument('--verbose', action='store_true', help='Includes approximation results for every run in the output json file')
     parser.add_argument('--version', action='version', version='Statistics convergence 0.0')
     args = parser.parse_args()
     # print args
     # print args.offset
-    # print args.Noffset
-    # print args.layout
     return args
 
 if __name__ == "__main__":
@@ -195,24 +206,43 @@ if __name__ == "__main__":
     mean = []
     std = []
     samples = []
+    wdirections_approx = []
+    wspeeds_approx = []
+    power_approx = []
 
     # Depending on the case n can represent number of quadrature points, sparse grid level, expansion order
     # n is roughly a surrogate for the number of samples
     for n in range(5, 6, 1):
 
         # Run the problem
-        mean_data, std_data, N, winddirections, windspeeds, power = run(method_dict, n)
+        mean_data, std_data, N, winddirections, windspeeds, power, \
+        winddirections_approx, windspeeds_approx, powers_approx \
+            = run(method_dict, n)
         mean.append(mean_data)
         std.append(std_data)
         samples.append(N)
+        wdirections_approx.append(winddirections_approx.tolist())
+        wspeeds_approx.append(windspeeds_approx.tolist())
+        power_approx.append(powers_approx.tolist())
 
         # Save a record of the run
-
-        obj = {'mean': mean, 'std': std, 'samples': samples, 'winddirections': winddirections.tolist(),
-               'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
-               'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
-               'layout': method_dict['layout']}
-        jsonfile = open('record.json','w')
+        if method_dict['verbose']:
+            obj = {'mean': mean, 'std': std, 'samples': samples, 'winddirections': winddirections.tolist(),
+                'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
+                'winddirections_approx': wdirections_approx,
+                'winddspeeds_approx': wspeeds_approx,
+                'power_approx': power_approx,
+                'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
+                'layout': method_dict['layout'], 'Noffset': method_dict['Noffset'], 'offset': method_dict['offset']}
+        else:
+            obj = {'mean': mean, 'std': std, 'samples': samples, 'winddirections': winddirections.tolist(),
+                'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
+                'winddirections_approx': winddirections_approx.tolist(),
+                'winddspeeds_approx': windspeeds_approx.tolist(),
+                'power_approx': powers_approx.tolist(),
+                'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
+                'layout': method_dict['layout'], 'Noffset': method_dict['Noffset'], 'offset': method_dict['offset']}
+        jsonfile = open('record.json', 'w')
         json.dump(obj, jsonfile, indent=2)
         jsonfile.close()
 

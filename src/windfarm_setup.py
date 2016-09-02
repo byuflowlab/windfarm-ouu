@@ -10,13 +10,13 @@ def getPoints(method_dict, n):
     if method_dict['uncertain_var'] == 'direction':
         dist = method_dict['distribution']
         winddirections, weights = getPointsDirection(dist, method_dict, n)
-        windspeeds = np.ones(winddirections.size)*8
+        windspeeds = np.ones(winddirections.size)*method_dict['windspeed_ref']  # 8m/s
         points = {'winddirections': winddirections, 'windspeeds': windspeeds, 'weights': weights}
 
     elif method_dict['uncertain_var'] == 'speed':
         dist = method_dict['distribution']
         windspeeds, weights = getPointsSpeed(dist, method_dict, n)
-        winddirections = np.ones(windspeeds.size)*225
+        winddirections = np.ones(windspeeds.size)*method_dict['winddirection_ref']  # 225 deg
         points = {'winddirections': winddirections, 'windspeeds': windspeeds, 'weights': weights}
 
     elif method_dict['uncertain_var'] == 'direction_and_speed':
@@ -65,9 +65,12 @@ def getPointsDirectionSpeed(dist, method_dict, n):
         b_s = b[1] # the right boundary for the direction
 
         ###### Do direction work
+        dist_dir = dist[0]
         # Make sure the A, B, C values are the same than those in distribution
-        A = 110  # Left boundary of zero probability region
-        B = 140  # Right boundary of zero probability region
+        A, B = dist_dir.get_zero_probability_region()
+        # A = 110  # Left boundary of zero probability region
+        # B = 140  # Right boundary of zero probability region
+
         C = 225  # Location of max probability
         r = b_d-a_d  # original range
         R = r - (B-A) # modified range
@@ -79,7 +82,6 @@ def getPointsDirectionSpeed(dist, method_dict, n):
         # Modify the starting point C with offset
         offset = i*r/N  # the offset modifies the starting point for N locations within the whole interval
         C = (C + offset) % r
-        dist_dir = dist[0]
         x_d, f_d = generate_direction_abscissas_ordinates(a_d, A, B, C, r, R, dist_dir)
 
         ####### Do the speed work
@@ -97,9 +99,8 @@ def getPointsDirectionSpeed(dist, method_dict, n):
         x_s = np.array(x[1])
 
         # Do stuff for the direction case
-        # if particular method for the coefficients get weights (just read the file from get sample points)
         # Rescale x
-        x_d = 330/2. + 330/2.*x_d  # Should be in terms of the variables
+        x_d = (R-a_d)/2.*x_d + (R-a_d)/2. + a_d
         # Call modify x with the new x.
         x_d = modifyx(x_d, A, B, C, r)
 
