@@ -238,7 +238,8 @@ if __name__ == "__main__":
                 'windspeeds_approx': windspeeds_approx.tolist(),
                 'power_approx': power_approx,
                 'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
-                'layout': method_dict['layout'], 'Noffset': method_dict['Noffset'], 'offset': method_dict['offset']}
+                'layout': method_dict['layout'], 'wake_model': method_dict['wake_model'],
+                'Noffset': method_dict['Noffset'], 'offset': method_dict['offset']}
         else:
             obj = {'mean': mean, 'std': std, 'samples': samples, 'winddirections': winddirections.tolist(),
                 'windspeeds': windspeeds.tolist(), 'power': powers.tolist(),
@@ -246,7 +247,8 @@ if __name__ == "__main__":
                 'windspeeds_approx': windspeeds_approx.tolist(),
                 'power_approx': powers_approx.tolist(),
                 'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
-                'layout': method_dict['layout'], 'Noffset': method_dict['Noffset'], 'offset': method_dict['offset']}
+                'layout': method_dict['layout'], 'wake_model': method_dict['wake_model'],
+                'Noffset': method_dict['Noffset'], 'offset': method_dict['offset']}
         jsonfile = open('record.json', 'w')
         json.dump(obj, jsonfile, indent=2)
         jsonfile.close()
