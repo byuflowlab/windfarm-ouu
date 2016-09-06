@@ -118,9 +118,9 @@ def run(method_dict, n):
     if method_dict['method'] == 'dakota':
         winddirections_approx, windspeeds_approx, power_approx = approximate.get_approximation(method_dict)
     else:
-        winddirections_approx = np.array([])
-        windspeeds_approx = np.array([])
-        power_approx = np.array([])
+        winddirections_approx = np.array([None])
+        windspeeds_approx = np.array([None])
+        power_approx = np.array([None])
 
     # print the results
     mean_data = prob['mean']
@@ -163,7 +163,7 @@ def get_args():
     parser.add_argument('-l', '--layout', default='optimized', help="specify layout ['amalia', 'optimized', 'grid', 'random', 'test']")
     parser.add_argument('--offset', default=0, type=int, help='offset for starting direction. offset=[0, 1, 2, Noffset-1]')
     parser.add_argument('--Noffset', default=10, type=int, help='number of starting directions to consider')
-    parser.add_argument('--verbose', action='store_true', help='Includes approximation results for every run in the output json file')
+    parser.add_argument('--verbose', action='store_true', help='Includes results for every run in the output json file')
     parser.add_argument('--version', action='version', version='Statistics convergence 0.0')
     args = parser.parse_args()
     # print args
@@ -174,6 +174,7 @@ if __name__ == "__main__":
 
     # Get arguments
     args = get_args()
+    verbose = args.verbose
 
     # Specify the rest of arguments
     # method_dict = {}
@@ -206,39 +207,43 @@ if __name__ == "__main__":
     mean = []
     std = []
     samples = []
-    wdirections_approx = []
-    wspeeds_approx = []
-    power_approx = []
+    if verbose:
+        winddir = []
+        windspeed = []
+        power = []
+        power_approx = []
 
     # Depending on the case n can represent number of quadrature points, sparse grid level, expansion order
     # n is roughly a surrogate for the number of samples
     for n in range(5, 6, 1):
 
         # Run the problem
-        mean_data, std_data, N, winddirections, windspeeds, power, \
+        mean_data, std_data, N, winddirections, windspeeds, powers, \
         winddirections_approx, windspeeds_approx, powers_approx \
             = run(method_dict, n)
         mean.append(mean_data)
         std.append(std_data)
         samples.append(N)
-        wdirections_approx.append(winddirections_approx.tolist())
-        wspeeds_approx.append(windspeeds_approx.tolist())
-        power_approx.append(powers_approx.tolist())
+        if verbose:
+            winddir.append(winddirections.tolist())
+            windspeed.append(windspeeds.tolist())
+            power.append(powers.tolist())
+            power_approx.append(powers_approx.tolist())
 
         # Save a record of the run
-        if method_dict['verbose']:
-            obj = {'mean': mean, 'std': std, 'samples': samples, 'winddirections': winddirections.tolist(),
-                'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
-                'winddirections_approx': wdirections_approx,
-                'winddspeeds_approx': wspeeds_approx,
+        if verbose:
+            obj = {'mean': mean, 'std': std, 'samples': samples, 'winddirections': winddir,
+                'windspeeds': windspeed, 'power': power,
+                'winddirections_approx': winddirections_approx.tolist(),
+                'windspeeds_approx': windspeeds_approx.tolist(),
                 'power_approx': power_approx,
                 'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
                 'layout': method_dict['layout'], 'Noffset': method_dict['Noffset'], 'offset': method_dict['offset']}
         else:
             obj = {'mean': mean, 'std': std, 'samples': samples, 'winddirections': winddirections.tolist(),
-                'windspeeds': windspeeds.tolist(), 'power': power.tolist(),
+                'windspeeds': windspeeds.tolist(), 'power': powers.tolist(),
                 'winddirections_approx': winddirections_approx.tolist(),
-                'winddspeeds_approx': windspeeds_approx.tolist(),
+                'windspeeds_approx': windspeeds_approx.tolist(),
                 'power_approx': powers_approx.tolist(),
                 'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
                 'layout': method_dict['layout'], 'Noffset': method_dict['Noffset'], 'offset': method_dict['offset']}
