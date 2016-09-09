@@ -29,19 +29,19 @@ p4d = np.array(r['dir_random']['power'])
 d4 = np.array(r['dir_random']['direction'])
 
 # Move the turbine arrays to the json file too. Once I have the final set
-locations = np.genfromtxt('../convergence_results/layout_grid.txt', delimiter='')
+locations = np.genfromtxt('../../WindFarms/layout_grid.txt', delimiter='')
 tXg = locations[:, 0]
 tYg = locations[:, 1]
 
-locations = np.genfromtxt('../convergence_results/layout_amalia.txt', delimiter='')
+locations = np.genfromtxt('../../WindFarms/layout_amalia.txt', delimiter='')
 tXa = locations[:, 0]
 tYa = locations[:, 1]
 
-locations = np.genfromtxt('../convergence_results/layout_optimized.txt', delimiter='')
+locations = np.genfromtxt('../../WindFarms/layout_optimized.txt', delimiter='')
 tXo = locations[:, 0]
 tYo = locations[:, 1]
 
-locations = np.genfromtxt('../convergence_results/layout_random.txt', delimiter='')
+locations = np.genfromtxt('../../WindFarms/layout_random.txt', delimiter='')
 tXr = locations[:, 0]
 tYr = locations[:, 1]
 

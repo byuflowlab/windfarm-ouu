@@ -1,4 +1,5 @@
 Run statistics_convergence.py in src for each of the desired cases and then
-use the combine_record.py in src to create the json file for this figure.
+use the combine_record.py to create the json file containing all the cases.
+All the information in figure1.json is in power_response.json
 
 

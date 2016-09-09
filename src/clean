@@ -19,3 +19,4 @@ rm logDakota.out
 rm LHS_*
 rm S4
 rm approximated.dat
+rm *.tmp
