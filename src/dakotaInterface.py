@@ -209,8 +209,10 @@ def updateDakotaFile(method_dict, sample_number, x, f):
                 # Use a random seed
                 # We want a consistent seed for when dakota gets called for the points and then with the actual powers
                 # lines.insert(i+2, {'seed': ['15347']})
-                # seed = random.randrange(1, 100000000)  # As long as the seed is less the max int (2147483647)should be fine
-                # lines.insert(i+2, {'seed': [str(seed)]})
+                keys = [line.keys()[0] for line in lines]
+                if 'seed' not in keys:  # If we had already specified a seed don't overwrite it.
+                    seed = random.randrange(1, 100000000)  # As long as the seed is less the max int (2147483647)should be fine
+                    lines.insert(i+2, {'seed': [str(seed)]})
             else:
                 lines[i] = {coeff_method: [str(sample_number)]}
             break
