@@ -351,159 +351,54 @@ def getWindRose():
 
     return windrose_dist
 
-# amalia_wind_rose = amaliaWindRose()
-# x = np.linspace(-0.5, 0.5, 51)
-# dx = x[1]-x[0]
-# print x+dx/2
-# y = amalia_wind_rose._windrose_polyfit(x+dx/2)
-# print np.sum(y)*dx
-# print y
-# imax = np.argmax(y)
-# print x[imax]
-# print y[imax]
-# z = y[imax:-1]
-# xz = x[imax:-1]+x[imax]
-# z = np.concatenate((y[imax:], y[:imax]))
-# print z
-# print len(z)
-# print z.shape
-# print len(y)
-# print y.shape
-#
-# fig, ax = plt.subplots()
-# ax.plot(x, y)
-# ax.plot(x, z)
-# plt.show()
 
+# # Make nice plots of the distributions
+# import prettify
+# import matplotlib as mpl
+#
+# # Wind Direction plot
 # dist = getWindRose()
-# x1 = np.linspace(0,360,11)
-# print x1
-# y1 = dist.pdf(x1)
-# print dist._cdf(x1)
-# print dist._cdf(360)
-# print np.sum(y1)
-# plt.figure()
-# plt.plot(x1, y1)
-# plt.show()
+# x = np.linspace(0, 360, 361)
+# y = dist.pdf(x)
+# fig, ax = plt.subplots(figsize=(9, 5.4))
+# prettify.set_color_cycle(ax)
+# prettify.remove_junk(ax)
+# ax.plot(x, y, linewidth=3)
+# major_formatter = mpl.ticker.FormatStrFormatter('%g')
+# ax.yaxis.set_major_formatter(major_formatter)
+# ax.set_xticks(range(0, 361, 90))
+# # ax.set_xticks([0, 110, 140, 225, 360])
+# # ax.set_yticks([0, 0.0019, 0.0051])
+# ax.set_yticks([])
+# ax.spines['left'].set_visible(False)
+# ax.set_xlim([-10, 370])
+# ax.set_ylim([-0.00025, 0.00535])
+# ax.tick_params(axis='both', labelsize=24)
+# ax.set_xlabel('wind direction (deg)', fontsize=24)
+#
+# # plt.subplots_adjust(left=0, bottom=0, right=1, top=1)
+# plt.savefig('PdfWindDirection.pdf', bbox_inches='tight')
 
 
-
-
-
-# x = np.linspace(-0.5, 0.5, 361)
-# dx = x[1]-x[0]
-# a = 140
-# b = 470
-# xnew = ((b+a)/2. + (b-a)*x)%360
-# index = np.argsort(xnew)
-# print index
-# print xnew[index]
-
-# y = windrose_polyfit(x)
-# # print y
-# # print np.sum(y*dx)
-# fig, ax = plt.subplots()
-# ax.plot(x1, y1, label='original')
-# ax.plot(xnew[index], y[index]/360., label='smooth')
-# # ax.plot(x, y, label='smooth')
-# ax.legend()
-
-# # The matlab file PJ sent me
-# # Polynomial fit
-# # polynomial coefficients
-# alpha = np.array([493597.250387841, -207774.160030495, -413203.013010848, 158080.893880027, 127607.500730722, -44242.1722820275, -17735.2623897828, 5422.11156037294, 1057.31910521884, -253.807324825523, -19.8973363502958, 1.43458543839655, 1.05778787373732])
-# # alpha = np.array([493597.250387841, -207774.160030495])
-# z = np.arange(0, 335*np.pi/180., 0.01)
-# # print z
-# x = z/(335*np.pi/180.) - 0.5
-# # print x
-# y = np.polyval(alpha, x)
-# plt.figure()
-# plt.plot(x, y)
-
-
+# # Wind Speed plot
+# dist = getWeibull()
+# x = np.linspace(0, 30, 301)
+# y = dist.pdf(x)
+# fig, ax = plt.subplots(figsize=(10, 6))
+# prettify.set_color_cycle(ax)
+# prettify.remove_junk(ax)
+# ax.plot(x, y, linewidth=3)
+# major_formatter = mpl.ticker.FormatStrFormatter('%g')
+# ax.yaxis.set_major_formatter(major_formatter)
+# ax.set_xticks([0, 3, 15, 30])
+# ax.set_yticks([])
+# ax.spines['left'].set_visible(False)
+# ax.set_xlim([-1, 31])
+# ax.set_ylim([-0.0015, 0.0665])
+# ax.tick_params(axis='both', labelsize=24)
+# ax.set_xlabel('wind speed (m/s)', fontsize=24)
+#
+# # fig.tight_layout()
+# plt.savefig('PdfWindSpeed.pdf')
 
 # plt.show()
-
-
-
-
-# x = np.linspace(0,30)
-# x = np.linspace(0,30,1001)
-# dx= x[1]-x[0]
-# print x
-# weibull = getWeibull()
-# # weibull = cp.weibull(a=0.1)
-# y = weibull.pdf(x)
-# # y = weibull.pdf(x+0.5)
-# print np.sum(y)*dx
-# # print y
-# a = ''
-# for xi in y:
-#     a = a + str(xi) + ' '
-# # print a
-# plt.figure()
-# plt.plot(x, y)
-#
-# plt.show()
-# 0.991836543302
-# print wind_rose
-# nodes, weights = cp.generate_quadrature(order=23, domain=wind_rose, rule="Gaussian")  # Seems like I can only get same optimal points as Dakota! But maybe I can try other rules.
-# print nodes
-# #print weights
-# nodes, weights = cp.generate_quadrature(order=100, domain=wind_rose, rule="Clenshaw")  # Seems like I can only get same optimal points as Dakota! But maybe I can try other rules.
-# print nodes
-# #print weights
-#
-#
-# print wind_rose_cdf([[360]])
-# print wind_rose_cdf([[340,341]])
-
-# print wind_rose.pdf([340, 350])
-# # f = wind_rose_func()
-# # print f(340), f(350)
-#
-# print wind_rose.mom(1, order=1001, composite=30.)  # I'm not convinced why these are 180.
-# q = cp.variable()
-# # print q.keys()
-# print cp.E(q,wind_rose)
-# # samples = wind_rose.sample(10**3)#, "L")
-# # print np.average(samples)
-# # print np.mean(samples)
-# print wind_rose.sample(4)
-# x = np.linspace(0,360,361)
-# y = wind_rose.pdf(x)
-# p = cp.orth_ttr(2, wind_rose)
-# p2 = cp.outer(p, p)
-# print 'ttr', cp.E(p2, wind_rose)
-# p = cp.orth_bert(2, wind_rose)
-# p2 = cp.outer(p, p)
-# print 'bert', cp.E(p2, wind_rose)
-# p = cp.orth_chol(20, wind_rose)
-# p2 = cp.outer(p, p)
-# print 'chol', cp.E(p2, wind_rose)
-# p = cp.orth_gs(2, wind_rose)
-# p2 = cp.outer(p, p)
-# print 'gs', cp.E(p2, wind_rose)
-#
-#
-# # print P
-# # print cp.E(P[1]*P[2], wind_rose)  # These are not orthogonal, I think I need to define the wind rose nicer.
-#
-# dist = cp.Gamma(2)
-# p = cp.orth_bert(2, dist)
-# p2 = cp.outer(p, p)
-# print cp.E(p2, dist)
-#
-# # q = cp.variable()
-# # print q
-# # dist = cp.Normal()
-# # print dist
-# # print cp.E(q, dist)
-# # print cp.E(q*q, dist)
-# # print cp.E(q*q*q*q, dist)
-# # print dist.mom((1,2,4))
-# # plt.figure()
-# # plt.plot(x, y)
-# #
-# # plt.show()
