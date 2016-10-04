@@ -1,6 +1,8 @@
 from openmdao.api import Problem, Group, ExternalCode, IndepVarComp, Component
 import numpy as np
 import os
+import json
+import shutil
 import chaospy as cp
 from getSamplePoints import getSamplePoints
 
@@ -137,7 +139,7 @@ class ChaospyStatistics(Component):
 class RectStatistics(Component):
     """Use simple rectangle integration to estimate the statistics."""
 
-    def __init__(self, nDirections=10, method_dict=None):
+    def __init__(self, nTurbines=60, nDirections=10, method_dict=None):
 
         super(RectStatistics, self).__init__()
 
@@ -154,6 +156,11 @@ class RectStatistics(Component):
                        desc='parameters for the UQ method')
         self.add_param('windWeights', np.zeros(nDirections),
                        desc='vector containing the integration weight associated with each power')
+        self.add_param('turbineX', np.zeros(nTurbines),
+                       desc='vector containing the turbine X locations')
+        self.add_param('turbineY', np.zeros(nTurbines),
+                       desc='vector containing the turbine Y locations')
+
 
         # define output
         self.add_output('mean', val=0.0, units='kWh', desc='mean annual energy output of wind farm')
@@ -180,6 +187,32 @@ class RectStatistics(Component):
         modify_statistics(params, unknowns)  # It doesn't do anything for the direction case.
 
         print 'In RectStatistics'
+        print 'Print turbine locations'
+        print '\tturbineX \t turbineY'
+        for tX, tY in zip(params['turbineX'], params['turbineY']):
+            print '%.2f' % tX, '\t', '%.2f' % tY
+        try:
+            f = open('turbinelocations.json', 'r')  # Make sure this file is not here when I start running.
+            r = json.load(f)
+            f.close()
+
+            key = str(int(max([int(i) for i in r.keys()])) + 1)
+            r[key] = {'turbineX': params['turbineX'].tolist(), 'turbineY': params['turbineY'].tolist()}
+            f = open('turbinelocationstemp.json', 'w')
+            json.dump(r, f, indent=2)
+            f.close()
+            shutil.move('turbinelocationstemp.json', 'turbinelocations.json')
+
+
+        except IOError:
+            print 'I caught the exception'
+            obj = {'0': {'turbineX': params['turbineX'].tolist(), 'turbineY': params['turbineY'].tolist()}}
+
+            jsonfile = open('turbinelocations.json', 'w')
+            print json.dumps(obj, indent=2)
+            json.dump(obj, jsonfile, indent=2)
+            jsonfile.close()
+
 
     def linearize(self, params, unknowns, resids):
 

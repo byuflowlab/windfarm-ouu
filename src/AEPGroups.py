@@ -114,7 +114,7 @@ class AEPGroup(Group):
         elif method == 'chaospy':
             self.add('AEPcomp', ChaospyStatistics(nDirections, method_dict), promotes=['*'])
         elif method == 'rect':
-            self.add('AEPcomp', RectStatistics(nDirections, method_dict), promotes=['*'])
+            self.add('AEPcomp', RectStatistics(nTurbines, nDirections, method_dict), promotes=['*'])
         else:
             print "Specify one of these UQ methods = ['dakota', 'chaospy', 'rect']"
             sys.exit()
