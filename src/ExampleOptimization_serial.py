@@ -8,8 +8,24 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 import json
+import argparse
 import windfarm_setup
 import distributions
+
+
+def get_args():
+    parser = argparse.ArgumentParser(description='Run statistics convergence')
+    parser.add_argument('--windspeed_ref', default=8, type=float, help='the wind speed for the wind direction case')
+    parser.add_argument('--winddirection_ref', default=225, type=float, help='the wind direction for the wind speed case')
+    parser.add_argument('-l', '--layout', default='optimized', help="specify layout ['amalia', 'optimized', 'grid', 'random', 'test']")
+    parser.add_argument('--offset', default=0, type=int, help='offset for starting direction. offset=[0, 1, 2, Noffset-1]')
+    parser.add_argument('--Noffset', default=10, type=int, help='number of starting directions to consider')
+    parser.add_argument('--verbose', action='store_true', help='Includes results for every run in the output json file')
+    parser.add_argument('--version', action='version', version='Statistics convergence 0.0')
+    args = parser.parse_args()
+    # print args
+    # print args.offset
+    return args
 
 
 if __name__ == "__main__":
@@ -17,17 +33,28 @@ if __name__ == "__main__":
     #########################################################################
     # method_dict = {}
     # keys of method_dict:
-    #     'method' = 'dakota', 'rect' or 'chaospy'  # 'chaospy' needs updating
-    #     'uncertain_var' = 'speed' or 'direction'
-    #     'layout' = 'amalia', 'optimized', 'grid', 'random', 'lhs', 'test'
-    #                   'layout1', 'layout2', 'layout3'
+    #     'method' = 'dakota', 'rect' or 'chaospy'  # 'chaospy needs updating
+    #     'wake_model = 'floris', 'jensen', 'gauss', 'larsen' # larsen is not working
+    #     'coeff_method' = 'quadrature', 'sparse_grid' or 'regression'
+    #     'uncertain_var' = 'speed', 'direction' or 'direction_and_speed'
+    #     'layout' = 'amalia', 'optimized', 'grid', 'random', 'test', 'layout1', 'layout2', 'layout3'
     #     'distribution' = a distribution object
     #     'dakota_filename' = 'dakotaInput.in', applicable for dakota method
+    #     'offset' = [0, 1, 2, Noffset-1]
+    #     'Noffset' = 'number of starting directions to consider'
 
-    method_dict = {}
+    # Get arguments
+    args = get_args()
+
+    # Specify the rest of arguments
+    # method_dict = {}
+    method_dict = vars(args)  # Start a dictionary with the arguments specified in the command line
     method_dict['method']           = 'rect'
     method_dict['uncertain_var']    = 'direction'
-    method_dict['layout']           = 'optimized'
+    # select model: floris, jensen, gauss, larsen (larsen not working yet) TODO get larsen model working
+    method_dict['wake_model']       = 'floris'
+    method_dict['dakota_filename']  = 'dakotageneral.in'
+    method_dict['coeff_method']     = 'quadrature'
 
     if method_dict['uncertain_var'] == 'speed':
         dist = distributions.getWeibull()
@@ -38,42 +65,34 @@ if __name__ == "__main__":
     else:
         raise ValueError('unknown uncertain_var option "%s", valid options "speed" or "direction".' %method_dict['uncertain_var'])
 
-    method_dict['dakota_filename'] = 'dakotageneral.in'
-
+    ### Set up the wind speeds and wind directions for the problem ###
     n = 20  # number of points, i.e., number of winddirections and windspeeds pairs
-
-    points, weights = windfarm_setup.getPoints(method_dict, n)
-
-    if method_dict['uncertain_var'] == 'speed':
-        # For wind speed
-        windspeeds = points
-        winddirections = np.ones(n)*225
-    elif method_dict['uncertain_var'] == 'direction':
-        # For wind direction
-        windspeeds = np.ones(n)*8
-        winddirections = points
-    else:
-        raise ValueError('unknown uncertain_var option "%s", valid options "speed" or "direction".' %method_dict['uncertain_var'])
+    points = windfarm_setup.getPoints(method_dict, n)
+    winddirections = points['winddirections']
+    windspeeds = points['windspeeds']
+    weights = points['weights']  # This might be None depending on the method.
+    N = winddirections.size  # actual number of samples
 
     print('Locations at which power is evaluated')
     print('\twindspeed \t winddirection')
-    for i in range(n):
+    for i in range(N):
         print(i+1, '\t', '%.2f' % windspeeds[i], '\t', '%.2f' % winddirections[i])
 
     # Turbines layout
     turbineX, turbineY = windfarm_setup.getLayout(method_dict['layout'])
-
     locations = np.column_stack((turbineX, turbineY))
+
     # generate boundary constraint
     boundaryVertices, boundaryNormals = calculate_boundary(locations)
     nVertices = boundaryVertices.shape[0]
     print('boundary vertices', boundaryVertices)
 
     # turbine size and operating conditions
+
     rotor_diameter = 126.4  # (m)
     air_density = 1.1716    # kg/m^3
 
-    # initialize input variable arrays
+    # initialize arrays for each turbine properties
     nTurbs = turbineX.size
     rotorDiameter = np.zeros(nTurbs)
     axialInduction = np.zeros(nTurbs)
@@ -93,7 +112,7 @@ if __name__ == "__main__":
         yaw[turbI] = 0.     # deg.
 
     # initialize problem
-    prob = Problem(root=OptAEP(nTurbines=nTurbs, nDirections=n, minSpacing=minSpacing, use_rotor_components=False, differentiable=True, nVertices=nVertices, method_dict=method_dict))
+    prob = Problem(root=OptAEP(nTurbines=nTurbs, nDirections=N, minSpacing=minSpacing, use_rotor_components=False, differentiable=True, nVertices=nVertices, method_dict=method_dict))
 
     # set up optimizer
     prob.driver = pyOptSparseDriver()
@@ -101,7 +120,7 @@ if __name__ == "__main__":
     prob.driver.add_objective('obj', scaler=1E-8)  # the amalia has the scaler at 1e-5, originally 1E-8
 
     # set optimizer options
-    prob.driver.opt_settings['Verify level'] = 3
+    prob.driver.opt_settings['Verify level'] = -1  # 3
     prob.driver.opt_settings['Print file'] = 'SNOPT_print_exampleOptAEP.out'
     prob.driver.opt_settings['Summary file'] = 'SNOPT_summary_exampleOptAEP.out'
     prob.driver.opt_settings['Major iterations limit'] = 1000
@@ -111,7 +130,7 @@ if __name__ == "__main__":
     # select design variables
     prob.driver.add_desvar('turbineX', scaler=1.0)
     prob.driver.add_desvar('turbineY', scaler=1.0)
-    # for direction_id in range(0, n):
+    # for direction_id in range(0, N):
     #     prob.driver.add_desvar('yaw%i' % direction_id, lower=-30.0, upper=30.0, scaler=1.0)
 
     # add constraints
@@ -131,13 +150,13 @@ if __name__ == "__main__":
     # assign initial values to design variables
     prob['turbineX'] = turbineX
     prob['turbineY'] = turbineY
-    for direction_id in range(0, n):
+    for direction_id in range(0, N):
         prob['yaw%i' % direction_id] = yaw
 
     # assign values to constant inputs (not design variables)
     prob['windSpeeds'] = windspeeds
     prob['windDirections'] = winddirections
-    prob['weights'] = weights
+    prob['windWeights'] = weights
     prob['rotorDiameter'] = rotorDiameter
     prob['axialInduction'] = axialInduction
     prob['generatorEfficiency'] = generatorEfficiency
@@ -163,16 +182,16 @@ if __name__ == "__main__":
     # print the results
     print('FLORIS Opt. calculation took %.03f sec.' % (toc-tic))
 
-    #for direction_id in range(0, n):
+    #for direction_id in range(0, N):
     #    print('yaw%i (deg) = ' % direction_id, prob['yaw%i' % direction_id])
-    # for direction_id in range(0, n):
+    # for direction_id in range(0, N):
         # mpi_print(prob,  'velocitiesTurbines%i (m/s) = ' % direction_id, prob['velocitiesTurbines%i' % direction_id])
-    # for direction_id in range(0, n):
+    # for direction_id in range(0, N):
     #     mpi_print(prob,  'wt_power%i (kW) = ' % direction_id, prob['wt_power%i' % direction_id])
 
     print('turbine X positions in wind frame (m): %s' % prob['turbineX'])
     print('turbine Y positions in wind frame (m): %s' % prob['turbineY'])
-    print('wind farm power in each direction (kW): %s' % prob['power'])
+    print('wind farm power in each direction (kW): %s' % prob['dirPowers'])
     print('AEP (kWh): %s' % prob['mean'])
 
     xbounds = [min(turbineX), min(turbineX), max(turbineX), max(turbineX), min(turbineX)]
@@ -181,8 +200,8 @@ if __name__ == "__main__":
     np.savetxt('AmaliaOptimizedXY.txt', np.c_[prob['turbineX'], prob['turbineY']], header="turbineX, turbineY")
 
     # Save details of the simulation
-    obj = {'mean': prob['mean']/1e6, 'std': prob['std']/1e6, 'samples': n, 'winddirections': winddirections.tolist(),
-           'windspeeds': windspeeds.tolist(), 'power': prob['power'].tolist(),
+    obj = {'mean': prob['mean']/1e6, 'std': prob['std']/1e6, 'samples': N, 'winddirections': winddirections.tolist(),
+           'windspeeds': windspeeds.tolist(), 'power': prob['dirPowers'].tolist(),
            'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
            'layout': method_dict['layout'], 'turbineX': turbineX.tolist(), 'turbineY': turbineY.tolist(),
            'turbineXopt': prob['turbineX'].tolist(), 'turbineYopt': prob['turbineY'].tolist()}
