@@ -137,6 +137,7 @@ def run(method_dict, n):
 def plot():
     jsonfile = open('record.json','r')
     a = json.load(jsonfile)
+    jsonfile.close()
     #print a
     print a.keys()
     # print json.dumps(a, indent=2)

@@ -376,29 +376,29 @@ def getWindRose():
 # ax.tick_params(axis='both', labelsize=24)
 # ax.set_xlabel('wind direction (deg)', fontsize=24)
 #
-# # plt.subplots_adjust(left=0, bottom=0, right=1, top=1)
+# plt.subplots_adjust(left=0, bottom=0, right=1, top=1)
 # plt.savefig('PdfWindDirection.pdf', bbox_inches='tight')
-
-
+#
+#
 # # Wind Speed plot
 # dist = getWeibull()
 # x = np.linspace(0, 30, 301)
 # y = dist.pdf(x)
-# fig, ax = plt.subplots(figsize=(10, 6))
+# fig, ax = plt.subplots(figsize=(9, 5.4))
 # prettify.set_color_cycle(ax)
 # prettify.remove_junk(ax)
 # ax.plot(x, y, linewidth=3)
 # major_formatter = mpl.ticker.FormatStrFormatter('%g')
 # ax.yaxis.set_major_formatter(major_formatter)
-# ax.set_xticks([0, 3, 15, 30])
+# ax.set_xticks([0, 15, 30])
 # ax.set_yticks([])
 # ax.spines['left'].set_visible(False)
-# ax.set_xlim([-1, 31])
+# ax.set_xlim([-1.5, 31.5])
 # ax.set_ylim([-0.0015, 0.0665])
 # ax.tick_params(axis='both', labelsize=24)
 # ax.set_xlabel('wind speed (m/s)', fontsize=24)
 #
-# # fig.tight_layout()
-# plt.savefig('PdfWindSpeed.pdf')
-
+# plt.subplots_adjust(left=0, bottom=0, right=1, top=1)
+# plt.savefig('PdfWindSpeed.pdf', bbox_inches='tight')
+#
 # plt.show()
