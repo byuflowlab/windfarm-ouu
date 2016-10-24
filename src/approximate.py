@@ -14,7 +14,7 @@ def generate_approx_file(approxfile='approximate_at.dat'):
     x = np.linspace(-1, 1, n+1)
     # Take the midpoints
     dx = x[1]-x[0]
-    x = x[:-1]+ dx/2
+    x = x[:-1] + dx/2
 
     for i in range(n):
         line = str(i+1) + '\t' + 'APPROX_INTERFACE' + '\t' + str(x[i]) + '\n'
@@ -69,35 +69,63 @@ def get_approximation(method_dict):
 
 
     elif uncertain_var == 'direction':
+
         assert len(x) == 1, 'Should only be returning the directions'
         x = np.array(x[0])
         p = np.array(p)
 
         dist = method_dict['distribution']
-        bnd = dist.range()
-        a = bnd[0]  # left boundary
-        b = bnd[1]  # right boundary
-        a = a[0]  # get rid of the list
-        b = b[0]  # get rid of the list
-        # Make sure the A, B, C values are the same than those in distribution
-        A, B = dist.get_zero_probability_region()
-        # A = 110  # Left boundary of zero probability region
-        # B = 140  # Right boundary of zero probability region
 
-        C = 225  # Location of max probability or desired starting location.
-        r = b-a  # original range
-        R = r - (B-A) # modified range
+        # The original amalia windrose make this function later.
+        if dist._str() == 'Amalia windrose':
 
-        # Modify with offset, manually choose the offset you want
-        N = method_dict['Noffset']  # N = 10
-        i = method_dict['offset']  # i = [0, 1, 2, N-1]
+            bnd = dist.range()
+            a = bnd[0]  # left boundary
+            b = bnd[1]  # right boundary
+            a = a[0]  # get rid of the list
+            b = b[0]  # get rid of the list
+            # Make sure the A, B, C values are the same than those in distribution
+            A, B = dist.get_zero_probability_region()
+            # A = 110  # Left boundary of zero probability region
+            # B = 140  # Right boundary of zero probability region
 
-        # Rescale x
-        x = (R-a)/2.*x + (R-a)/2. + a
-        # Modify the starting point C with offset
-        offset = i*r/N  # the offset modifies the starting point for N locations within the whole interval
-        C = (C + offset) % r
-        x = windfarm_setup.modifyx(x, A, B, C, r)
+            C = 225  # Location of max probability or desired starting location.
+            r = b-a  # original range
+            R = r - (B-A) # modified range
+
+            # Modify with offset, manually choose the offset you want
+            N = method_dict['Noffset']  # N = 10
+            i = method_dict['offset']  # i = [0, 1, 2, N-1]
+
+            # Rescale x
+            x = R*x/2. + R/2. + a
+            # Modify the starting point C with offset
+            offset = i*r/N  # the offset modifies the starting point for N locations within the whole interval
+            C = (C + offset) % r
+            # x = windfarm_setup.modifyx(x, A, B, C, r)
+            x = windfarm_setup.modifyxback(x, A, B, C, r)
+
+        if dist._str() == 'Amalia windrose raw':
+
+            bnd = dist.range()
+            a = bnd[0]  # left boundary
+            b = bnd[1]  # right boundary
+            a = a[0]  # get rid of the list
+            b = b[0]  # get rid of the list
+
+            C = 225  # Location of max probability or desired starting location.
+            R = b-a  # range 360
+
+            # Modify with offset, manually choose the offset you want
+            N = method_dict['Noffset']  # N = 10
+            i = method_dict['offset']  # i = [0, 1, 2, N-1]
+
+            # Rescale x
+            x = R*x/2. + R/2. + a
+            # Modify the starting point C with offset
+            offset = i*R/N  # the offset modifies the starting point for N locations within the whole interval
+            C = (C + offset) % R
+            x = (-C+x) % R  # Notice the minus to get it back to where we started.
 
         # Rearrange for plotting
         order = x.argsort()

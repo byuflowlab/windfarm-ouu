@@ -115,7 +115,8 @@ def getPointsDirectionSpeed(dist, method_dict, n):
     return winddirections, windspeeds, weights
 
 
-def getPointsDirection(dist, method_dict, n):
+def getPointsModifiedAmaliaDistribution(dist, method_dict, n):
+
     # Modify the input range to start at max probability location
     # and account for zero probability regions.
 
@@ -173,15 +174,91 @@ def getPointsDirection(dist, method_dict, n):
         assert len(x) == 1, 'Should only be returning the directions'
         x = np.array(x[0])
         # Rescale x
-        x = (R-a)/2.*x + (R-a)/2. + a
+        x = R*x/2. + R/2. + a
         # x = (330/2. + 330/2.*x  # Should be in terms of the variables
         # Call modify x with the new x.
-        x = modifyx(x, A, B, C, r)
+        # x = modifyx(x, A, B, C, r)
+        x = modifyxback(x, A, B, C, r)
 
     if method == 'chaospy':
         # I need to adjust the starting position and all of that.
         x, w = cp.generate_quadrature(n-1, dist, rule='G')
         x = x[0]
+
+    return x, w
+
+
+def getPointsRawAmaliaDistribution(dist, method_dict, n):
+
+    method = method_dict['method']
+    bnd = dist.range()
+    a = bnd[0]  # left boundary
+    b = bnd[1]  # right boundary
+    a = a[0]  # get rid of the list
+    b = b[0]  # get rid of the list
+
+    C = 225  # Location of max probability or desired starting location.
+    R = b-a  # range 360
+
+    # Modify with offset, manually choose the offset you want
+    N = method_dict['Noffset']  # N = 10
+    i = method_dict['offset']  # i = [0, 1, 2, N-1]
+
+    if method == 'rect':
+        # the offset fits N points in the given dx interval
+        dx = R/n
+        offset = i*dx/N  # make sure this is float
+        bounds = [a+offset, R+offset]
+        x = np.linspace(bounds[0], bounds[1], n+1)
+        x = x[:-1]+dx/2  # Take the midpoints of the bins
+        # Modify x, to start from the max probability location
+        x = (C+x) % R
+        # Get the weights associated with the points locations
+        w = getWeights(x, dx, dist)
+
+    if method == 'dakota':
+
+        # Modify the starting point C with offset
+        offset = i*R/N  # the offset modifies the starting point for N locations within the whole interval
+        C = (C + offset) % R
+        # Use the y to set the abscissas, and the pdf to set the ordinates
+        y = np.linspace(a, R, 51)  # play with the number here
+        dy = y[1]-y[0]
+        mid = y[:-1]+dy/2
+
+        # Modify the mid to start from the max probability location
+        ynew = (C+mid) % R
+
+        f = dist.pdf(ynew)
+
+        # Modify y to -1 to 1 range, I think makes dakota generation of polynomials easier
+        x = 2*(y-a) / R - 1
+
+        updateDakotaFile(method_dict, n, x, f)
+        # run Dakota file to get the points locations
+        x, w = getSamplePoints(method_dict['dakota_filename'])
+        assert len(x) == 1, 'Should only be returning the directions'
+        x = np.array(x[0])
+        # Rescale x
+        x = R*x/2. + R/2. + a
+
+        # Call modify x with the new x.
+        x = (-C+x) % R  # Notice the minus to get it back to where we started.
+
+    if method == 'chaospy':
+        # I need to adjust the starting position and all of that.
+        x, w = cp.generate_quadrature(n-1, dist, rule='G')
+        x = x[0]
+
+    return x, w
+
+def getPointsDirection(dist, method_dict, n):
+
+    if dist._str() == 'Amalia windrose':
+        x, w = getPointsModifiedAmaliaDistribution(dist, method_dict, n)
+    if dist._str() == 'Amalia windrose raw':
+        x, w = getPointsRawAmaliaDistribution(dist, method_dict, n)
+
 
     return x, w
 
@@ -241,7 +318,7 @@ def generate_direction_abscissas_ordinates(a, A, B, C, r, R, dist):
     f = dist.pdf(ynew)
 
     # Modify y to -1 to 1 range, I think makes dakota generation of polynomials easier
-    y = 2*(y-a) / (R-a) - 1
+    y = 2*(y-a) / R - 1
     return y, f
 
 
@@ -261,6 +338,26 @@ def modifyx(x, A=110, B=140, C=225, r=360):
 
     # Modify x, to start from the max probability location
     x = (C+x) % r
+    y = []
+    for xi in x:
+        if A<C:
+            if xi > A and xi < C:
+                xi = (xi + B-A) % r  # I don't think the mod r is necessary for all of these.
+            y.append(xi)
+        else:
+            if xi > A:
+                xi = (xi + B-A) % r
+            else:
+                if xi < C:
+                    xi = (xi + B-A) % r
+            y.append(xi)
+    return np.array(y)
+
+
+def modifyxback(x, A=110, B=140, C=225, r=360):
+
+    # Modify x, to start from the max probability location
+    x = (-C+x) % r  # Notice the minus to get it back to where we started.
     y = []
     for xi in x:
         if A<C:

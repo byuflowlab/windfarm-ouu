@@ -97,16 +97,24 @@ class amaliaWindRoseRaw(object):
     def __init__(self):
         self.lo = 0.0
         self.hi = 360.0
-        self.inputfile = '../WindRoses/amalia_windrose_8.txt'
+        self.inputfile = '../WindRoses/windrose_amalia_8ms.txt'
 
     def _wind_rose_func(self):
         wind_data = np.loadtxt(self.inputfile)
-        wind_data[wind_data == 0] = 2.00000000e-05  # Update were the wind data is zero to the next lowest value
-        step = 360/len(wind_data)
-        wind_data = np.append(wind_data, wind_data[0])  # Include the value at 360, which is the same as 0.
-        wind_data = wind_data/step  # normalize for the [0, 360] range.
-        x = np.array(range(0,360+1,step))
-        f = interp1d(x, wind_data)
+        direction = wind_data[:, 0]
+        speed = wind_data[:, 1]  # Speed is a constant for this file.
+        likelihood = wind_data[:, 2]
+        # Get rid of the zeros. Average this out, so distribution still integrates to 1.
+        likelihood[23:26] = np.average(likelihood[23:26])
+        dx = direction[1] - direction[0]  # the step 5 deg
+        # Adjust the likelihood so it is a pdf for the [0, 360] range
+        w = likelihood/dx
+        # Make sure it adds up to 1.
+        # print 'integral of the pdf = ', np.sum(w*dx)
+        # Adjust to include the point at 360, which is the same as 0.
+        direction = np.append(direction, direction[-1]+dx)
+        w = np.append(w, w[0])
+        f = interp1d(direction, w)
         return f
 
     def pdf(self, x):
@@ -346,7 +354,8 @@ def getWindRose():
     # print windrose_dist.range()
 
     # Dynamically add method
-    windrose_dist.get_zero_probability_region = amalia_wind_rose.get_zero_probability_region
+    if amalia_wind_rose.str() == 'Amalia windrose':
+        windrose_dist.get_zero_probability_region = amalia_wind_rose.get_zero_probability_region
 
 
     return windrose_dist
