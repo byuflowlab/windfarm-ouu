@@ -100,9 +100,10 @@ def getPointsDirectionSpeed(dist, method_dict, n):
 
         # Do stuff for the direction case
         # Rescale x
-        x_d = (R-a_d)/2.*x_d + (R-a_d)/2. + a_d
+        x_d = R*x_d/2. + R/2. + a_d
         # Call modify x with the new x.
-        x_d = modifyx(x_d, A, B, C, r)
+        Creverse = -C  # reverse the shift
+        x_d = modifyx(x_d, A, B, Creverse, r)
 
         # Do stuff for the speed case
         # Rescale x
@@ -177,8 +178,8 @@ def getPointsModifiedAmaliaDistribution(dist, method_dict, n):
         x = R*x/2. + R/2. + a
         # x = (330/2. + 330/2.*x  # Should be in terms of the variables
         # Call modify x with the new x.
-        # x = modifyx(x, A, B, C, r)
-        x = modifyxback(x, A, B, C, r)
+        Creverse = -C  # reverse the shift
+        x = modifyx(x, A, B, Creverse, r)
 
     if method == 'chaospy':
         # I need to adjust the starting position and all of that.
@@ -212,7 +213,7 @@ def getPointsRawAmaliaDistribution(dist, method_dict, n):
         x = np.linspace(bounds[0], bounds[1], n+1)
         x = x[:-1]+dx/2  # Take the midpoints of the bins
         # Modify x, to start from the max probability location
-        x = (C+x) % R
+        x = (x-C) % R
         # Get the weights associated with the points locations
         w = getWeights(x, dx, dist)
 
@@ -227,7 +228,7 @@ def getPointsRawAmaliaDistribution(dist, method_dict, n):
         mid = y[:-1]+dy/2
 
         # Modify the mid to start from the max probability location
-        ynew = (C+mid) % R
+        ynew = (mid-C) % R
 
         f = dist.pdf(ynew)
 
@@ -243,7 +244,7 @@ def getPointsRawAmaliaDistribution(dist, method_dict, n):
         x = R*x/2. + R/2. + a
 
         # Call modify x with the new x.
-        x = (-C+x) % R  # Notice the minus to get it back to where we started.
+        x = (x+C) % R  # Notice the plus sign to reverse the shift.
 
     if method == 'chaospy':
         # I need to adjust the starting position and all of that.
@@ -258,7 +259,6 @@ def getPointsDirection(dist, method_dict, n):
         x, w = getPointsModifiedAmaliaDistribution(dist, method_dict, n)
     if dist._str() == 'Amalia windrose raw':
         x, w = getPointsRawAmaliaDistribution(dist, method_dict, n)
-
 
     return x, w
 
@@ -337,28 +337,9 @@ def generate_speed_abscissas_ordinates(a, b, dist):
 def modifyx(x, A=110, B=140, C=225, r=360):
 
     # Modify x, to start from the max probability location
-    x = (C+x) % r
+    x = (x-C) % r
     y = []
-    for xi in x:
-        if A<C:
-            if xi > A and xi < C:
-                xi = (xi + B-A) % r  # I don't think the mod r is necessary for all of these.
-            y.append(xi)
-        else:
-            if xi > A:
-                xi = (xi + B-A) % r
-            else:
-                if xi < C:
-                    xi = (xi + B-A) % r
-            y.append(xi)
-    return np.array(y)
-
-
-def modifyxback(x, A=110, B=140, C=225, r=360):
-
-    # Modify x, to start from the max probability location
-    x = (-C+x) % r  # Notice the minus to get it back to where we started.
-    y = []
+    C = abs(C)  # make sure C is positive
     for xi in x:
         if A<C:
             if xi > A and xi < C:
