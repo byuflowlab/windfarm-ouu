@@ -102,8 +102,7 @@ def get_approximation(method_dict):
             # Modify the starting point C with offset
             offset = i*r/N  # the offset modifies the starting point for N locations within the whole interval
             C = (C + offset) % r
-            Creverse = -C  # reverse the shift
-            x = windfarm_setup.modifyx(x, A, B, Creverse, r)
+            x = windfarm_setup.modifyx(x, A, B, C, r)
 
         if dist._str() == 'Amalia windrose raw':
 
@@ -125,7 +124,7 @@ def get_approximation(method_dict):
             # Modify the starting point C with offset
             offset = i*R/N  # the offset modifies the starting point for N locations within the whole interval
             C = (C + offset) % R
-            x = (x+C) % R  # Notice the plus sign to reverse the shift.
+            x = (x+C) % R
 
         # Rearrange for plotting
         order = x.argsort()

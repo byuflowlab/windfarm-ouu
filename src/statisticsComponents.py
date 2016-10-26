@@ -187,31 +187,32 @@ class RectStatistics(Component):
         modify_statistics(params, unknowns)  # It doesn't do anything for the direction case.
 
         print 'In RectStatistics'
-        print 'Print turbine locations'
-        print '\tturbineX \t turbineY'
-        for tX, tY in zip(params['turbineX'], params['turbineY']):
-            print '%.2f' % tX, '\t', '%.2f' % tY
-        try:
-            f = open('turbinelocations.json', 'r')  # Make sure this file is not here when I start running.
-            r = json.load(f)
-            f.close()
-
-            key = str(int(max([int(i) for i in r.keys()])) + 1)
-            r[key] = {'turbineX': params['turbineX'].tolist(), 'turbineY': params['turbineY'].tolist()}
-            f = open('turbinelocationstemp.json', 'w')
-            json.dump(r, f, indent=2)
-            f.close()
-            shutil.move('turbinelocationstemp.json', 'turbinelocations.json')
-
-
-        except IOError:
-            print 'I caught the exception'
-            obj = {'0': {'turbineX': params['turbineX'].tolist(), 'turbineY': params['turbineY'].tolist()}}
-
-            jsonfile = open('turbinelocations.json', 'w')
-            print json.dumps(obj, indent=2)
-            json.dump(obj, jsonfile, indent=2)
-            jsonfile.close()
+        # This was added to make the optimization video.
+        # print 'Print turbine locations'
+        # print '\tturbineX \t turbineY'
+        # for tX, tY in zip(params['turbineX'], params['turbineY']):
+        #     print '%.2f' % tX, '\t', '%.2f' % tY
+        # try:
+        #     f = open('turbinelocations.json', 'r')  # Make sure this file is not here when I start running.
+        #     r = json.load(f)
+        #     f.close()
+        #
+        #     key = str(int(max([int(i) for i in r.keys()])) + 1)
+        #     r[key] = {'turbineX': params['turbineX'].tolist(), 'turbineY': params['turbineY'].tolist()}
+        #     f = open('turbinelocationstemp.json', 'w')
+        #     json.dump(r, f, indent=2)
+        #     f.close()
+        #     shutil.move('turbinelocationstemp.json', 'turbinelocations.json')
+        #
+        #
+        # except IOError:
+        #     print 'I caught the exception'
+        #     obj = {'0': {'turbineX': params['turbineX'].tolist(), 'turbineY': params['turbineY'].tolist()}}
+        #
+        #     jsonfile = open('turbinelocations.json', 'w')
+        #     print json.dumps(obj, indent=2)
+        #     json.dump(obj, jsonfile, indent=2)
+        #     jsonfile.close()
 
 
     def linearize(self, params, unknowns, resids):

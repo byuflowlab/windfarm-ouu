@@ -102,8 +102,7 @@ def getPointsDirectionSpeed(dist, method_dict, n):
         # Rescale x
         x_d = R*x_d/2. + R/2. + a_d
         # Call modify x with the new x.
-        Creverse = -C  # reverse the shift
-        x_d = modifyx(x_d, A, B, Creverse, r)
+        x_d = modifyx(x_d, A, B, C, r)
 
         # Do stuff for the speed case
         # Rescale x
@@ -168,7 +167,6 @@ def getPointsModifiedAmaliaDistribution(dist, method_dict, n):
         offset = i*r/N  # the offset modifies the starting point for N locations within the whole interval
         C = (C + offset) % r
         x, f = generate_direction_abscissas_ordinates(a, A, B, C, r, R, dist)
-
         updateDakotaFile(method_dict, n, x, f)
         # run Dakota file to get the points locations
         x, w = getSamplePoints(method_dict['dakota_filename'])
@@ -178,8 +176,7 @@ def getPointsModifiedAmaliaDistribution(dist, method_dict, n):
         x = R*x/2. + R/2. + a
         # x = (330/2. + 330/2.*x  # Should be in terms of the variables
         # Call modify x with the new x.
-        Creverse = -C  # reverse the shift
-        x = modifyx(x, A, B, Creverse, r)
+        x = modifyx(x, A, B, C, r)
 
     if method == 'chaospy':
         # I need to adjust the starting position and all of that.
@@ -213,7 +210,7 @@ def getPointsRawAmaliaDistribution(dist, method_dict, n):
         x = np.linspace(bounds[0], bounds[1], n+1)
         x = x[:-1]+dx/2  # Take the midpoints of the bins
         # Modify x, to start from the max probability location
-        x = (x-C) % R
+        x = (x+C) % R
         # Get the weights associated with the points locations
         w = getWeights(x, dx, dist)
 
@@ -228,7 +225,7 @@ def getPointsRawAmaliaDistribution(dist, method_dict, n):
         mid = y[:-1]+dy/2
 
         # Modify the mid to start from the max probability location
-        ynew = (mid-C) % R
+        ynew = (mid+C) % R
 
         f = dist.pdf(ynew)
 
@@ -244,7 +241,7 @@ def getPointsRawAmaliaDistribution(dist, method_dict, n):
         x = R*x/2. + R/2. + a
 
         # Call modify x with the new x.
-        x = (x+C) % R  # Notice the plus sign to reverse the shift.
+        x = (x+C) % R
 
     if method == 'chaospy':
         # I need to adjust the starting position and all of that.
@@ -313,7 +310,6 @@ def generate_direction_abscissas_ordinates(a, A, B, C, r, R, dist):
     # Make sure the offset is not between A and B
     if A < C and C < B:
         C = min([A, B], key=lambda x: abs(x-C))  # It doesn't really matter if C gets set to A or B
-
     ynew = modifyx(mid, A, B, C, r)
     f = dist.pdf(ynew)
 
@@ -337,9 +333,8 @@ def generate_speed_abscissas_ordinates(a, b, dist):
 def modifyx(x, A=110, B=140, C=225, r=360):
 
     # Modify x, to start from the max probability location
-    x = (x-C) % r
+    x = (x+C) % r
     y = []
-    C = abs(C)  # make sure C is positive
     for xi in x:
         if A<C:
             if xi > A and xi < C:
