@@ -141,7 +141,7 @@ def getPointsModifiedAmaliaDistribution(dist, method_dict, n):
     # A = 110  # Left boundary of zero probability region
     # B = 140  # Right boundary of zero probability region
 
-    C = 225  # Location of max probability or desired starting location.
+    C = 225  # Location of max probability or desired starting location.  Don't put this between A and B.
     r = b-a  # original range
     R = r - (B-A) # modified range
 
@@ -307,9 +307,6 @@ def generate_direction_abscissas_ordinates(a, A, B, C, r, R, dist):
     dy = y[1]-y[0]
     mid = y[:-1]+dy/2
 
-    # Make sure the offset is not between A and B
-    if A < C and C < B:
-        C = min([A, B], key=lambda x: abs(x-C))  # It doesn't really matter if C gets set to A or B
     ynew = modifyx(mid, A, B, C, r)
     f = dist.pdf(ynew)
 
@@ -331,6 +328,10 @@ def generate_speed_abscissas_ordinates(a, b, dist):
 
 
 def modifyx(x, A=110, B=140, C=225, r=360):
+
+    # Make sure the offset is not between A and B
+    if A < C and C < B:
+        C = min([A, B], key=lambda x: abs(x-C))  # It doesn't really matter if C gets set to A or B
 
     # Modify x, to start from the max probability location
     x = (x+C) % r
