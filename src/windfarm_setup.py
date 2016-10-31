@@ -66,43 +66,77 @@ def getPointsDirectionSpeed(dist, method_dict, n):
 
         ###### Do direction work
         dist_dir = dist[0]
-        # Make sure the A, B, C values are the same than those in distribution
-        A, B = dist_dir.get_zero_probability_region()
-        # A = 110  # Left boundary of zero probability region
-        # B = 140  # Right boundary of zero probability region
 
-        C = 225  # Location of max probability
-        r = b_d-a_d  # original range
-        R = r - (B-A) # modified range
+        if dist_dir._str() == 'Amalia windrose':
 
-        # Modify with offset, manually choose the offset you want
-        N = method_dict['Noffset']  # N = 10
-        i = method_dict['offset']  # i = [0, 1, 2, N-1]
+            # Make sure the A, B, C values are the same than those in distribution
+            A, B = dist_dir.get_zero_probability_region()
+            # A = 110  # Left boundary of zero probability region
+            # B = 140  # Right boundary of zero probability region
 
-        # Modify the starting point C with offset
-        offset = i*r/N  # the offset modifies the starting point for N locations within the whole interval
-        C = (C + offset) % r
-        x_d, f_d = generate_direction_abscissas_ordinates(a_d, A, B, C, r, R, dist_dir)
+            C = 225  # Location of max probability or desired starting location
+            r = b_d-a_d  # original range
+            R = r - (B-A) # modified range
+
+            # Modify with offset, manually choose the offset you want
+            N = method_dict['Noffset']  # N = 10
+            i = method_dict['offset']  # i = [0, 1, 2, N-1]
+
+            # Modify the starting point C with offset
+            offset = i*r/N  # the offset modifies the starting point for N locations within the whole interval
+            C = (C + offset) % r
+            x_d, f_d = generate_direction_abscissas_ordinates(a_d, A, B, C, r, R, dist_dir)
+
+        if dist_dir._str() == 'Amalia windrose raw':
+
+            C = 225  # Location of max probability or desired starting location.
+            R = b_d-a_d  # range 360
+
+            # Modify with offset, manually choose the offset you want
+            N = method_dict['Noffset']  # N = 10
+            i = method_dict['offset']  # i = [0, 1, 2, N-1]
+
+            offset = i*R/N  # the offset modifies the starting point for N locations within the whole interval
+            C = (C + offset) % R
+
+            # Use the y to set the abscissas, and the pdf to set the ordinates
+            y = np.linspace(a_d, R, 51)  # play with the number here
+            dy = y[1]-y[0]
+            mid = y[:-1]+dy/2
+
+            # Modify the mid to start from the max probability location
+            ynew = (mid+C) % R
+
+            f_d = dist_dir.pdf(ynew)
+
+            # Modify y to -1 to 1 range, I think makes dakota generation of polynomials easier
+            x_d = 2*(y-a_d) / R - 1
 
         ####### Do the speed work
         dist_speed = dist[1]
         x_s, f_s = generate_speed_abscissas_ordinates(a_s, b_s, dist_speed)
 
-        # Need to be able to update for 1 and 2d cases
+        # Update the dakota file
         updateDakotaFile(method_dict, n, [x_d, x_s], [f_d, f_s])
 
         # run Dakota file to get the points locations
         # This one also needs to work for the 1 and 2d cases.
         x, w = getSamplePoints(method_dict['dakota_filename'])
-        assert len(x) == 2, 'Should be returning the speeds and directions'
+        assert len(x) == 2, 'Should be returning the directions and speeds'
         x_d = np.array(x[0])
         x_s = np.array(x[1])
 
         # Do stuff for the direction case
-        # Rescale x
-        x_d = R*x_d/2. + R/2. + a_d
-        # Call modify x with the new x.
-        x_d = modifyx(x_d, A, B, C, r)
+        if dist_dir._str() == 'Amalia windrose':
+            # Rescale x
+            x_d = R*x_d/2. + R/2. + a_d  # R = 330
+            # Call modify x with the new x.
+            x_d = modifyx(x_d, A, B, C, r)
+        if dist_dir._str() == 'Amalia windrose raw':
+            # Rescale x
+            x_d = R*x_d/2. + R/2. + a_d  # R = 360
+            # Call modify x with the new x.
+            x_d = (x_d+C) % R
 
         # Do stuff for the speed case
         # Rescale x

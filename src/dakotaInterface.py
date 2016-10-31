@@ -139,8 +139,9 @@ class RedirectOutput(object):
 #: class output()
 
 
-def updateDakotaFile(method_dict, sample_number, x, f):
-    """Rewrite number of quadrature points in Dakota file."""
+def formatAbscissasOrdinates(x, f):
+    """Return 1 long string for both the ordinates and the abscissas.
+              and the number n of uncertain variables."""
 
     # Make the elements lists this way it can handle multiple dimensions
     if type(x) is not list:
@@ -156,7 +157,7 @@ def updateDakotaFile(method_dict, sample_number, x, f):
     for xi in x:
         yi = ['%.2f' % xj for xj in xi]
         y.append(yi)
-    x = list(itertools.chain.from_iterable(y))
+    x = list(itertools.chain.from_iterable(y))  # Flattens out the list
 
     # Convert the ordinates to a list of strings for writing
     g = []
@@ -165,6 +166,15 @@ def updateDakotaFile(method_dict, sample_number, x, f):
         gi.append('0.0')
         g.append(gi)
     f = list(itertools.chain.from_iterable(g))
+
+    return x, f, n
+
+def updateDakotaFile(method_dict, sample_number, x, f):
+    """Update number of quadrature (expansion) points in Dakota file,
+              method for PC,
+              the histogram bin distributions."""
+
+    x, f, n = formatAbscissasOrdinates(x, f)  # n is number of uncertain variables
 
     # Read in the dakota input file (assumes it is a working input file with histogram_bin_uncertain variables)
     # and write out an updated strip out file
@@ -177,6 +187,7 @@ def updateDakotaFile(method_dict, sample_number, x, f):
     lines = []
     fr.close()
 
+    # Get the key values for the options
     for line in filelines:
         if not line.strip().startswith('#') and line.rstrip():  # Remove comment lines and blank lines
             # parse input, assign values to variables
@@ -186,6 +197,8 @@ def updateDakotaFile(method_dict, sample_number, x, f):
             value = splitline[1:]
             lines.append({key: value})
 
+    # Update the number of points and the method block
+
     # Remove expansion order options
     expansion_order_options = ['collocation_points', 'expansion_samples', 'collocation_ratio']
     lines = [line for line in lines if line.keys()[0] not in expansion_order_options]
@@ -193,7 +206,7 @@ def updateDakotaFile(method_dict, sample_number, x, f):
     # Write the desired method to select the coefficients
     coeff_method_map = {'quadrature': 'quadrature_order', 'sparse_grid': 'sparse_grid_level',
                         'regression': 'expansion_order'}
-    coeff_method =  coeff_method_map[method_dict['coeff_method']]
+    coeff_method = coeff_method_map[method_dict['coeff_method']]
     coeff_methods = ['quadrature_order', 'sparse_grid_level', 'expansion_order']
     for i, line in enumerate(lines):
         if line.keys()[0] in coeff_methods:
@@ -204,7 +217,7 @@ def updateDakotaFile(method_dict, sample_number, x, f):
                 # lines.insert(i+1, {'collocation_points': [str(sample_number)]})
                 # lines.insert(i+1, {'expansion_samples': [str(sample_number)]})
                 # lines.insert(i+2, {'tensor_grid': []})
-                # if sample_number > 9:  # The 9 works at least for the 1d case
+                # if sample_number > 9:  # The 9 works at least for the 1d case # I fixed Cross_validation in dakota src so no need for the if statement.
                 #     lines.insert(i+2, {'cross_validation': []})
                 # Use a random seed
                 # We want a consistent seed for when dakota gets called for the points and then with the actual powers
@@ -218,7 +231,10 @@ def updateDakotaFile(method_dict, sample_number, x, f):
             break
 
     # Update the variables
-    already_updated = False  # Because the descriptor keyword can exist multiple times
+
+    # Because the descriptor keyword can exist multiple times (for the variables and for the responses).
+    # Here assumes the variables block is before the responses block
+    already_updated = False
     for i, line in enumerate(lines):
         if 'histogram_bin_uncertain' in line:
             lines[i] = {'histogram_bin_uncertain': str(n)}
@@ -234,6 +250,7 @@ def updateDakotaFile(method_dict, sample_number, x, f):
             lines[i] = {'descriptors': descriptor}
             already_updated = True
 
+    # Write the new temp file
     for line in lines:
         towrite = line.keys()[0] + ' ' + ' '.join(line.values()[0]) + ' \n'
         fw.write(towrite)

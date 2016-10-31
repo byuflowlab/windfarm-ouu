@@ -33,6 +33,8 @@ def run(method_dict, n):
         Writes a json file 'record.json' with the run information.
     """
 
+    ### For visualization purposes. Set up the file that specifies the points for the polynomial approximation ###
+    approximate.generate_approx_file(method_dict['uncertain_var'])
 
     ### Set up the wind speeds and wind directions for the problem ###
 
@@ -114,7 +116,7 @@ def run(method_dict, n):
     prob.pre_run_check()
     prob.run()
 
-    # Get the PC approximation
+    # For visualization purposes. Get the PC approximation
     if method_dict['method'] == 'dakota':
         winddirections_approx, windspeeds_approx, power_approx = approximate.get_approximation(method_dict)
     else:
@@ -202,7 +204,7 @@ if __name__ == "__main__":
         dist = cp.J(dist1, dist2)
         method_dict['distribution'] = dist
     else:
-        raise ValueError('unknown uncertain_var option "%s", valid options "speed" or "direction".' %method_dict['uncertain_var'])
+        raise ValueError('unknown uncertain_var option "%s", valid options "speed", "direction" or "direction_and_speed".' %method_dict['uncertain_var'])
 
     # Run the problem multiple times for statistics convergence
     mean = []

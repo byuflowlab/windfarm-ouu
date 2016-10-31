@@ -5,23 +5,39 @@ import distributions
 import windfarm_setup
 
 
-def generate_approx_file(approxfile='approximate_at.dat'):
+def generate_approx_file(uncertain_variable, approxfile='approximate_at.dat'):
     """Generate the file at which to evaluate the PC approximation."""
 
+    n = 100  # Number of approximation points per dimension
+
+    if uncertain_variable == 'direction_and_speed':
+        N = 2  # we have two uncertain variables
+    else:
+        N = 1  # we have one uncertain variable
+
     f = open(approxfile, 'w')
-    f.write('%eval_id interface\t x1 \n')
-    n = 100
+    if N == 1:
+        f.write('%eval_id interface\t x1 \n')
+    elif N == 2:
+        f.write('%eval_id interface\t x1\t x2 \n')
     x = np.linspace(-1, 1, n+1)
     # Take the midpoints
     dx = x[1]-x[0]
     x = x[:-1] + dx/2
 
-    for i in range(n):
-        line = str(i+1) + '\t' + 'APPROX_INTERFACE' + '\t' + str(x[i]) + '\n'
-        f.write(line)
+    if N == 1:
+        for i in range(n):
+            line = str(i+1) + '\t' + 'APPROX_INTERFACE' + '\t' + str(x[i]) + '\n'
+            f.write(line)
+    if N == 2:
+        for i in range(n):
+            for j in range(n):
+                line = str((i*n)+j+1) + '\t' + 'APPROX_INTERFACE' + '\t' + str(x[i]) + '\t' + str(x[j]) + '\n'
+                f.write(line)
+
     f.close()
-    print 'wrote ' + approxfile
-    print x
+
+    # print 'wrote ' + approxfile
 
 
 def read_the_approx_file(approxfile='approximated.dat'):
@@ -31,10 +47,10 @@ def read_the_approx_file(approxfile='approximated.dat'):
     x = [[] for i in range(2, n-1)]  # create list to hold the variables
     p = []
     for line in f:
+        splitline = line.split()
         for i in range(len(x)):
-            splitline = line.split()
             x[i].append(float(splitline[2+i]))
-            p.append(float(splitline[-1]))
+        p.append(float(splitline[-1]))
 
     f.close()
     return x, p
@@ -136,7 +152,77 @@ def get_approximation(method_dict):
         power_approx = p
 
     elif uncertain_var == 'direction_and_speed':
-        print 'This still needs to be implemented'
+        assert len(x) == 2, 'Should be returning the directions and speeds'
+        x_d = np.array(x[0])
+        x_s = np.array(x[1])
+        p = np.array(p)
+
+        dist = method_dict['distribution']
+
+        bnd = dist.range()
+        a = bnd[0]  # left boundary
+        b = bnd[1]  # right boundary
+        a_d = a[0] # the left boundary for the direction
+        b_d = b[0] # the right boundary for the direction
+        a_s = a[1] # the left boundary for the direction
+        b_s = b[1] # the right boundary for the direction
+
+        ###### Do direction work
+        dist_dir = dist[0]
+
+        # The original amalia windrose make this function later. I still need to make this for the raw
+        if dist_dir._str() == 'Amalia windrose':
+
+            # Make sure the A, B, C values are the same than those in distribution
+            A, B = dist_dir.get_zero_probability_region()
+            # A = 110  # Left boundary of zero probability region
+            # B = 140  # Right boundary of zero probability region
+
+            C = 225  # Location of max probability
+            r = b_d-a_d  # original range
+            R = r - (B-A) # modified range
+
+            # Modify with offset, manually choose the offset you want
+            N = method_dict['Noffset']  # N = 10
+            i = method_dict['offset']  # i = [0, 1, 2, N-1]
+
+            # Rescale x
+            x_d = R*x_d/2. + R/2. + a_d
+            # Modify the starting point C with offset
+            offset = i*r/N  # the offset modifies the starting point for N locations within the whole interval
+            C = (C + offset) % r
+            x_d = windfarm_setup.modifyx(x_d, A, B, C, r)
+
+        if dist_dir._str() == 'Amalia windrose raw':
+
+            C = 225  # Location of max probability or desired starting location.
+            R = b_d-a_d  # range 360
+
+            # Modify with offset, manually choose the offset you want
+            N = method_dict['Noffset']  # N = 10
+            i = method_dict['offset']  # i = [0, 1, 2, N-1]
+
+            # Rescale x
+            x_d = R*x_d/2. + R/2. + a_d
+            # Modify the starting point C with offset
+            offset = i*R/N  # the offset modifies the starting point for N locations within the whole interval
+            C = (C + offset) % R
+            x_d = (x_d+C) % R
+
+        ####### Do the speed work
+        # Rescale x
+        x_s = (b_s-a_s)/2. + (b_s-a_s)/2.*x_s + a_s
+
+        # Rearrange for plotting
+        order = np.lexsort((x_s, x_d))  # Sort by x_d, then by x_s
+        # print 'order = ', order
+        x_s = x_s[order]
+        x_d = x_d[order]
+        p = p[order]
+
+        windspeed_approx = x_s
+        winddirection_approx = x_d
+        power_approx = p
 
     else:
         raise ValueError('unknown uncertain_var option "%s", valid options "speed" or "direction".' %uncertain_var)
