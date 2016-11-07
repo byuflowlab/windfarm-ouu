@@ -8,7 +8,7 @@ import windfarm_setup
 def generate_approx_file(uncertain_variable, approxfile='approximate_at.dat'):
     """Generate the file at which to evaluate the PC approximation."""
 
-    n = 100  # Number of approximation points per dimension
+    n = 1  # Number of approximation points per dimension
 
     if uncertain_variable == 'direction_and_speed':
         N = 2  # we have two uncertain variables

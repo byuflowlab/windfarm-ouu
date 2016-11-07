@@ -138,7 +138,7 @@ for i, lay in enumerate(layout):
 ax[0][2].set_title('wind speed')
 ax[3][2].set_xlabel('number of wind speeds')
 
-# Now add the speed information, later combine in just one loop
+# Now add the 2d information, later combine in just one loop
 method = method_2d
 n = 25
 for i, lay in enumerate(layout):
@@ -146,7 +146,8 @@ for i, lay in enumerate(layout):
     f = open(method[0], 'r')
     r = json.load(f)
     f.close()
-    mu_base = r[lay]['0']['mu'][-1]
+    mu_base = r[lay]['0']['mu'][-1]  # Originally I had these
+    mu_base = r[lay]['average']['mu'][-1]
 
     for j, m in enumerate(method, 1):
         f = open(m, 'r')
@@ -154,8 +155,10 @@ for i, lay in enumerate(layout):
         f.close()
 
         # Baseline values for error bounds and mean values
-        s = r[lay]['0']['s'][:n]
-        mu_ave = np.array(r[lay]['0']['mu'][:n])
+        s = r[lay]['0']['s'][:n]  # Originally I had these.
+        mu_ave = np.array(r[lay]['0']['mu'][:n])  # Originally I had these
+        s = r[lay]['average']['s'][:n]
+        mu_ave = np.array(r[lay]['average']['mu'][:n])
 
         mu_err = np.abs((mu_ave-mu_base))/mu_base * 100
         # Plot the average values and the bounds

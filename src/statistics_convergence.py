@@ -34,7 +34,8 @@ def run(method_dict, n):
     """
 
     ### For visualization purposes. Set up the file that specifies the points for the polynomial approximation ###
-    approximate.generate_approx_file(method_dict['uncertain_var'])
+    if method_dict['method'] == 'dakota':
+        approximate.generate_approx_file(method_dict['uncertain_var'])
 
     ### Set up the wind speeds and wind directions for the problem ###
 
@@ -188,6 +189,7 @@ if __name__ == "__main__":
     method_dict['uncertain_var']    = 'direction'
     # method_dict['layout']         = 'optimized'  # Now this is specified in the command line
     method_dict['dakota_filename']  = 'dakotageneral.in'
+    # method_dict['dakota_filename']  = 'dakotageneralPy.in'  # Interface with python support
     # To Do specify the number of points (directions or speeds) as an option as well.
     method_dict['coeff_method']     = 'quadrature'
 

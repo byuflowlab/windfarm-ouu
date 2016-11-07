@@ -21,7 +21,7 @@ def get_method_dict():
                    'layout': 'optimized',
                    'offset': 0,
                    'Noffset': 10,
-                   'dakota_filename': 'tests/dakotageneral.in',
+                   'dakota_filename': 'tests/dakotageneral.in',  # 'tests/dakotageneralPy.in'
                    'coeff_method': 'quadrature',
                    'windspeed_ref': 8,
                    'winddirection_ref': 225}
