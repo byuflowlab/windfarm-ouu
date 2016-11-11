@@ -24,7 +24,7 @@ def pythonInterface(**kwargs):
 
     except IOError:  # This is for the case when we are only getting the sample points.
         print '\n\nWARNING: missing powerInput.txt\n\n'
-        index = int(paramsdict['eval_id']) - 1
+        index = int(paramsdict['currEvalId']) - 1
         power_i = index  # -1.0  # np.nan
 
     resultsdict = {'fns': [power_i], 'fnGrads': []}
