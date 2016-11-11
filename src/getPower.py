@@ -46,7 +46,8 @@ def main():
 
     except IOError:  # This is for the case when we are only getting the sample points.
         print '\n\nWARNING: missing powerInput.txt\n\n'
-        power_i = -1.0  # np.nan
+        index = int(paramsdict['eval_id']) - 1
+        power_i = index  # -1.0  # np.nan
 
     resultsdict = {'fns': [power_i], 'fnGrads': []}
 
