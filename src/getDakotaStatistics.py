@@ -35,8 +35,10 @@ def postprocess(dakotaFile):
         if 'expansion_order' in line and not line.strip().startswith('#'):
             skipline = False
             break
+        if 'sampling' in line and not line.strip().startswith('#'):
+            skipline = False
+            break
     f.close()
-
 
     filename = 'logDakota.out'
 

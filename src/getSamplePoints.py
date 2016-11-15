@@ -50,6 +50,8 @@ def getSamplePoints(dakotaFile):
             dakotaTabular = 'dakota_sparse_tabular.dat'
         elif 'expansion_order' in line and not line.strip().startswith('#'):
             dakotaTabular = ''
+        elif 'sampling' in line and not line.strip().startswith('#'):
+            dakotaTabular = ''
         else:
             pass
 

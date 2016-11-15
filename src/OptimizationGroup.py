@@ -66,8 +66,10 @@ class OptAEP(Group):
                  datasize=0, differentiable=True, force_fd=False, nVertices=0, method_dict=None):
 
         super(OptAEP, self).__init__()
-        self.fd_options['force_fd'] = force_fd
-        self.fd_options['form'] = 'forward'
+
+        if force_fd:
+            self.deriv_options['type'] = 'fd'
+            self.deriv_options['form'] = 'forward'
 
         # add major components and groups
         self.add('AEPgroup', AEPGroup(nTurbines, nDirections=nDirections,
