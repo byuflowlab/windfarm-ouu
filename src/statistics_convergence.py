@@ -5,6 +5,7 @@ import json
 import argparse
 import chaospy as cp
 from openmdao.api import Problem
+from WakeModelCall import getPower
 from AEPGroups import AEPGroup
 import distributions
 import windfarm_setup
@@ -53,29 +54,6 @@ def run(method_dict, n):
     # Turbines layout
     turbineX, turbineY = windfarm_setup.getLayout(method_dict['layout'])
 
-    # turbine size and operating conditions
-
-    rotor_diameter = 126.4  # (m)
-    air_density = 1.1716    # kg/m^3
-
-    # initialize arrays for each turbine properties
-    nTurbs = turbineX.size
-    rotorDiameter = np.zeros(nTurbs)
-    axialInduction = np.zeros(nTurbs)
-    Ct = np.zeros(nTurbs)
-    Cp = np.zeros(nTurbs)
-    generator_efficiency = np.zeros(nTurbs)
-    yaw = np.zeros(nTurbs)
-
-    # define initial values
-    for turbI in range(nTurbs):
-        rotorDiameter[turbI] = rotor_diameter
-        axialInduction[turbI] = 1.0/3.0
-        Ct[turbI] = 4.0*axialInduction[turbI]*(1.0-axialInduction[turbI])
-        Cp[turbI] = 0.7737/0.944 * 4.0 * 1.0/3.0 * np.power((1 - 1.0/3.0), 2)
-        generator_efficiency[turbI] = 0.944
-        yaw[turbI] = 0.     # deg.
-
     # define wake model inputs
     if method_dict['wake_model'] is 'floris':
         wake_model = floris_wrapper
@@ -89,29 +67,24 @@ def run(method_dict, n):
     else:
         raise KeyError('Invalid wake model selection. Must be one of [floris, jensen, gauss]')
 
+    # In here have the openMDAO subproblem pass in what it needs, pass out the gradients and the powers.
+    powers, dpower_dturbX, dpower_dturbY = getPower(turbineX, turbineY, winddirections, windspeeds, weights,
+                                                    wake_model, IndepVarFunc)
+
+
     # initialize problem
-    prob = Problem(AEPGroup(nTurbines=nTurbs, nDirections=N,
-                            method_dict=method_dict, wake_model=wake_model,
-                            params_IdepVar_func=IndepVarFunc))
+    prob = Problem(AEPGroup(nTurbines=turbineX.size, nDirections=N, method_dict=method_dict))
 
     prob.setup(check=False)
-
 
     # assign initial values to variables
     prob['windSpeeds'] = windspeeds
     prob['windDirections'] = winddirections
     prob['windWeights'] = weights
-    prob['rotorDiameter'] = rotorDiameter
-    prob['axialInduction'] = axialInduction
-    prob['generatorEfficiency'] = generator_efficiency
-    prob['air_density'] = air_density
-    prob['Ct_in'] = Ct
-    prob['Cp_in'] = Cp
 
     prob['turbineX'] = turbineX
     prob['turbineY'] = turbineY
-    for direction_id in range(0, N):
-        prob['yaw%i' % direction_id] = yaw
+    prob['Powers'] = powers
 
     # Run the problem
     prob.pre_run_check()
@@ -131,7 +104,8 @@ def run(method_dict, n):
     factor = 1e6
     print 'mean = ', mean_data/factor, ' GWhrs'
     print 'std = ', std_data/factor, ' GWhrs'
-    power = prob['dirPowers']
+    power = prob['Powers']
+    print 'powers = ', power
 
     return mean_data/factor, std_data/factor, N, winddirections, windspeeds, power,\
            winddirections_approx, windspeeds_approx, power_approx

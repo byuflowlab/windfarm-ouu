@@ -20,3 +20,4 @@ rm LHS_*
 rm S4
 rm approximated.dat
 rm *.tmp
+rm *.html

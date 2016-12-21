@@ -20,7 +20,7 @@ class DakotaStatistics(ExternalCode):
         self.deriv_options['step_calc'] = 'relative'
 
         # define inputs
-        self.add_param('dirPowers', np.zeros(nDirections), units ='kW',
+        self.add_param('Powers', np.zeros(nDirections), units ='kW',
                        desc='vector containing the power production for each winddirection and windspeed pair')
         self.add_param('method_dict', method_dict,
                        desc='parameters for the UQ method')
@@ -38,8 +38,8 @@ class DakotaStatistics(ExternalCode):
     def solve_nonlinear(self, params, unknowns, resids):
 
         # Generate the file with the power vector for Dakota
-        power = params['dirPowers']
-        np.savetxt('powerInput.txt', power, header='dirPowers')
+        power = params['Powers']
+        np.savetxt('powerInput.txt', power, header='Powers')
 
         # parent solve_nonlinear function actually runs the external code
         super(DakotaStatistics, self).solve_nonlinear(params,unknowns,resids)
@@ -78,7 +78,7 @@ class ChaospyStatistics(Component):
         self.deriv_options['step_calc'] = 'relative'
 
         # define inputs
-        self.add_param('dirPowers', np.zeros(nDirections), units ='kW',
+        self.add_param('Powers', np.zeros(nDirections), units ='kW',
                        desc='vector containing the power production for each winddirection and windspeed pair')
         self.add_param('method_dict', method_dict,
                        desc='parameters for the UQ method')
@@ -92,7 +92,7 @@ class ChaospyStatistics(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
 
-        power = params['dirPowers']
+        power = params['Powers']
         method_dict = params['method_dict']
         dist = method_dict['distribution']
         n = len(power)
@@ -150,7 +150,7 @@ class RectStatistics(Component):
         self.deriv_options['step_calc'] = 'relative'
 
         # define inputs
-        self.add_param('dirPowers', np.zeros(nDirections), units ='kW',
+        self.add_param('Powers', np.zeros(nDirections), units ='kW',
                        desc='vector containing the power production for each winddirection and windspeed pair')
         self.add_param('method_dict', method_dict,
                        desc='parameters for the UQ method')
@@ -168,7 +168,7 @@ class RectStatistics(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
 
-        power = params['dirPowers']
+        power = params['Powers']
         weights = params['windWeights']
 
         mean = sum(power*weights)
@@ -231,7 +231,7 @@ def linearize_function(params):
     dmean_dpower = weights*hours
 
     J = {}
-    J[('mean', 'dirPowers')] = np.array([dmean_dpower])
+    J[('mean', 'Powers')] = np.array([dmean_dpower])
 
     return J
 
@@ -275,18 +275,18 @@ if __name__ == "__main__":
     n = 10
     unused, weights = getPoints(method_dict, n)
     prob = Problem(root=Group())
-    prob.root.add('p', IndepVarComp('dirPowers', np.random.rand(n)))
+    prob.root.add('p', IndepVarComp('Powers', np.random.rand(n)))
     prob.root.add('w', IndepVarComp('windWeights', weights))
     if method_dict['method'] == 'rect':
         prob.root.add('AEPComp', RectStatistics(nDirections=n, method_dict=method_dict))#, promotes=['*'])  # No need to promote because of the explicit connection below
     if method_dict['method'] == 'dakota':
         prob.root.add('AEPComp', DakotaStatistics(nDirections=n, method_dict=method_dict))#, promotes=['*'])
-    prob.root.connect('p.dirPowers', 'AEPComp.dirPowers')
+    prob.root.connect('p.Powers', 'AEPComp.Powers')
     prob.root.connect('w.windWeights', 'AEPComp.windWeights')
     prob.setup()
     prob.run()
     print 'AEP = ', (prob.root.AEPComp.unknowns['mean'])
-    print 'power = ', (prob.root.AEPComp.params['dirPowers'])
+    print 'power = ', (prob.root.AEPComp.params['Powers'])
     print prob.root.AEPComp.params.keys()
     # J = prob.calc_gradient(['AEPComp.mean'], ['p.power'])  # I'm not sure why this returns zero
     # print 'power directions gradient = ', J
