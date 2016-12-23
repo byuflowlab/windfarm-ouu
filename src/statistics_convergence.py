@@ -71,24 +71,27 @@ def run(method_dict, n):
     powers, dpower_dturbX, dpower_dturbY = getPower(turbineX, turbineY, winddirections, windspeeds, weights,
                                                     wake_model, IndepVarFunc)
 
-
     # initialize problem
     prob = Problem(AEPGroup(nTurbines=turbineX.size, nDirections=N, method_dict=method_dict))
 
     prob.setup(check=False)
 
     # assign initial values to variables
-    prob['windSpeeds'] = windspeeds
-    prob['windDirections'] = winddirections
     prob['windWeights'] = weights
 
     prob['turbineX'] = turbineX
     prob['turbineY'] = turbineY
     prob['Powers'] = powers
+    prob['dpower_dturbX'] = dpower_dturbX
+    prob['dpower_dturbY'] = dpower_dturbY
 
     # Run the problem
     prob.pre_run_check()
     prob.run()
+
+    JacobianX = prob.calc_gradient(['turbineX'], ['mean'])
+    print 'dmean/dturbineX'
+    print JacobianX
 
     # For visualization purposes. Get the PC approximation
     if method_dict['method'] == 'dakota':

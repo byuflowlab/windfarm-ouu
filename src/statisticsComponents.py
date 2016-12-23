@@ -10,14 +10,14 @@ from getSamplePoints import getSamplePoints
 class DakotaStatistics(ExternalCode):
     """Use Dakota to estimate the statistics."""
 
-    def __init__(self, nDirections=10, method_dict=None):
+    def __init__(self, nTurbines=60, nDirections=10, method_dict=None):
         super(DakotaStatistics, self).__init__()
 
         # set finite difference options (fd used for testing only)
-        # self.deriv_options['force_fd'] = True
-        self.deriv_options['form'] = 'central'
-        self.deriv_options['step_size'] = 1.0e-5
-        self.deriv_options['step_calc'] = 'relative'
+        # self.deriv_options['type'] = 'fd'
+        # self.deriv_options['form'] = 'central'
+        # self.deriv_options['step_size'] = 1.0e-5
+        # self.deriv_options['step_calc'] = 'relative'
 
         # define inputs
         self.add_param('Powers', np.zeros(nDirections), units ='kW',
@@ -26,6 +26,14 @@ class DakotaStatistics(ExternalCode):
                        desc='parameters for the UQ method')
         self.add_param('windWeights', np.zeros(nDirections),
                        desc='vector containing the integration weight associated with each power')
+        self.add_param('turbineX', np.zeros(nTurbines),
+                       desc='vector containing the turbine X locations')
+        self.add_param('turbineY', np.zeros(nTurbines),
+                       desc='vector containing the turbine Y locations')
+        self.add_param('dpower_dturbX', np.zeros([nDirections, nTurbines]),
+                       desc='vector containing the gradient of the power wrt turbineX locations')
+        self.add_param('dpower_dturbY', np.zeros([nDirections, nTurbines]),
+                       desc='vector containing the gradient of the power wrt turbineY locations')
 
         # define output
         self.add_output('mean', val=0.0, units='kWh', desc='mean annual energy output of wind farm')
@@ -59,7 +67,27 @@ class DakotaStatistics(ExternalCode):
 
     def linearize(self, params, unknowns, resids):
 
-        J = linearize_function(params)
+        dpower_dturbX = params['dpower_dturbX']
+        dpower_dturbY = params['dpower_dturbY']
+        weights = params['windWeights']
+
+        m, n = dpower_dturbX.shape
+        dmean_dturbX = np.zeros([1, n])
+        dmean_dturbY = np.zeros([1, n])
+
+        for j in range(n):
+            for i in range(m):
+                dmean_dturbX[0][j] += weights[i]*dpower_dturbX[i][j]
+                dmean_dturbY[0][j] += weights[i]*dpower_dturbY[i][j]
+
+        # number of hours in a year
+        hours = 8760.0
+
+        J = {}
+        J[('mean', 'turbineX')] = hours*dmean_dturbX
+        J[('mean', 'turbineY')] = hours*dmean_dturbY
+
+        # J = linearize_function(params)
         # print('Calculate Derivatives:', self.name)
 
         return J
