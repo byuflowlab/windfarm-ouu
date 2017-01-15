@@ -5,15 +5,10 @@ import json
 import argparse
 import chaospy as cp
 from openmdao.api import Problem
-from WakeModelCall import getPower
 from AEPGroups import AEPGroup
 import distributions
 import windfarm_setup
 import approximate
-
-from wakeexchange.floris import floris_wrapper, add_floris_params_IndepVarComps
-from wakeexchange.jensen import jensen_wrapper, add_jensen_params_IndepVarComps
-from wakeexchange.gauss import gauss_wrapper, add_gauss_params_IndepVarComps
 
 
 def run(method_dict, n):
@@ -54,36 +49,18 @@ def run(method_dict, n):
     # Turbines layout
     turbineX, turbineY = windfarm_setup.getLayout(method_dict['layout'])
 
-    # define wake model inputs
-    if method_dict['wake_model'] is 'floris':
-        wake_model = floris_wrapper
-        IndepVarFunc = add_floris_params_IndepVarComps
-    elif method_dict['wake_model'] is 'jensen':
-        wake_model = jensen_wrapper
-        IndepVarFunc = add_jensen_params_IndepVarComps
-    elif method_dict['wake_model'] is 'gauss':
-        wake_model = gauss_wrapper
-        IndepVarFunc = add_gauss_params_IndepVarComps
-    else:
-        raise KeyError('Invalid wake model selection. Must be one of [floris, jensen, gauss]')
-
-    # In here have the openMDAO subproblem pass in what it needs, pass out the gradients and the powers.
-    powers, dpower_dturbX, dpower_dturbY = getPower(turbineX, turbineY, winddirections, windspeeds, weights,
-                                                    wake_model, IndepVarFunc)
-
     # initialize problem
     prob = Problem(AEPGroup(nTurbines=turbineX.size, nDirections=N, method_dict=method_dict))
 
     prob.setup(check=False)
 
     # assign initial values to variables
+    prob['windSpeeds'] = windspeeds
+    prob['windDirections'] = winddirections
     prob['windWeights'] = weights
 
     prob['turbineX'] = turbineX
     prob['turbineY'] = turbineY
-    prob['Powers'] = powers
-    prob['dpower_dturbX'] = dpower_dturbX
-    prob['dpower_dturbY'] = dpower_dturbY
 
     # Run the problem
     prob.pre_run_check()

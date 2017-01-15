@@ -4,8 +4,6 @@ import sys
 from openmdao.api import Group, IndepVarComp
 from statisticsComponents import DakotaStatistics, RectStatistics, ChaospyStatistics
 
-from wakeexchange.floris import floris_wrapper, add_floris_params_IndepVarComps
-
 
 class AEPGroup(Group):
     """
@@ -20,26 +18,26 @@ class AEPGroup(Group):
         # self.deriv_options['type'] = 'fd'
         # self.deriv_options['form'] = 'forward'
         # self.deriv_options['step_size'] = 1.0e-5
+        # self.deriv_options['step_calc'] = 'relative'
 
         # providing default unit types
-        power_units = 'kW'
+        direction_units = 'deg'
+        wind_speed_units = 'm/s'
         length_units = 'm'
 
         # add necessary inputs for group
-        self.add('dv0', IndepVarComp('windWeights', np.zeros(nDirections)), promotes=['*'])
+        self.add('dv0', IndepVarComp('windDirections', np.zeros(nDirections), units=direction_units), promotes=['*'])
+        self.add('dv1', IndepVarComp('windSpeeds', np.zeros(nDirections), units=wind_speed_units), promotes=['*'])
+        self.add('dv2', IndepVarComp('windWeights', np.zeros(nDirections)), promotes=['*'])
 
-        self.add('dv1', IndepVarComp('turbineX', np.zeros(nTurbines), units=length_units), promotes=['*'])
-        self.add('dv2', IndepVarComp('turbineY', np.zeros(nTurbines), units=length_units), promotes=['*'])
-
-        self.add('dv3', IndepVarComp('Powers', np.zeros(nDirections), units=power_units), promotes=['*'])
-        self.add('dv4', IndepVarComp('dpower_dturbX', np.zeros([nDirections, nTurbines]), units='kW/m'), promotes=['*'])
-        self.add('dv5', IndepVarComp('dpower_dturbY', np.zeros([nDirections, nTurbines]), units='kW/m'), promotes=['*'])
+        self.add('dv3', IndepVarComp('turbineX', np.zeros(nTurbines), units=length_units), promotes=['*'])
+        self.add('dv4', IndepVarComp('turbineY', np.zeros(nTurbines), units=length_units), promotes=['*'])
 
         method = method_dict['method']
         if method == 'dakota':
             self.add('AEPcomp', DakotaStatistics(nTurbines, nDirections, method_dict), promotes=['*'])
         elif method == 'chaospy':
-            self.add('AEPcomp', ChaospyStatistics(nDirections, method_dict), promotes=['*'])
+            self.add('AEPcomp', ChaospyStatistics(nTurbines, nDirections, method_dict), promotes=['*'])
         elif method == 'rect':
             self.add('AEPcomp', RectStatistics(nTurbines, nDirections, method_dict), promotes=['*'])
         else:

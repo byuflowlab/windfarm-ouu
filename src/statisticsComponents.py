@@ -4,7 +4,11 @@ import os
 import json
 import shutil
 import chaospy as cp
-from getSamplePoints import getSamplePoints
+from WakeModelCall import getPower
+
+from wakeexchange.floris import floris_wrapper, add_floris_params_IndepVarComps
+from wakeexchange.jensen import jensen_wrapper, add_jensen_params_IndepVarComps
+from wakeexchange.gauss import gauss_wrapper, add_gauss_params_IndepVarComps
 
 
 class DakotaStatistics(ExternalCode):
@@ -13,29 +17,27 @@ class DakotaStatistics(ExternalCode):
     def __init__(self, nTurbines=60, nDirections=10, method_dict=None):
         super(DakotaStatistics, self).__init__()
 
-        # set finite difference options (fd used for testing only)
-        # self.deriv_options['type'] = 'fd'
-        # self.deriv_options['form'] = 'central'
-        # self.deriv_options['step_size'] = 1.0e-5
-        # self.deriv_options['step_calc'] = 'relative'
-
         # define inputs
-        self.add_param('Powers', np.zeros(nDirections), units ='kW',
-                       desc='vector containing the power production for each winddirection and windspeed pair')
-        self.add_param('method_dict', method_dict,
+        self.add_param('method_dict', method_dict, pass_by_obj=True,
                        desc='parameters for the UQ method')
+        self.add_param('windDirections', np.zeros(nDirections),
+                       desc='vector containing the wind directions')
+        self.add_param('windSpeeds', np.zeros(nDirections),
+                       desc='vector containing the wind speeds')
         self.add_param('windWeights', np.zeros(nDirections),
                        desc='vector containing the integration weight associated with each power')
         self.add_param('turbineX', np.zeros(nTurbines),
                        desc='vector containing the turbine X locations')
         self.add_param('turbineY', np.zeros(nTurbines),
                        desc='vector containing the turbine Y locations')
-        self.add_param('dpower_dturbX', np.zeros([nDirections, nTurbines]),
-                       desc='vector containing the gradient of the power wrt turbineX locations')
-        self.add_param('dpower_dturbY', np.zeros([nDirections, nTurbines]),
-                       desc='vector containing the gradient of the power wrt turbineY locations')
 
         # define output
+        self.add_output('Powers', np.zeros(nDirections), units ='kW',
+                       desc='vector containing the power production for each winddirection and windspeed pair')
+        self.add_output('dpower_dturbX', np.zeros([nDirections, nTurbines]),
+                       desc='vector containing the gradient of the power wrt turbineX locations')
+        self.add_output('dpower_dturbY', np.zeros([nDirections, nTurbines]),
+                       desc='vector containing the gradient of the power wrt turbineY locations')
         self.add_output('mean', val=0.0, units='kWh', desc='mean annual energy output of wind farm')
         self.add_output('std', val=0.0, units='kWh', desc='std of energy output of wind farm')
 
@@ -45,14 +47,25 @@ class DakotaStatistics(ExternalCode):
 
     def solve_nonlinear(self, params, unknowns, resids):
 
+        wake_model, IndepVarFunc = determine_wake_model(params['method_dict'])
+
+        # In here have the openMDAO subproblem pass in what it needs, pass out the gradients and the powers.
+        powers, dpower_dturbX, dpower_dturbY = getPower(params['turbineX'], params['turbineY'], params['windDirections']
+                                                        , params['windSpeeds'], params['windWeights'],
+                                                        wake_model, IndepVarFunc)
+
         # Generate the file with the power vector for Dakota
-        power = params['Powers']
-        np.savetxt('powerInput.txt', power, header='Powers')
+        np.savetxt('powerInput.txt', powers, header='Powers')
 
         # parent solve_nonlinear function actually runs the external code
         super(DakotaStatistics, self).solve_nonlinear(params,unknowns,resids)
 
         os.remove('powerInput.txt')
+
+        # Set the outputs (unknowns)
+        unknowns['Powers'] = powers
+        unknowns['dpower_dturbX'] = dpower_dturbX
+        unknowns['dpower_dturbY'] = dpower_dturbY
 
         # number of hours in a year
         hours = 8760.0
@@ -67,27 +80,7 @@ class DakotaStatistics(ExternalCode):
 
     def linearize(self, params, unknowns, resids):
 
-        dpower_dturbX = params['dpower_dturbX']
-        dpower_dturbY = params['dpower_dturbY']
-        weights = params['windWeights']
-
-        m, n = dpower_dturbX.shape
-        dmean_dturbX = np.zeros([1, n])
-        dmean_dturbY = np.zeros([1, n])
-
-        for j in range(n):
-            for i in range(m):
-                dmean_dturbX[0][j] += weights[i]*dpower_dturbX[i][j]
-                dmean_dturbY[0][j] += weights[i]*dpower_dturbY[i][j]
-
-        # number of hours in a year
-        hours = 8760.0
-
-        J = {}
-        J[('mean', 'turbineX')] = hours*dmean_dturbX
-        J[('mean', 'turbineY')] = hours*dmean_dturbY
-
-        # J = linearize_function(params)
+        J = linearize_function(params, unknowns)
         # print('Calculate Derivatives:', self.name)
 
         return J
@@ -96,31 +89,45 @@ class DakotaStatistics(ExternalCode):
 class ChaospyStatistics(Component):
     """Use chaospy to estimate the statistics."""
 
-    def __init__(self, nDirections=10, method_dict=None):
+    def __init__(self, nTurbines=60, nDirections=10, method_dict=None):
         super(ChaospyStatistics, self).__init__()
 
-        # set finite difference options (fd used for testing only)
-        # self.deriv_options['force_fd'] = True
-        self.deriv_options['form'] = 'central'
-        self.deriv_options['step_size'] = 1.0e-5
-        self.deriv_options['step_calc'] = 'relative'
-
         # define inputs
-        self.add_param('Powers', np.zeros(nDirections), units ='kW',
-                       desc='vector containing the power production for each winddirection and windspeed pair')
-        self.add_param('method_dict', method_dict,
+        self.add_param('method_dict', method_dict, pass_by_obj=True,
                        desc='parameters for the UQ method')
+        self.add_param('windDirections', np.zeros(nDirections),
+                       desc='vector containing the wind directions')
+        self.add_param('windSpeeds', np.zeros(nDirections),
+                       desc='vector containing the wind speeds')
         self.add_param('windWeights', np.zeros(nDirections),
                        desc='vector containing the integration weight associated with each power')
+        self.add_param('turbineX', np.zeros(nTurbines),
+                       desc='vector containing the turbine X locations')
+        self.add_param('turbineY', np.zeros(nTurbines),
+                       desc='vector containing the turbine Y locations')
 
         # define output
+        self.add_output('Powers', np.zeros(nDirections), units ='kW',
+                       desc='vector containing the power production for each winddirection and windspeed pair')
+        self.add_output('dpower_dturbX', np.zeros([nDirections, nTurbines]),
+                       desc='vector containing the gradient of the power wrt turbineX locations')
+        self.add_output('dpower_dturbY', np.zeros([nDirections, nTurbines]),
+                       desc='vector containing the gradient of the power wrt turbineY locations')
         self.add_output('mean', val=0.0, units='kWh', desc='mean annual energy output of wind farm')
         self.add_output('std', val=0.0, units='kWh', desc='std of energy output of wind farm')
 
-
     def solve_nonlinear(self, params, unknowns, resids):
 
-        power = params['Powers']
+        wake_model, IndepVarFunc = determine_wake_model(params['method_dict'])
+
+        # In here have the openMDAO subproblem pass in what it needs, pass out the gradients and the powers.
+        powers, dpower_dturbX, dpower_dturbY = getPower(params['turbineX'], params['turbineY'], params['windDirections']
+                                                        , params['windSpeeds'], params['windWeights'],
+                                                        wake_model, IndepVarFunc)
+
+        power = powers
+        weights = params['windWeights']
+
         method_dict = params['method_dict']
         dist = method_dict['distribution']
         n = len(power)
@@ -146,6 +153,12 @@ class ChaospyStatistics(Component):
         # print std
         # print np.sqrt(np.sum(coeff[1:]**2 * cp.E(poly**2, dist)[1:]))
         # # std = np.sqrt(np.sum(coeff[1:]**2 * cp.E(poly**2, dist)[1:]))
+
+        # Set the outputs (unknowns)
+        unknowns['Powers'] = powers
+        unknowns['dpower_dturbX'] = dpower_dturbX
+        unknowns['dpower_dturbY'] = dpower_dturbY
+
         # number of hours in a year
         hours = 8760.0
         # promote statistics to class attribute
@@ -159,8 +172,9 @@ class ChaospyStatistics(Component):
 
     def linearize(self, params, unknowns, resids):
 
-        # Todo update linearize
-        J = linearize_function(params)
+        J = linearize_function(params, unknowns)
+        # print('Calculate Derivatives:', self.name)
+
         return J
 
 
@@ -171,17 +185,13 @@ class RectStatistics(Component):
 
         super(RectStatistics, self).__init__()
 
-        # set finite difference options (fd used for testing only)
-        # self.deriv_options['force_fd'] = True
-        self.deriv_options['form'] = 'central'
-        self.deriv_options['step_size'] = 1.0e-5
-        self.deriv_options['step_calc'] = 'relative'
-
         # define inputs
-        self.add_param('Powers', np.zeros(nDirections), units ='kW',
-                       desc='vector containing the power production for each winddirection and windspeed pair')
-        self.add_param('method_dict', method_dict,
+        self.add_param('method_dict', method_dict, pass_by_obj=True,
                        desc='parameters for the UQ method')
+        self.add_param('windDirections', np.zeros(nDirections),
+                       desc='vector containing the wind directions')
+        self.add_param('windSpeeds', np.zeros(nDirections),
+                       desc='vector containing the wind speeds')
         self.add_param('windWeights', np.zeros(nDirections),
                        desc='vector containing the integration weight associated with each power')
         self.add_param('turbineX', np.zeros(nTurbines),
@@ -189,21 +199,39 @@ class RectStatistics(Component):
         self.add_param('turbineY', np.zeros(nTurbines),
                        desc='vector containing the turbine Y locations')
 
-
         # define output
+        self.add_output('Powers', np.zeros(nDirections), units ='kW',
+                       desc='vector containing the power production for each winddirection and windspeed pair')
+        self.add_output('dpower_dturbX', np.zeros([nDirections, nTurbines]),
+                       desc='vector containing the gradient of the power wrt turbineX locations')
+        self.add_output('dpower_dturbY', np.zeros([nDirections, nTurbines]),
+                       desc='vector containing the gradient of the power wrt turbineY locations')
         self.add_output('mean', val=0.0, units='kWh', desc='mean annual energy output of wind farm')
         self.add_output('std', val=0.0, units='kWh', desc='std of energy output of wind farm')
 
+
     def solve_nonlinear(self, params, unknowns, resids):
 
-        power = params['Powers']
+        wake_model, IndepVarFunc = determine_wake_model(params['method_dict'])
+
+        # In here have the openMDAO subproblem pass in what it needs, pass out the gradients and the powers.
+        powers, dpower_dturbX, dpower_dturbY = getPower(params['turbineX'], params['turbineY'], params['windDirections']
+                                                        , params['windSpeeds'], params['windWeights'],
+                                                        wake_model, IndepVarFunc)
+
         weights = params['windWeights']
 
-        mean = sum(power*weights)
+        # Solve for the statistics
+        mean = sum(powers*weights)
         # Calculate std to ensure it is positive, first method could have issues for small number of samples
         # std = np.sqrt(sum(np.power(power, 2)*weights) - np.power(mean, 2))  # Revisar if this is right
-        var = np.sum(np.power(power - mean, 2) * weights)
+        var = np.sum(np.power(powers - mean, 2) * weights)
         std = np.sqrt(var)
+
+        # Set the outputs (unknowns)
+        unknowns['Powers'] = powers
+        unknowns['dpower_dturbX'] = dpower_dturbX
+        unknowns['dpower_dturbY'] = dpower_dturbY
 
         # number of hours in a year
         hours = 8760.0
@@ -245,21 +273,33 @@ class RectStatistics(Component):
 
     def linearize(self, params, unknowns, resids):
 
-        J = linearize_function(params)
+        J = linearize_function(params, unknowns)
         # print('Calculate Derivatives:', self.name)
+
         return J
 
 
-def linearize_function(params):
+def linearize_function(params, unknowns):
 
+    dpower_dturbX = unknowns['dpower_dturbX']
+    dpower_dturbY = unknowns['dpower_dturbY']
     weights = params['windWeights']
+
+    m, n = dpower_dturbX.shape
+    dmean_dturbX = np.zeros([1, n])
+    dmean_dturbY = np.zeros([1, n])
+
+    for j in range(n):
+        for i in range(m):
+            dmean_dturbX[0][j] += weights[i]*dpower_dturbX[i][j]
+            dmean_dturbY[0][j] += weights[i]*dpower_dturbY[i][j]
 
     # number of hours in a year
     hours = 8760.0
-    dmean_dpower = weights*hours
 
     J = {}
-    J[('mean', 'Powers')] = np.array([dmean_dpower])
+    J[('mean', 'turbineX')] = hours*dmean_dturbX
+    J[('mean', 'turbineY')] = hours*dmean_dturbY
 
     return J
 
@@ -279,6 +319,24 @@ def modify_statistics(params, unknowns):
         stdt = unknowns['std']  # the truncated std
         unknowns['mean'] = (1-k) * meant  # weighted by how much of probability is between 0 and 30 or a and b
         unknowns['std'] = np.sqrt(1-k) * stdt + np.sqrt(k*(1-k)) * meant  # formula found in truncation write up.
+
+
+def determine_wake_model(method_dict):
+    # define wake model inputs
+    if method_dict['wake_model'] is 'floris':
+        wake_model = floris_wrapper
+        IndepVarFunc = add_floris_params_IndepVarComps
+    elif method_dict['wake_model'] is 'jensen':
+        wake_model = jensen_wrapper
+        IndepVarFunc = add_jensen_params_IndepVarComps
+    elif method_dict['wake_model'] is 'gauss':
+        wake_model = gauss_wrapper
+        IndepVarFunc = add_gauss_params_IndepVarComps
+    else:
+        raise KeyError('Invalid wake model selection. Must be one of [floris, jensen, gauss]')
+
+    return wake_model, IndepVarFunc
+
 
 if __name__ == "__main__":
 
