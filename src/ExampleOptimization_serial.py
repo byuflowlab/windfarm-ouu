@@ -7,6 +7,7 @@ from wakeexchange.GeneralWindFarmComponents import calculate_boundary
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import chaospy as cp
 import json
 import argparse
 import windfarm_setup
@@ -54,16 +55,23 @@ if __name__ == "__main__":
     # select model: floris, jensen, gauss, larsen (larsen not working yet) TODO get larsen model working
     method_dict['wake_model']       = 'floris'
     method_dict['dakota_filename']  = 'dakotageneral.in'
+    # method_dict['dakota_filename']  = 'dakotageneralPy.in'  # Interface with python support
     method_dict['coeff_method']     = 'quadrature'
 
+    # Specify the distribution according to the uncertain variable
     if method_dict['uncertain_var'] == 'speed':
         dist = distributions.getWeibull()
         method_dict['distribution'] = dist
     elif method_dict['uncertain_var'] == 'direction':
         dist = distributions.getWindRose()
         method_dict['distribution'] = dist
+    elif method_dict['uncertain_var'] == 'direction_and_speed':
+        dist1 = distributions.getWindRose()
+        dist2 = distributions.getWeibull()
+        dist = cp.J(dist1, dist2)
+        method_dict['distribution'] = dist
     else:
-        raise ValueError('unknown uncertain_var option "%s", valid options "speed" or "direction".' %method_dict['uncertain_var'])
+        raise ValueError('unknown uncertain_var option "%s", valid options "speed", "direction" or "direction_and_speed".' %method_dict['uncertain_var'])
 
     ### Set up the wind speeds and wind directions for the problem ###
     n = 20  # number of points, i.e., number of winddirections and windspeeds pairs
@@ -81,38 +89,17 @@ if __name__ == "__main__":
     # Turbines layout
     turbineX, turbineY = windfarm_setup.getLayout(method_dict['layout'])
     locations = np.column_stack((turbineX, turbineY))
+    nTurbs = turbineX.size
 
     # generate boundary constraint
     boundaryVertices, boundaryNormals = calculate_boundary(locations)
     nVertices = boundaryVertices.shape[0]
     print('boundary vertices', boundaryVertices)
 
-    # turbine size and operating conditions
-
-    rotor_diameter = 126.4  # (m)
-    air_density = 1.1716    # kg/m^3
-
-    # initialize arrays for each turbine properties
-    nTurbs = turbineX.size
-    rotorDiameter = np.zeros(nTurbs)
-    axialInduction = np.zeros(nTurbs)
-    Ct = np.zeros(nTurbs)
-    Cp = np.zeros(nTurbs)
-    generatorEfficiency = np.zeros(nTurbs)
-    yaw = np.zeros(nTurbs)
     minSpacing = 2.                         # number of rotor diameters
 
-    # define initial values
-    for turbI in range(0, nTurbs):
-        rotorDiameter[turbI] = rotor_diameter      # m
-        axialInduction[turbI] = 1.0/3.0
-        Ct[turbI] = 4.0*axialInduction[turbI]*(1.0-axialInduction[turbI])
-        Cp[turbI] = 0.7737/0.944 * 4.0 * 1.0/3.0 * np.power((1 - 1.0/3.0), 2)
-        generatorEfficiency[turbI] = 0.944
-        yaw[turbI] = 0.     # deg.
-
     # initialize problem
-    prob = Problem(root=OptAEP(nTurbines=nTurbs, nDirections=N, minSpacing=minSpacing, use_rotor_components=False, differentiable=True, nVertices=nVertices, method_dict=method_dict))
+    prob = Problem(root=OptAEP(nTurbines=nTurbs, nDirections=N, minSpacing=minSpacing, nVertices=nVertices, method_dict=method_dict))
 
     # set up optimizer
     prob.driver = pyOptSparseDriver()
@@ -125,7 +112,6 @@ if __name__ == "__main__":
     prob.driver.opt_settings['Summary file'] = 'SNOPT_summary_exampleOptAEP.out'
     prob.driver.opt_settings['Major iterations limit'] = 1000
     prob.driver.opt_settings['Major optimality tolerance'] = 2E-6
-
 
     # select design variables
     prob.driver.add_desvar('turbineX', scaler=1.0)
@@ -146,32 +132,17 @@ if __name__ == "__main__":
     # print the results
     print('FLORIS setup took %.03f sec.' % (toc-tic))
 
-    # time.sleep(10)
-    # assign initial values to design variables
-    prob['turbineX'] = turbineX
-    prob['turbineY'] = turbineY
-    for direction_id in range(0, N):
-        prob['yaw%i' % direction_id] = yaw
-
-    # assign values to constant inputs (not design variables)
+    # assign initial values to variables
     prob['windSpeeds'] = windspeeds
     prob['windDirections'] = winddirections
     prob['windWeights'] = weights
-    prob['rotorDiameter'] = rotorDiameter
-    prob['axialInduction'] = axialInduction
-    prob['generatorEfficiency'] = generatorEfficiency
-    prob['air_density'] = air_density
-    prob['Ct_in'] = Ct
-    prob['Cp_in'] = Cp
+
+    prob['turbineX'] = turbineX
+    prob['turbineY'] = turbineY
 
     # provide values for the hull constraint
     prob['boundaryVertices'] = boundaryVertices
     prob['boundaryNormals'] = boundaryNormals
-
-    # set options
-    # prob['floris_params:FLORISoriginal'] = True
-    # prob['floris_params:CPcorrected'] = False
-    # prob['floris_params:CTcorrected'] = False
 
     # run the problem
     print(prob, 'start FLORIS run')
@@ -182,16 +153,9 @@ if __name__ == "__main__":
     # print the results
     print('FLORIS Opt. calculation took %.03f sec.' % (toc-tic))
 
-    #for direction_id in range(0, N):
-    #    print('yaw%i (deg) = ' % direction_id, prob['yaw%i' % direction_id])
-    # for direction_id in range(0, N):
-        # mpi_print(prob,  'velocitiesTurbines%i (m/s) = ' % direction_id, prob['velocitiesTurbines%i' % direction_id])
-    # for direction_id in range(0, N):
-    #     mpi_print(prob,  'wt_power%i (kW) = ' % direction_id, prob['wt_power%i' % direction_id])
-
     print('turbine X positions in wind frame (m): %s' % prob['turbineX'])
     print('turbine Y positions in wind frame (m): %s' % prob['turbineY'])
-    print('wind farm power in each direction (kW): %s' % prob['dirPowers'])
+    print('wind farm power in each direction (kW): %s' % prob['Powers'])
     print('AEP (kWh): %s' % prob['mean'])
 
     xbounds = [min(turbineX), min(turbineX), max(turbineX), max(turbineX), min(turbineX)]
@@ -201,14 +165,13 @@ if __name__ == "__main__":
 
     # Save details of the simulation
     obj = {'mean': prob['mean']/1e6, 'std': prob['std']/1e6, 'samples': N, 'winddirections': winddirections.tolist(),
-           'windspeeds': windspeeds.tolist(), 'power': prob['dirPowers'].tolist(),
+           'windspeeds': windspeeds.tolist(), 'power': prob['Powers'].tolist(),
            'method': method_dict['method'], 'uncertain_variable': method_dict['uncertain_var'],
            'layout': method_dict['layout'], 'turbineX': turbineX.tolist(), 'turbineY': turbineY.tolist(),
            'turbineXopt': prob['turbineX'].tolist(), 'turbineYopt': prob['turbineY'].tolist()}
-    jsonfile = open('record_opt.json','w')
+    jsonfile = open('record_opt.json', 'w')
     json.dump(obj, jsonfile, indent=2)
     jsonfile.close()
-
 
     plt.figure()
     plt.plot(turbineX, turbineY, 'ok', label='Original')

@@ -62,18 +62,18 @@ class OptAEP(Group):
 
     """
 
-    def __init__(self, nTurbines, nDirections=1, minSpacing=2., use_rotor_components=True,
-                 datasize=0, differentiable=True, force_fd=False, nVertices=0, method_dict=None):
+    def __init__(self, nTurbines, nDirections=1, minSpacing=2., force_fd=False, nVertices=0, method_dict=None):
 
         super(OptAEP, self).__init__()
 
         if force_fd:
             self.deriv_options['type'] = 'fd'
             self.deriv_options['form'] = 'forward'
+            self.deriv_options['step_size'] = 1.0e-5
+            self.deriv_options['step_calc'] = 'relative'
 
         # add major components and groups
-        self.add('AEPgroup', AEPGroup(nTurbines, nDirections=nDirections,
-                            use_rotor_components=use_rotor_components, differentiable=differentiable,
+        self.add('AEPgroup', AEPGroup(nTurbines=nTurbines, nDirections=nDirections,
                             method_dict=method_dict), promotes=['*'])                                      
 
         self.add('spacing_comp', SpacingComp(nTurbines=nTurbines), promotes=['*'])
@@ -87,10 +87,7 @@ class OptAEP(Group):
                                          minSpacing=minSpacing, rotorDiameter=np.zeros(nTurbines),
                                          sc=np.zeros(((nTurbines-1.)*nTurbines/2.)),
                                          wtSeparationSquared=np.zeros(((nTurbines-1.)*nTurbines/2.))),
-                 promotes=['*'])
+                                         promotes=['*'])
 
         # add objective component
         self.add('obj_comp', ExecComp('obj = -1.*mean', mean=0.0), promotes=['*'])
-
-
-
