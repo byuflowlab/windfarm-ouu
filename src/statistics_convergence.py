@@ -66,9 +66,24 @@ def run(method_dict, n):
     prob.pre_run_check()
     prob.run()
 
-    JacobianX = prob.calc_gradient(['turbineX'], ['mean'])
-    print 'dmean/dturbineX'
-    print JacobianX
+    # Run the gradient
+    # J = prob.calc_gradient(['turbineX', 'turbineY'], ['mean'], return_format='dict')
+    # JacobianX = J['mean']['turbineX']
+    # JacobianY = J['mean']['turbineY']
+    # JacobianX = JacobianX.flatten()
+    # JacobianY = JacobianY.flatten()
+    # gradient = np.concatenate((JacobianX, JacobianY))
+    # print 'dmean/dturbineX'
+    # print JacobianX
+    # print 'dmean/dturbineY'
+    # print JacobianY
+    # gradientfile = 'gradient.txt'
+    # np.savetxt(gradientfile, gradient)
+    #
+    # fig, ax = plt.subplots()
+    # ax.plot(gradient, label='gradient')
+    # ax.legend()
+    # plt.show()
 
     # For visualization purposes. Get the PC approximation
     if method_dict['method'] == 'dakota':

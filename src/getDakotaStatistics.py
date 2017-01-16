@@ -44,20 +44,20 @@ def postprocess(dakotaFile):
 
     with open(filename, 'r') as f:
         # Find the coefficients
-        # while True:
-        #     line = f.readline()
-        #     if 'coefficient' in line:
-        #         break
-        #     if not line: break
-        #
-        # # Read the coefficients
-        # f.readline()
+        while True:
+            line = f.readline()
+            if 'coefficient ' in line:
+                break
+            if not line: break
+
+        # Read the coefficients
+        f.readline()
         coeff = []
-        # while True:
-        #     try:
-        #         coeff.append(float(f.readline().split()[0]))
-        #     except ValueError:
-        #         break
+        while True:
+            try:
+                coeff.append(float(f.readline().split()[0]))
+            except ValueError:
+                break
 
         # Find the function
         while True:
@@ -87,3 +87,4 @@ if __name__ == '__main__':
     # Write out the calculated AEP to be read by the DakotaAEP Component
     np.savetxt('mean.txt', [mean], header='mean power')  # put in [] It doesn't like to write a scalar
     np.savetxt('std.txt', [std], header='std power')
+    np.savetxt('coeff.txt', [coeff], header='coefficients')

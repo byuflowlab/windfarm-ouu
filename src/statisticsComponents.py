@@ -54,6 +54,12 @@ class DakotaStatistics(ExternalCode):
                                                         , params['windSpeeds'], params['windWeights'],
                                                         wake_model, IndepVarFunc)
 
+        # Set the outputs (unknowns)
+        unknowns['Powers'] = powers
+        unknowns['dpower_dturbX'] = dpower_dturbX
+        unknowns['dpower_dturbY'] = dpower_dturbY
+
+        # Get the rest of unknowns mean and std
         # Generate the file with the power vector for Dakota
         np.savetxt('powerInput.txt', powers, header='Powers')
 
@@ -61,11 +67,6 @@ class DakotaStatistics(ExternalCode):
         super(DakotaStatistics, self).solve_nonlinear(params,unknowns,resids)
 
         os.remove('powerInput.txt')
-
-        # Set the outputs (unknowns)
-        unknowns['Powers'] = powers
-        unknowns['dpower_dturbX'] = dpower_dturbX
-        unknowns['dpower_dturbY'] = dpower_dturbY
 
         # number of hours in a year
         hours = 8760.0
@@ -80,7 +81,62 @@ class DakotaStatistics(ExternalCode):
 
     def linearize(self, params, unknowns, resids):
 
-        J = linearize_function(params, unknowns)
+        method_dict = params['method_dict']
+        coeff_method = method_dict['coeff_method']
+
+        if coeff_method == 'quadrature':
+            J = linearize_function(params, unknowns)
+
+        if coeff_method == 'regression':
+            # Reuse the code to call dakota (the solve non_linear)
+            # Write to the powerInput.txt file the gradient with respect to each design variable for each evaluation.
+            # The gradient of the mean is the vector made up of the first coefficient of each solve.
+
+            dpower_dturbX = unknowns['dpower_dturbX']
+            dpower_dturbY = unknowns['dpower_dturbY']
+
+            print 'In linearize for regression case'
+
+            m, n = dpower_dturbX.shape
+            dmean_dturbX = np.zeros([1, n])
+            dmean_dturbY = np.zeros([1, n])
+
+            # Get dmean_dturbX
+            print 'Gradients wrt X turbine locations'
+            for j in range(n):  # Loop over the columns
+                # Generate the file with the right hand side for Dakota
+                rhs = dpower_dturbX[:, j]
+                np.savetxt('powerInput.txt', rhs, header='Powers')
+
+                # Have dakota solve the system for the gradients of the coefficients
+                super(DakotaStatistics, self).solve_nonlinear(params,unknowns,resids)
+
+                os.remove('powerInput.txt')
+                print 'Regression solution %d, coeffs = ' % j, np.loadtxt('coeff.txt')
+                dmean_dturbX[0][j] = np.loadtxt('coeff.txt')[0]  # Take the zeroth coefficient
+
+            # Get dmean_dturbY
+            print 'Gradients wrt Y turbine locations'
+            for j in range(n):  # Loop over the columns
+                # Generate the file with the right hand side for Dakota
+                rhs = dpower_dturbY[:, j]
+                np.savetxt('powerInput.txt', rhs, header='Powers')
+
+                # Have dakota solve the system for the gradients of the coefficients
+                super(DakotaStatistics, self).solve_nonlinear(params,unknowns,resids)
+
+                os.remove('powerInput.txt')
+
+                print 'Regression solution %d, coeffs = ' % j, np.loadtxt('coeff.txt')
+                dmean_dturbY[0][j] = np.loadtxt('coeff.txt')[0]  # Take the zeroth coefficient
+
+            # number of hours in a year
+            hours = 8760.0
+
+            J = {}
+            J[('mean', 'turbineX')] = hours*dmean_dturbX
+            J[('mean', 'turbineY')] = hours*dmean_dturbY
+
         # print('Calculate Derivatives:', self.name)
 
         return J
