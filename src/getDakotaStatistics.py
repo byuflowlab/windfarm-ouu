@@ -4,6 +4,7 @@ import sys
 import numpy as np
 from dakotaInterface import RedirectOutput
 
+
 def getDakotaStatistics(dakotaFile):
 
     dakotaInput = dakotaFile + '.tmp'

@@ -1,17 +1,18 @@
-from openmdao.api import Problem, Group, ExternalCode, IndepVarComp, Component
+from openmdao.api import Problem, Group, IndepVarComp, Component
 import numpy as np
 import os
 import json
 import shutil
 import chaospy as cp
 from WakeModelCall import getPower
+from getDakotaStatistics import getDakotaStatistics
 
 from wakeexchange.floris import floris_wrapper, add_floris_params_IndepVarComps
 from wakeexchange.jensen import jensen_wrapper, add_jensen_params_IndepVarComps
 from wakeexchange.gauss import gauss_wrapper, add_gauss_params_IndepVarComps
 
 
-class DakotaStatistics(ExternalCode):
+class DakotaStatistics(Component):
     """Use Dakota to estimate the statistics."""
 
     def __init__(self, nTurbines=60, nDirections=10, method_dict=None):
@@ -41,10 +42,6 @@ class DakotaStatistics(ExternalCode):
         self.add_output('mean', val=0.0, units='kWh', desc='mean annual energy output of wind farm')
         self.add_output('std', val=0.0, units='kWh', desc='std of energy output of wind farm')
 
-        # File in which the external code is implemented
-        pythonfile = 'getDakotaStatistics.py'
-        self.options['command'] = ['python', pythonfile, method_dict['dakota_filename']]
-
     def solve_nonlinear(self, params, unknowns, resids):
 
         wake_model, IndepVarFunc = determine_wake_model(params['method_dict'])
@@ -63,16 +60,17 @@ class DakotaStatistics(ExternalCode):
         # Generate the file with the power vector for Dakota
         np.savetxt('powerInput.txt', powers, header='Powers')
 
-        # parent solve_nonlinear function actually runs the external code
-        super(DakotaStatistics, self).solve_nonlinear(params,unknowns,resids)
+        # Call Dakota for the statistics
+        dakotaFile = params['method_dict']['dakota_filename']
+        mean, std, coeff = getDakotaStatistics(dakotaFile)
 
         os.remove('powerInput.txt')
 
         # number of hours in a year
         hours = 8760.0
         # promote statistics to class attribute
-        unknowns['mean'] = np.loadtxt('mean.txt')*hours
-        unknowns['std'] = np.loadtxt('std.txt')*hours
+        unknowns['mean'] = mean*hours
+        unknowns['std'] = std*hours
 
         # Modify the statistics to account for the truncation of the weibull (speed) case.
         modify_statistics(params, unknowns)  # It doesn't do anything for the direction case.
@@ -109,11 +107,12 @@ class DakotaStatistics(ExternalCode):
                 np.savetxt('powerInput.txt', rhs, header='Powers')
 
                 # Have dakota solve the system for the gradients of the coefficients
-                super(DakotaStatistics, self).solve_nonlinear(params,unknowns,resids)
+                dakotaFile = params['method_dict']['dakota_filename']
+                unused_mean, unused_std, coeff = getDakotaStatistics(dakotaFile)
 
                 os.remove('powerInput.txt')
-                print 'Regression solution %d, coeffs = ' % j, np.loadtxt('coeff.txt')
-                dmean_dturbX[0][j] = np.loadtxt('coeff.txt')[0]  # Take the zeroth coefficient
+                print 'Regression solution %d, coeffs = ' % j, coeff
+                dmean_dturbX[0][j] = coeff[0]  # Take the zeroth coefficient
 
             # Get dmean_dturbY
             print 'Gradients wrt Y turbine locations'
@@ -123,12 +122,13 @@ class DakotaStatistics(ExternalCode):
                 np.savetxt('powerInput.txt', rhs, header='Powers')
 
                 # Have dakota solve the system for the gradients of the coefficients
-                super(DakotaStatistics, self).solve_nonlinear(params,unknowns,resids)
+                dakotaFile = params['method_dict']['dakota_filename']
+                unused_mean, unused_std, coeff = getDakotaStatistics(dakotaFile)
 
                 os.remove('powerInput.txt')
 
-                print 'Regression solution %d, coeffs = ' % j, np.loadtxt('coeff.txt')
-                dmean_dturbY[0][j] = np.loadtxt('coeff.txt')[0]  # Take the zeroth coefficient
+                print 'Regression solution %d, coeffs = ' % j, coeff
+                dmean_dturbY[0][j] = coeff[0]  # Take the zeroth coefficient
 
             # number of hours in a year
             hours = 8760.0
