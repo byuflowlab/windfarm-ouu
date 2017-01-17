@@ -14,14 +14,14 @@ class WakeModelGroup(Group):
 
     def __init__(self, nTurbines, nDirections=1, use_rotor_components=False, datasize=0,
                  differentiable=True, optimizingLayout=False, nSamples=0,
-                 wake_model=floris_wrapper, wake_model_options=None, 
+                 wake_model=floris_wrapper, wake_model_options=None,
                  params_IdepVar_func=add_floris_params_IndepVarComps, params_IndepVar_args=None):
 
         super(WakeModelGroup, self).__init__()
 
         # Check derivatives
         # self.deriv_options['type'] = 'fd'
-        # self.deriv_options['form'] = 'central'
+        # self.deriv_options['form'] = 'forward'
         # self.deriv_options['step_size'] = 1.0e-5
 
         if wake_model_options is None:
@@ -109,7 +109,6 @@ class WakeModelGroup(Group):
                                   'wtVelocity%i' % direction_id, 'wtPower%i' % direction_id,
                                   'dir_power%i' % direction_id, 'wsArray%i' % direction_id]))
 
-        # Specify how the energy statistics are computed
         self.add('powerMUX', MUX(nDirections, units=power_units))
 
         # connect components

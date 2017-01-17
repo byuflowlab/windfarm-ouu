@@ -2,6 +2,7 @@
 import numpy as np
 from openmdao.api import Problem
 from WakeModelGroup import WakeModelGroup
+from wakeexchange.floris import floris_wrapper, add_floris_params_IndepVarComps
 
 
 def getPower(turbineX, turbineY, windDirections, windSpeeds, windWeights, wake_model, IndepVarFunc):
@@ -60,8 +61,19 @@ def getPower(turbineX, turbineY, windDirections, windSpeeds, windWeights, wake_m
     prob.run()
 
     powers = prob['powerMUX.Array']
-    JacobianX = prob.calc_gradient(['turbineX'], ['powerMUX.Array'])
-    JacobianY = prob.calc_gradient(['turbineY'], ['powerMUX.Array'])
+    if wake_model is floris_wrapper:
+        J = prob.calc_gradient(['turbineX', 'turbineY'], ['powerMUX.Array'], return_format='dict')
+        JacobianX = J['powerMUX.Array']['turbineX']
+        JacobianY = J['powerMUX.Array']['turbineY']
+    else:
+        print 'Forcing finite difference for wake model ', wake_model  # Does the Gauss model have gradients.
+        # To set finite difference options--step size, form, do so directly in the WakeModelGroup
+        # J = prob.calc_gradient(['turbineX', 'turbineY'], ['powerMUX.Array'], return_format='dict', mode='fd')  # force fd mode
+        # JacobianX = J['powerMUX.Array']['turbineX']
+        # JacobianY = J['powerMUX.Array']['turbineY']
+        # If you don't want gradients comment above and uncomment below.
+        JacobianX = np.array([None])
+        JacobianY = np.array([None])
 
     return powers, JacobianX, JacobianY
 
@@ -79,7 +91,6 @@ if __name__ == "__main__":
     windSpeeds = np.ones(n)*wind_speed
     windWeights = np.ones(n)/n
 
-    from wakeexchange.floris import floris_wrapper, add_floris_params_IndepVarComps
     wake_model = floris_wrapper
     IndepVarFunc = add_floris_params_IndepVarComps
 
