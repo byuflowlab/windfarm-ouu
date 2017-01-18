@@ -44,9 +44,10 @@ class DakotaStatistics(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
 
-        wake_model, IndepVarFunc = determine_wake_model(params['method_dict'])
+        wake_model_name = params['method_dict']['wake_model']
+        wake_model, IndepVarFunc = get_wake_model(wake_model_name)
 
-        # In here have the openMDAO subproblem pass in what it needs, pass out the gradients and the powers.
+        # Call the wake model
         powers, dpower_dturbX, dpower_dturbY = getPower(params['turbineX'], params['turbineY'], params['windDirections']
                                                         , params['windSpeeds'], params['windWeights'],
                                                         wake_model, IndepVarFunc)
@@ -142,6 +143,199 @@ class DakotaStatistics(Component):
         return J
 
 
+class DakotaStatisticsMulti(Component):
+    """Use Dakota to estimate the statistics."""
+
+    def __init__(self, nTurbines=60, nDirectionsHigh=10, nDirectionsLow=10, method_dict=None):
+        super(DakotaStatisticsMulti, self).__init__()
+
+        # define inputs
+        self.add_param('method_dict', method_dict, pass_by_obj=True,
+                       desc='parameters for the UQ method')
+
+        self.add_param('windDirectionsHigh', np.zeros(nDirectionsHigh),
+                       desc='vector containing the wind directions')
+        self.add_param('windSpeedsHigh', np.zeros(nDirectionsHigh),
+                       desc='vector containing the wind speeds')
+        self.add_param('windWeightsHigh', np.zeros(nDirectionsHigh),
+                       desc='vector containing the integration weight associated with each power')
+
+        self.add_param('windDirectionsLow', np.zeros(nDirectionsLow),
+                       desc='vector containing the wind directions')
+        self.add_param('windSpeedsLow', np.zeros(nDirectionsLow),
+                       desc='vector containing the wind speeds')
+        self.add_param('windWeightsLow', np.zeros(nDirectionsLow),
+                       desc='vector containing the integration weight associated with each power')
+
+        self.add_param('turbineX', np.zeros(nTurbines),
+                       desc='vector containing the turbine X locations')
+        self.add_param('turbineY', np.zeros(nTurbines),
+                       desc='vector containing the turbine Y locations')
+
+        # define output
+        self.add_output('PowersCorr', np.zeros(nDirectionsHigh), units ='kW',
+                       desc='vector containing the power production for each winddirection and windspeed pair')
+        self.add_output('dpowerCorr_dturbX', np.zeros([nDirectionsHigh, nTurbines]),
+                       desc='vector containing the gradient of the power wrt turbineX locations')
+        self.add_output('dpowerCorr_dturbY', np.zeros([nDirectionsHigh, nTurbines]),
+                       desc='vector containing the gradient of the power wrt turbineY locations')
+
+        self.add_output('PowersLow', np.zeros(nDirectionsLow), units ='kW',
+                       desc='vector containing the power production for each winddirection and windspeed pair')
+        self.add_output('dpowerLow_dturbX', np.zeros([nDirectionsLow, nTurbines]),
+                       desc='vector containing the gradient of the power wrt turbineX locations')
+        self.add_output('dpowerLow_dturbY', np.zeros([nDirectionsLow, nTurbines]),
+                       desc='vector containing the gradient of the power wrt turbineY locations')
+
+        self.add_output('mean', val=0.0, units='kWh', desc='mean annual energy output of wind farm')
+        self.add_output('std', val=0.0, units='kWh', desc='std of energy output of wind farm')
+
+    def solve_nonlinear(self, params, unknowns, resids):
+
+        High = 0  # the first entry
+        Low = 1  # the second entry
+
+        ### Solve the high fidelity wake model ###
+        wake_model_name = params['method_dict']['wake_model'][High]
+        wake_model, IndepVarFunc = get_wake_model(wake_model_name)
+
+        # Call the High-fidelity wake model
+        powersHigh, dpowerHigh_dturbX, dpowerHigh_dturbY = getPower(params['turbineX'], params['turbineY'],
+                        params['windDirectionsHigh'], params['windSpeedsHigh'], params['windWeightsHigh'],
+                        wake_model, IndepVarFunc)
+
+        ### Solve low fidelity wake model ###
+        wake_model_name = params['method_dict']['wake_model'][Low]
+        wake_model, IndepVarFunc = get_wake_model(wake_model_name)
+
+        # For the correction, Call the Low-fidelity wake model at the high-fidelity points
+        powersLow, dpowerLow_dturbX, dpowerLow_dturbY = getPower(params['turbineX'], params['turbineY'],
+                        params['windDirectionsHigh'], params['windSpeedsHigh'], params['windWeightsHigh'],
+                        wake_model, IndepVarFunc)
+
+        powersCorr = powersHigh - powersLow
+        # dpowerCorr_dturbX = dpowerHigh_dturbX - dpowerLow_dturbX  # dpowerLow_dTurbX might not be activated
+        # dpowerCorr_dturbY = dpowerHigh_dturbY - dpowerLow_dturbY  # dpowerLow_dTurbY might not be activated
+        dpowerCorr_dturbX = np.array([None])
+        dpowerCorr_dturbY = np.array([None])
+
+        # Call the Low-fidelity wake model at the low-fidelity points
+        powersLow, dpowerLow_dturbX, dpowerLow_dturbY = getPower(params['turbineX'], params['turbineY'],
+                        params['windDirectionsLow'], params['windSpeedsLow'], params['windWeightsLow'],
+                        wake_model, IndepVarFunc)
+
+        ### Get the rest of unknowns mean and std ###
+
+        # The correction expansion
+
+        # Generate the file with the power vector for Dakota
+        np.savetxt('powerInput.txt', powersCorr, header='Powers')
+
+        # Call Dakota for the statistics
+        dakotaFile = params['method_dict']['dakota_filename'] + params['method_dict']['file_extensions'][High]
+        meanCorr, stdCorr, coeffCorr = getDakotaStatistics(dakotaFile)
+
+        os.remove('powerInput.txt')
+
+        # The low fidelity expansion
+        # Generate the file with the power vector for Dakota
+        np.savetxt('powerInput.txt', powersLow, header='Powers')
+
+        # Call Dakota for the statistics
+        dakotaFile = params['method_dict']['dakota_filename'] + params['method_dict']['file_extensions'][Low]
+        meanLow, stdLow, coeffLow = getDakotaStatistics(dakotaFile)
+
+        os.remove('powerInput.txt')
+
+        # Set the outputs (unknowns)
+        unknowns['PowersCorr'] = powersCorr
+        unknowns['dpowerCorr_dturbX'] = dpowerCorr_dturbX
+        unknowns['dpowerCorr_dturbY'] = dpowerCorr_dturbY
+
+        unknowns['PowersLow'] = powersLow
+        unknowns['dpowerLow_dturbX'] = dpowerLow_dturbX
+        unknowns['dpowerLow_dturbY'] = dpowerLow_dturbY
+
+        # Promote the multi-fidelity statistics (just the mean)
+
+        # number of hours in a year
+        hours = 8760.0
+        # promote statistics to class attribute
+
+        unknowns['mean'] = (meanLow + meanCorr) * hours
+        unknowns['std'] = None  # Multi-fidelity std not implemented
+
+        # Modify the statistics to account for the truncation of the weibull (speed) case.
+        modify_statistics(params, unknowns)  # It doesn't do anything for the direction case.
+
+        print 'In DakotaStatistics'
+
+    def linearize(self, params, unknowns, resids):
+
+        #TODO update to work for multifidelity case
+        method_dict = params['method_dict']
+        coeff_method = method_dict['coeff_method']
+
+        if coeff_method == 'quadrature':
+            J = linearize_function(params, unknowns)
+
+        if coeff_method == 'regression':
+            # Reuse the code to call dakota (the solve non_linear)
+            # Write to the powerInput.txt file the gradient with respect to each design variable for each evaluation.
+            # The gradient of the mean is the vector made up of the first coefficient of each solve.
+
+            dpower_dturbX = unknowns['dpower_dturbX']
+            dpower_dturbY = unknowns['dpower_dturbY']
+
+            print 'In linearize for regression case'
+
+            m, n = dpower_dturbX.shape
+            dmean_dturbX = np.zeros([1, n])
+            dmean_dturbY = np.zeros([1, n])
+
+            # Get dmean_dturbX
+            print 'Gradients wrt X turbine locations'
+            for j in range(n):  # Loop over the columns
+                # Generate the file with the right hand side for Dakota
+                rhs = dpower_dturbX[:, j]
+                np.savetxt('powerInput.txt', rhs, header='Powers')
+
+                # Have dakota solve the system for the gradients of the coefficients
+                dakotaFile = params['method_dict']['dakota_filename']
+                unused_mean, unused_std, coeff = getDakotaStatistics(dakotaFile)
+
+                os.remove('powerInput.txt')
+                print 'Regression solution %d, coeffs = ' % j, coeff
+                dmean_dturbX[0][j] = coeff[0]  # Take the zeroth coefficient
+
+            # Get dmean_dturbY
+            print 'Gradients wrt Y turbine locations'
+            for j in range(n):  # Loop over the columns
+                # Generate the file with the right hand side for Dakota
+                rhs = dpower_dturbY[:, j]
+                np.savetxt('powerInput.txt', rhs, header='Powers')
+
+                # Have dakota solve the system for the gradients of the coefficients
+                dakotaFile = params['method_dict']['dakota_filename']
+                unused_mean, unused_std, coeff = getDakotaStatistics(dakotaFile)
+
+                os.remove('powerInput.txt')
+
+                print 'Regression solution %d, coeffs = ' % j, coeff
+                dmean_dturbY[0][j] = coeff[0]  # Take the zeroth coefficient
+
+            # number of hours in a year
+            hours = 8760.0
+
+            J = {}
+            J[('mean', 'turbineX')] = hours*dmean_dturbX
+            J[('mean', 'turbineY')] = hours*dmean_dturbY
+
+        # print('Calculate Derivatives:', self.name)
+
+        return J
+
+
 class ChaospyStatistics(Component):
     """Use chaospy to estimate the statistics."""
 
@@ -174,9 +368,10 @@ class ChaospyStatistics(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
 
-        wake_model, IndepVarFunc = determine_wake_model(params['method_dict'])
+        wake_model_name = params['method_dict']['wake_model']
+        wake_model, IndepVarFunc = get_wake_model(wake_model_name)
 
-        # In here have the openMDAO subproblem pass in what it needs, pass out the gradients and the powers.
+        # Call the wake model
         powers, dpower_dturbX, dpower_dturbY = getPower(params['turbineX'], params['turbineY'], params['windDirections']
                                                         , params['windSpeeds'], params['windWeights'],
                                                         wake_model, IndepVarFunc)
@@ -268,9 +463,10 @@ class RectStatistics(Component):
 
     def solve_nonlinear(self, params, unknowns, resids):
 
-        wake_model, IndepVarFunc = determine_wake_model(params['method_dict'])
+        wake_model_name = params['method_dict']['wake_model']
+        wake_model, IndepVarFunc = get_wake_model(wake_model_name)
 
-        # In here have the openMDAO subproblem pass in what it needs, pass out the gradients and the powers.
+        # Call the wake model
         powers, dpower_dturbX, dpower_dturbY = getPower(params['turbineX'], params['turbineY'], params['windDirections']
                                                         , params['windSpeeds'], params['windWeights'],
                                                         wake_model, IndepVarFunc)
@@ -377,15 +573,15 @@ def modify_statistics(params, unknowns):
         unknowns['std'] = np.sqrt(1-k) * stdt + np.sqrt(k*(1-k)) * meant  # formula found in truncation write up.
 
 
-def determine_wake_model(method_dict):
+def get_wake_model(wake_model_name):
     # define wake model inputs
-    if method_dict['wake_model'] is 'floris':
+    if wake_model_name is 'floris':
         wake_model = floris_wrapper
         IndepVarFunc = add_floris_params_IndepVarComps
-    elif method_dict['wake_model'] is 'jensen':
+    elif wake_model_name is 'jensen':
         wake_model = jensen_wrapper
         IndepVarFunc = add_jensen_params_IndepVarComps
-    elif method_dict['wake_model'] is 'gauss':
+    elif wake_model_name is 'gauss':
         wake_model = gauss_wrapper
         IndepVarFunc = add_gauss_params_IndepVarComps
     else:
