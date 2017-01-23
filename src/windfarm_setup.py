@@ -403,6 +403,7 @@ def getWeights(x, dx, dist):
     # print np.sum(w)   # this should sum to 1
     return w
 
+
 def getLayout(layout='grid'):
     ### Set up the farm ###
 
@@ -446,35 +447,65 @@ def getLayout(layout='grid'):
         # Amalia optimized
         # locations = np.genfromtxt('../WindFarms/AmaliaOptimizedXY.txt', delimiter=' ') # Amalia optimized Jared
         locations = np.genfromtxt('../WindFarms/layout_optimized.txt', delimiter=' ')
-        turbineX = locations[:,0]
-        turbineY = locations[:,1]
+        turbineX = locations[:, 0]
+        turbineY = locations[:, 1]
 
     elif layout == 'layout1':
 
         # Amalia optimized
         # locations = np.genfromtxt('../WindFarms/AmaliaOptimizedXY.txt', delimiter=' ') # Amalia optimized Jared
         locations = np.genfromtxt('../WindFarms/layout_1.txt', delimiter=' ')
-        turbineX = locations[:,0]
-        turbineY = locations[:,1]
+        turbineX = locations[:, 0]
+        turbineY = locations[:, 1]
 
     elif layout == 'layout2':
 
         # Amalia optimized
         # locations = np.genfromtxt('../WindFarms/AmaliaOptimizedXY.txt', delimiter=' ') # Amalia optimized Jared
         locations = np.genfromtxt('../WindFarms/layout_2.txt', delimiter=' ')
-        turbineX = locations[:,0]
-        turbineY = locations[:,1]
+        turbineX = locations[:, 0]
+        turbineY = locations[:, 1]
 
     elif layout == 'layout3':
 
         # Amalia optimized
         # locations = np.genfromtxt('../WindFarms/AmaliaOptimizedXY.txt', delimiter=' ') # Amalia optimized Jared
         locations = np.genfromtxt('../WindFarms/layout_3.txt', delimiter=' ')
-        turbineX = locations[:,0]
-        turbineY = locations[:,1]
+        turbineX = locations[:, 0]
+        turbineY = locations[:, 1]
+
+    elif layout == 'amalia_sub1':
+        # A sub part of the amalia layout
+        locations = np.genfromtxt('../WindFarms/layout_amalia_sub1.txt', delimiter=' ')
+        turbineX = locations[:, 0]
+        turbineY = locations[:, 1]
+
+    elif layout == 'amalia_sub2':
+        # A sub part of the amalia layout
+        locations = np.genfromtxt('../WindFarms/layout_amalia_sub2.txt', delimiter=' ')
+        turbineX = locations[:, 0]
+        turbineY = locations[:, 1]
+
+    elif layout == 'amalia_sub3':
+        # A sub part of the amalia layout
+        locations = np.genfromtxt('../WindFarms/layout_amalia_sub3.txt', delimiter=' ')
+        turbineX = locations[:, 0]
+        turbineY = locations[:, 1]
+
+    elif layout == 'amalia_sub4':
+        # A sub part of the amalia layout
+        locations = np.genfromtxt('../WindFarms/layout_amalia_sub4.txt', delimiter=' ')
+        turbineX = locations[:, 0]
+        turbineY = locations[:, 1]
+
+    elif layout == 'amalia_sub5':
+        # A sub part of the amalia layout
+        locations = np.genfromtxt('../WindFarms/layout_amalia_sub5.txt', delimiter=' ')
+        turbineX = locations[:, 0]
+        turbineY = locations[:, 1]
 
     else:
-        raise ValueError('unknown layout option "%s", \nvalid options ["amalia", "optimized", "random", "test", "grid", "layout1", "layout2", "layout3"]' %layout)
+        raise ValueError('unknown layout option "%s", \nvalid options ["amalia", "optimized", "random", "test", "grid", "layout1", "layout2", "layout3", amalia_sub1, amalia_sub2, amalia_sub3, amalia_sub4, amalia_sub5]' %layout)
 
     # plt.figure()
     # plt.scatter(turbineX, turbineY)
