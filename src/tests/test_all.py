@@ -24,7 +24,8 @@ def get_method_dict():
                    'dakota_filename': 'tests/dakotageneral.in',  # 'tests/dakotageneralPy.in'
                    'coeff_method': 'quadrature',
                    'windspeed_ref': 8,
-                   'winddirection_ref': 225}
+                   'winddirection_ref': 225,
+                   'verbose': False}
     return method_dict
 
 

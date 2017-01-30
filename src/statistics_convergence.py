@@ -30,7 +30,8 @@ def run(method_dict, n):
     """
 
     ### For visualization purposes. Set up the file that specifies the points for the polynomial approximation ###
-    if method_dict['method'] == 'dakota':
+    # Technically I should also check if I am running dakota with PC and not sampling. Just don't run sampling with verbose option
+    if method_dict['method'] == 'dakota' and method_dict['verbose']:
         approximate.generate_approx_file(method_dict['uncertain_var'])
 
     ### Set up the wind speeds and wind directions for the problem ###
@@ -86,7 +87,8 @@ def run(method_dict, n):
     # plt.show()
 
     # For visualization purposes. Get the PC approximation
-    if method_dict['method'] == 'dakota':
+    # Technically I should also check if I am running dakota with PC and not sampling. Just don't run sampling with verbose option
+    if method_dict['method'] == 'dakota' and method_dict['verbose']:
         winddirections_approx, windspeeds_approx, power_approx = approximate.get_approximation(method_dict)
     else:
         winddirections_approx = np.array([None])
