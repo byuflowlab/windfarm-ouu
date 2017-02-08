@@ -83,8 +83,16 @@ class OptAEP(Group):
             self.add('boundary_con', BoundaryComp(nVertices=nVertices, nTurbines=nTurbines), promotes=['*'])
 
         # add constraint definitions
-        self.add('spacing_con', ExecComp('sc = wtSeparationSquared-(minSpacing*rotorDiameter[0])**2',
-                                         minSpacing=minSpacing, rotorDiameter=np.zeros(nTurbines),
+        # rotorDiameter = 126.4  # Now this is defined in the interior subproblem. So use this value explicitly below
+        # self.add('spacing_con', ExecComp('sc = wtSeparationSquared-(minSpacing*rotorDiameter[0])**2',
+        #                                  minSpacing=minSpacing, rotorDiameter=np.zeros(nTurbines),
+        #                                  sc=np.zeros(((nTurbines-1.)*nTurbines/2.)),
+        #                                  wtSeparationSquared=np.zeros(((nTurbines-1.)*nTurbines/2.))),
+        #                                  promotes=['*'])
+
+        # add constraint definitions
+        self.add('spacing_con', ExecComp('sc = wtSeparationSquared-(minSpacing*126.4)**2',
+                                         minSpacing=minSpacing,
                                          sc=np.zeros(((nTurbines-1.)*nTurbines/2.)),
                                          wtSeparationSquared=np.zeros(((nTurbines-1.)*nTurbines/2.))),
                                          promotes=['*'])

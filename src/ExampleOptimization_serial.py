@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from openmdao.api import Problem, pyOptSparseDriver
+from openmdao.api import Problem, pyOptSparseDriver, SqliteRecorder
 from OptimizationGroup import OptAEP
 from wakeexchange.GeneralWindFarmComponents import calculate_boundary
 
@@ -54,8 +54,8 @@ if __name__ == "__main__":
     method_dict['uncertain_var']    = 'direction'
     # select model: floris, jensen, gauss, larsen (larsen not working yet) TODO get larsen model working
     method_dict['wake_model']       = 'floris'
-    method_dict['dakota_filename']  = 'dakotageneral.in'
-    # method_dict['dakota_filename']  = 'dakotageneralPy.in'  # Interface with python support
+    # method_dict['dakota_filename']  = 'dakotageneral.in'
+    method_dict['dakota_filename']  = 'dakotageneralPy.in'  # Interface with python support
     method_dict['coeff_method']     = 'quadrature'
 
     # Specify the distribution according to the uncertain variable
@@ -102,29 +102,41 @@ if __name__ == "__main__":
     prob = Problem(root=OptAEP(nTurbines=nTurbs, nDirections=N, minSpacing=minSpacing, nVertices=nVertices, method_dict=method_dict))
 
     # set up optimizer
+    # Scale everything (variables, objective, constraints) to make order 1.
+    diameter = 126.4  # meters, used in the scaling
     prob.driver = pyOptSparseDriver()
     prob.driver.options['optimizer'] = 'SNOPT'
-    prob.driver.add_objective('obj', scaler=1E-8)  # the amalia has the scaler at 1e-5, originally 1E-8
+    prob.driver.add_objective('obj', scaler=1E-8)
 
     # set optimizer options
     prob.driver.opt_settings['Verify level'] = -1  # 3
     prob.driver.opt_settings['Print file'] = 'SNOPT_print_exampleOptAEP.out'
     prob.driver.opt_settings['Summary file'] = 'SNOPT_summary_exampleOptAEP.out'
     prob.driver.opt_settings['Major iterations limit'] = 1000
-    prob.driver.opt_settings['Major optimality tolerance'] = 2E-6
+    prob.driver.opt_settings['Major optimality tolerance'] = 1E-4
+    prob.driver.opt_settings['Major feasibility tolerance'] = 1E-4
+    prob.driver.opt_settings['Minor feasibility tolerance'] = 1E-4
+    prob.driver.opt_settings['Function precision'] = 1E-5
 
     # select design variables
-    prob.driver.add_desvar('turbineX', scaler=1.0)
-    prob.driver.add_desvar('turbineY', scaler=1.0)
+    prob.driver.add_desvar('turbineX', adder=-turbineX, scaler=1.0/diameter)
+    prob.driver.add_desvar('turbineY', adder=-turbineY, scaler=1.0/diameter)
     # for direction_id in range(0, N):
     #     prob.driver.add_desvar('yaw%i' % direction_id, lower=-30.0, upper=30.0, scaler=1.0)
 
     # add constraints
-    # prob.driver.add_constraint('sc', lower=np.zeros(((nTurbs-1.)*nTurbs/2.)), scaler=1.0/rotor_diameter)
-    prob.driver.add_constraint('sc', lower=np.zeros(((nTurbs-1.)*nTurbs/2.)), scaler=1.0)
-    prob.driver.add_constraint('boundaryDistances', lower=np.zeros(nVertices*nTurbs), scaler=1.0)
+    prob.driver.add_constraint('sc', lower=np.zeros(((nTurbs-1.)*nTurbs/2.)), scaler=1.0/((20*diameter)**2))
+    prob.driver.add_constraint('boundaryDistances', lower=np.zeros(nVertices*nTurbs), scaler=1.0/(10*diameter))
 
+    # Reduces time of computation
     prob.root.ln_solver.options['single_voi_relevance_reduction'] = True
+
+    # Set up a recorder
+    recorder = SqliteRecorder('optimization.sqlite')
+    # recorder.options['record_params'] = True
+    # recorder.options['record_metadata'] = True
+    prob.driver.add_recorder(recorder)
+
     tic = time.time()
     prob.setup(check=False)
     toc = time.time()
@@ -149,6 +161,8 @@ if __name__ == "__main__":
     tic = time.time()
     prob.run()
     toc = time.time()
+
+    prob.cleanup()  # this closes all recorders
 
     # print the results
     print('FLORIS Opt. calculation took %.03f sec.' % (toc-tic))
