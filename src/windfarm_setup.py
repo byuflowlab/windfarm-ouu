@@ -504,8 +504,14 @@ def getLayout(layout='grid'):
         turbineX = locations[:, 0]
         turbineY = locations[:, 1]
 
+    elif layout == 'local':
+        # A layout in your local directory
+        locations = np.genfromtxt('layout_local.txt', delimiter=' ')
+        turbineX = locations[:, 0]
+        turbineY = locations[:, 1]
+
     else:
-        raise ValueError('unknown layout option "%s", \nvalid options ["amalia", "optimized", "random", "test", "grid", "layout1", "layout2", "layout3", amalia_sub1, amalia_sub2, amalia_sub3, amalia_sub4, amalia_sub5]' %layout)
+        raise ValueError('unknown layout option "%s", \nvalid options ["amalia", "optimized", "random", "test", "grid", "layout1", "layout2", "layout3", "amalia_sub1", "amalia_sub2", "amalia_sub3", "amalia_sub4", "amalia_sub5", "local"]' %layout)
 
     # plt.figure()
     # plt.scatter(turbineX, turbineY)
