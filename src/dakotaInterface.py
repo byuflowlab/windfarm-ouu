@@ -232,6 +232,12 @@ def updateDakotaFile(method_dict, sample_number, x, f):
                 else:
                     lines[i] = {coeff_method: [str(sample_number)]}
                 break
+        if method_dict['verbose']:
+            # Add file with the polynomial approximation
+            lines.insert(i+1, {'import_approx_points_file': ["'approximate_at.dat'"]})
+            lines.insert(i+2, {'annotated': []})
+            lines.insert(i+3, {'export_approx_points_file': ["'approximated.dat'"]})
+            lines.insert(i+4, {'annotated': []})
 
     if 'sampling' in keys:  # If we are running Monte Carlo, specified in the dakota input file
         for i, line in enumerate(lines):
