@@ -31,10 +31,8 @@ def run(method_dict, n_high, n_low):
     """
 
     ### For visualization purposes. Set up the file that specifies the points for the polynomial approximation ###
-    if method_dict['method'] == 'dakota':
+    if method_dict['method'] == 'dakota' and method_dict['verbose']:
         approximate.generate_approx_file(method_dict['uncertain_var'])
-
-    ### Set up the wind speeds and wind directions for the problem ###
 
     # Create dakota files for the high and low fidelity
     High = 0
@@ -44,6 +42,8 @@ def run(method_dict, n_high, n_low):
     dakota_file_low = dakota_file + method_dict['file_extensions'][Low]
     shutil.copy(dakota_file, dakota_file_high)
     shutil.copy(dakota_file, dakota_file_low)
+
+    ### Set up the wind speeds and wind directions for the problem ###
 
     # The high fidelity points
     method_dict['dakota_filename'] = dakota_file_high  # Update the input dakota file
@@ -79,7 +79,7 @@ def run(method_dict, n_high, n_low):
     # initialize problem
     prob = Problem(AEPGroupMulti(nTurbines=turbineX.size, nDirectionsHigh=N_high, nDirectionsLow=N_low, method_dict=method_dict))
 
-    prob.setup(check=True)
+    prob.setup(check=False)
 
     # assign initial values to variables
     prob['windSpeedsHigh'] = windspeeds_high
@@ -117,7 +117,7 @@ def run(method_dict, n_high, n_low):
     # plt.show()
 
     # For visualization purposes. Get the PC approximation
-    if method_dict['method'] == 'dakota':
+    if method_dict['method'] == 'dakota' and method_dict['verbose']:
         winddirections_approx, windspeeds_approx, power_approx = approximate.get_approximation(method_dict)
     else:
         winddirections_approx = np.array([None])
@@ -168,9 +168,14 @@ def get_args():
     parser = argparse.ArgumentParser(description='Run statistics convergence')
     parser.add_argument('--windspeed_ref', default=8, type=float, help='the wind speed for the wind direction case')
     parser.add_argument('--winddirection_ref', default=225, type=float, help='the wind direction for the wind speed case')
-    parser.add_argument('-l', '--layout', default='optimized', help="specify layout ['amalia', 'optimized', 'grid', 'random', 'test']")
+    parser.add_argument('-l', '--layout', default='optimized', help="specify layout: 'amalia', 'optimized', 'grid', 'random', 'test', 'local'")
     parser.add_argument('--offset', default=0, type=int, help='offset for starting direction. offset=[0, 1, 2, Noffset-1]')
     parser.add_argument('--Noffset', default=10, type=int, help='number of starting directions to consider')
+    parser.add_argument('-n', '--nSamples', default=5, type=int, help='n is roughly a surrogate for the number of samples')
+    parser.add_argument('--method', default='rect', help="specify method: 'rect', 'dakota'")
+    parser.add_argument('--wake_model', default='floris', help="specify model: 'floris', 'jensen', 'gauss'")
+    parser.add_argument('--uncertain_var', default='direction', help="specify uncertain variable: 'direction', 'speed', 'direction_and_speed'")
+    parser.add_argument('--coeff_method', default='quadrature', help="specify coefficient method for dakota: 'quadrature', 'regression'")
     parser.add_argument('--verbose', action='store_true', help='Includes results for every run in the output json file')
     parser.add_argument('--version', action='version', version='Statistics convergence 0.0')
     args = parser.parse_args()
@@ -192,8 +197,8 @@ if __name__ == "__main__":
     method_dict['wake_model']       = ['floris', 'jensen']  # High, low
     method_dict['uncertain_var']    = 'direction'
     # method_dict['layout']         = 'optimized'  # Now this is specified in the command line
-    method_dict['dakota_filename']  = 'dakotageneral.in'
-    # method_dict['dakota_filename']  = 'dakotageneralPy.in'  # Interface with python support
+    # method_dict['dakota_filename']  = 'dakotageneral.in'
+    method_dict['dakota_filename']  = 'dakotageneralPy.in'  # Interface with python support
     # To Do specify the number of points (directions or speeds) as an option as well.
     method_dict['coeff_method']     = 'quadrature'
     method_dict['file_extensions']  = ['.high', '.low']  # These are used for correctly setting name for dakota file in multifidelity
