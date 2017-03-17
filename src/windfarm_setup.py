@@ -391,6 +391,12 @@ def getWeights(x, dx, dist):
     for xi in x:
         xleft = xi-dx/2.
         xright = xi+dx/2.
+        # if xleft > 110:
+        #     xleft = xleft + 30
+        # if xright > 110:
+        #     xright = xright + 30
+        # print 'xleft = ', xleft
+        # print 'xright = ', xright
         if xright > 360.0:
             w.append(1 - dist._cdf(xleft) + dist._cdf(xright-360))
         elif xleft < 0.0:

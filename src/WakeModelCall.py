@@ -63,8 +63,12 @@ def getPower(turbineX, turbineY, windDirections, windSpeeds, windWeights, wake_m
     powers = prob['powerMUX.Array']
     if wake_model is floris_wrapper:
         J = prob.calc_gradient(['turbineX', 'turbineY'], ['powerMUX.Array'], return_format='dict')
+        # To set finite difference options--step size, form, do so directly in the WakeModelGroup
+        # J = prob.calc_gradient(['turbineX', 'turbineY'], ['powerMUX.Array'], return_format='dict', mode='fd')  # force fd mode with default 1e-6 absolute
         JacobianX = J['powerMUX.Array']['turbineX']
         JacobianY = J['powerMUX.Array']['turbineY']
+        # JacobianX = np.array([None])
+        # JacobianY = np.array([None])
     else:
         print 'Forcing finite difference for wake model ', wake_model  # Does the Gauss model have gradients.
         # To set finite difference options--step size, form, do so directly in the WakeModelGroup
