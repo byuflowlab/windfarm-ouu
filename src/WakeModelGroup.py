@@ -23,6 +23,7 @@ class WakeModelGroup(Group):
         # self.deriv_options['type'] = 'fd'
         # self.deriv_options['form'] = 'forward'
         # self.deriv_options['step_size'] = 1.0e-5
+        # print 'Derivatives are finite difference'  # Think of maybe making this an option to pass to the model.
 
         if wake_model_options is None:
             wake_model_options = {'differentiable': differentiable, 'use_rotor_components': use_rotor_components,

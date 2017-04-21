@@ -142,6 +142,53 @@ class amaliaWindRoseRaw(object):
         return self.lo, self.hi
 
 
+class Uniform(object):
+    """A Uniform distribution."""
+
+    def __init__(self):
+        self.lo = 0.0
+        self.hi = 360.0
+
+    def pdf(self, x):
+
+        lo = self.lo
+        hi = self.hi
+
+        pdf = []
+        x = x.flatten()  # In the constructor of the distribution it gets made a 2d array for some reason. But not for cdf
+        x = np.atleast_1d(x)  # makes it work if x is a scalar
+        for x_i in x:
+            if x_i < lo:
+                pdf.append(0.0)
+            elif x_i > hi:
+                pdf.append(0.0)
+            else:
+                pdf.append(1.0/(hi-lo))
+        return np.array(pdf)
+
+    def cdf(self, x):
+
+        lo = self.lo
+        hi = self.hi
+
+        cdf = []
+        x = np.atleast_1d(x)  # makes it work if x is a scalar
+        for x_i in x:
+            if x_i < lo:
+                cdf.append(0.0)
+            elif x_i > hi:
+                cdf.append(1.0)
+            else:
+                cdf.append((x_i - lo)/(hi-lo))
+        return np.array(cdf)
+
+    def str(self):
+        return "Uniform(%s, %s)" % (self.lo, self.hi)
+
+    def bnd(self):
+        return self.lo, self.hi
+
+
 class amaliaWindRoseRaw01(object):
     """The raw amalia distribution."""
 
@@ -334,17 +381,18 @@ def getWindRose():
         and extended by it.
     """
 
-    amalia_wind_rose = amaliaWindRose()
-    # amalia_wind_rose = amaliaWindRoseRaw()  # Using this option needs updating
-    # amalia_wind_rose = amaliaWindRoseRaw01()
+    wind_rose = amaliaWindRose()
+    # wind_rose = amaliaWindRoseRaw()  # Using this option needs updating
+    # wind_rose = Uniform()
+    # wind_rose = amaliaWindRoseRaw01()
 
 
     # Set the necessary functions to construct a chaospy distribution
     windRose = cp.construct(
-        cdf=lambda self, x: amalia_wind_rose.cdf(x),
-        bnd=lambda self: amalia_wind_rose.bnd(),
-        pdf=lambda self, x: amalia_wind_rose.pdf(x),
-        str=lambda self: amalia_wind_rose.str()
+        cdf=lambda self, x: wind_rose.cdf(x),
+        bnd=lambda self: wind_rose.bnd(),
+        pdf=lambda self, x: wind_rose.pdf(x),
+        str=lambda self: wind_rose.str()
     )
 
     windrose_dist = windRose()
@@ -354,8 +402,8 @@ def getWindRose():
     # print windrose_dist.range()
 
     # Dynamically add method
-    if amalia_wind_rose.str() == 'Amalia windrose':
-        windrose_dist.get_zero_probability_region = amalia_wind_rose.get_zero_probability_region
+    if wind_rose.str() == 'Amalia windrose':
+        windrose_dist.get_zero_probability_region = wind_rose.get_zero_probability_region
 
 
     return windrose_dist

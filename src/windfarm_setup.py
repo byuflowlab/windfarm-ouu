@@ -193,7 +193,8 @@ def getPointsModifiedAmaliaDistribution(dist, method_dict, n):
         # Modify x, to start from the max probability location
         x = modifyx(x, A, B, C, r)
         # Get the weights associated with the points locations
-        w = getWeights(x, dx, dist)
+        # w = getWeights(x, dx, dist)
+        w = getWeightsModifiedAmalia(x, dx, dist)
 
     if method == 'dakota':
 
@@ -284,12 +285,78 @@ def getPointsRawAmaliaDistribution(dist, method_dict, n):
 
     return x, w
 
+def getPointsUniformDistribution(dist, method_dict, n):
+
+    method = method_dict['method']
+    bnd = dist.range()
+    a = bnd[0]  # left boundary
+    b = bnd[1]  # right boundary
+    a = a[0]  # get rid of the list
+    b = b[0]  # get rid of the list
+
+    C = 225  # Location of max probability or desired starting location.
+    R = b-a  # range 360
+
+    # Modify with offset, manually choose the offset you want
+    N = method_dict['Noffset']  # N = 10
+    i = method_dict['offset']  # i = [0, 1, 2, N-1]
+
+    if method == 'rect':
+        # the offset fits N points in the given dx interval
+        dx = R/n
+        offset = i*dx/N  # make sure this is float
+        bounds = [a+offset, R+offset]
+        x = np.linspace(bounds[0], bounds[1], n+1)
+        x = x[:-1]+dx/2  # Take the midpoints of the bins
+        # Modify x, to start from the max probability location
+        x = (x+C) % R
+        # Get the weights associated with the points locations
+        w = getWeights(x, dx, dist)
+
+    if method == 'dakota':
+
+        # Modify the starting point C with offset
+        offset = i*R/N  # the offset modifies the starting point for N locations within the whole interval
+        C = (C + offset) % R
+        # Use the y to set the abscissas, and the pdf to set the ordinates
+        y = np.linspace(a, R, 51)  # play with the number here
+        dy = y[1]-y[0]
+        mid = y[:-1]+dy/2
+
+        # Modify the mid to start from the max probability location
+        ynew = (mid+C) % R
+
+        f = dist.pdf(ynew)
+
+        # Modify y to -1 to 1 range, I think makes dakota generation of polynomials easier
+        x = 2*(y-a) / R - 1
+
+        updateDakotaFile(method_dict, n, x, f)
+        # run Dakota file to get the points locations
+        x, w = getSamplePoints(method_dict['dakota_filename'])
+        assert len(x) == 1, 'Should only be returning the directions'
+        x = np.array(x[0])
+        # Rescale x
+        x = R*x/2. + R/2. + a
+
+        # Call modify x with the new x.
+        x = (x+C) % R
+
+    if method == 'chaospy':
+        # I need to adjust the starting position and all of that.
+        x, w = cp.generate_quadrature(n-1, dist, rule='G')
+        x = x[0]
+
+    return x, w
+
 def getPointsDirection(dist, method_dict, n):
 
     if dist._str() == 'Amalia windrose':
         x, w = getPointsModifiedAmaliaDistribution(dist, method_dict, n)
     if dist._str() == 'Amalia windrose raw':
         x, w = getPointsRawAmaliaDistribution(dist, method_dict, n)
+    if dist._str() == 'Uniform(0.0, 360.0)':
+        x, w = getPointsUniformDistribution(dist, method_dict, n)
 
     return x, w
 
@@ -391,22 +458,48 @@ def getWeights(x, dx, dist):
     for xi in x:
         xleft = xi-dx/2.
         xright = xi+dx/2.
-        # if xleft > 110:
-        #     xleft = xleft + 30
-        # if xright > 110:
-        #     xright = xright + 30
-        # print 'xleft = ', xleft
-        # print 'xright = ', xright
+
         if xright > 360.0:
             w.append(1 - dist._cdf(xleft) + dist._cdf(xright-360))
         elif xleft < 0.0:
             w.append(dist._cdf(xright) + (1 - dist._cdf(360+xleft)))
         else:
             w.append(dist._cdf(xright) - dist._cdf(xleft))
-        # print xi+dx/2., xi-dx/2.
+
     w = np.array(w).flatten()
     # print w  # all weights should be positive
-    # print np.sum(w)   # this should sum to 1
+    # print 'the sum', np.sum(w)
+    np.testing.assert_almost_equal(np.sum(w),1.0, decimal=13, err_msg='the weights should add to 1.')
+    return w
+
+
+def getWeightsModifiedAmalia(x, dx, dist):
+    # Logic to get the weights from integrating the pdf between the bins
+
+    w = []
+    counter = 0
+    for xi in x:
+        xleft = xi-dx/2.
+        xright = xi+dx/2.
+
+        # This logic is to make sure that the weights add up to 1, because of the skipping over the zero probability region.
+        if counter > 0 and (xleft%360) != (xright_old%360):
+            xleft = xright_old  # This works for the current zero probability region (110-140). A zero probability region near the boundaries might require more logic.
+
+        if xright > 360.0:
+            w.append(1 - dist._cdf(xleft) + dist._cdf(xright-360))
+        elif xleft < 0.0:
+            w.append(dist._cdf(xright) + (1 - dist._cdf(360+xleft)))
+        else:
+            w.append(dist._cdf(xright) - dist._cdf(xleft))
+
+        xright_old = xright
+        counter += 1
+
+    w = np.array(w).flatten()
+    # print w  # all weights should be positive
+    # print 'the sum', np.sum(w)
+    np.testing.assert_almost_equal(np.sum(w),1.0, decimal=13, err_msg='the weights should add to 1.')
     return w
 
 
