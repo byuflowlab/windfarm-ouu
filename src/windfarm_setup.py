@@ -87,7 +87,7 @@ def getPointsDirectionSpeed(dist, method_dict, n):
             C = (C + offset) % r
             x_d, f_d = generate_direction_abscissas_ordinates(a_d, A, B, C, r, R, dist_dir)
 
-        if dist_dir._str() == 'Amalia windrose raw':
+        if dist_dir._str() == 'Amalia windrose raw' or dist_dir._str() == 'Uniform(0.0, 360.0)':
 
             C = 225  # Location of max probability or desired starting location.
             R = b_d-a_d  # range 360
@@ -122,6 +122,7 @@ def getPointsDirectionSpeed(dist, method_dict, n):
         # run Dakota file to get the points locations
         # This one also needs to work for the 1 and 2d cases.
         x, w = getSamplePoints(method_dict['dakota_filename'])
+        np.testing.assert_almost_equal(np.sum(w),1.0, decimal=8, err_msg='the weights should add to 1.')
         assert len(x) == 2, 'Should be returning the directions and speeds'
         x_d = np.array(x[0])
         x_s = np.array(x[1])
@@ -132,7 +133,7 @@ def getPointsDirectionSpeed(dist, method_dict, n):
             x_d = R*x_d/2. + R/2. + a_d  # R = 330
             # Call modify x with the new x.
             x_d = modifyx(x_d, A, B, C, r)
-        if dist_dir._str() == 'Amalia windrose raw':
+        if dist_dir._str() == 'Amalia windrose raw' or dist_dir._str() == 'Uniform(0.0, 360.0)':
             # Rescale x
             x_d = R*x_d/2. + R/2. + a_d  # R = 360
             # Call modify x with the new x.
@@ -205,6 +206,7 @@ def getPointsModifiedAmaliaDistribution(dist, method_dict, n):
         updateDakotaFile(method_dict, n, x, f)
         # run Dakota file to get the points locations
         x, w = getSamplePoints(method_dict['dakota_filename'])
+        np.testing.assert_almost_equal(np.sum(w),1.0, decimal=8, err_msg='the weights should add to 1.')
         assert len(x) == 1, 'Should only be returning the directions'
         x = np.array(x[0])
         # Rescale x
@@ -221,7 +223,7 @@ def getPointsModifiedAmaliaDistribution(dist, method_dict, n):
     return x, w
 
 
-def getPointsRawAmaliaDistribution(dist, method_dict, n):
+def getPointsUnmodifiedDistribution(dist, method_dict, n):
 
     method = method_dict['method']
     bnd = dist.range()
@@ -270,6 +272,7 @@ def getPointsRawAmaliaDistribution(dist, method_dict, n):
         updateDakotaFile(method_dict, n, x, f)
         # run Dakota file to get the points locations
         x, w = getSamplePoints(method_dict['dakota_filename'])
+        np.testing.assert_almost_equal(np.sum(w),1.0, decimal=8, err_msg='the weights should add to 1.')
         assert len(x) == 1, 'Should only be returning the directions'
         x = np.array(x[0])
         # Rescale x
@@ -285,78 +288,13 @@ def getPointsRawAmaliaDistribution(dist, method_dict, n):
 
     return x, w
 
-def getPointsUniformDistribution(dist, method_dict, n):
-
-    method = method_dict['method']
-    bnd = dist.range()
-    a = bnd[0]  # left boundary
-    b = bnd[1]  # right boundary
-    a = a[0]  # get rid of the list
-    b = b[0]  # get rid of the list
-
-    C = 225  # Location of max probability or desired starting location.
-    R = b-a  # range 360
-
-    # Modify with offset, manually choose the offset you want
-    N = method_dict['Noffset']  # N = 10
-    i = method_dict['offset']  # i = [0, 1, 2, N-1]
-
-    if method == 'rect':
-        # the offset fits N points in the given dx interval
-        dx = R/n
-        offset = i*dx/N  # make sure this is float
-        bounds = [a+offset, R+offset]
-        x = np.linspace(bounds[0], bounds[1], n+1)
-        x = x[:-1]+dx/2  # Take the midpoints of the bins
-        # Modify x, to start from the max probability location
-        x = (x+C) % R
-        # Get the weights associated with the points locations
-        w = getWeights(x, dx, dist)
-
-    if method == 'dakota':
-
-        # Modify the starting point C with offset
-        offset = i*R/N  # the offset modifies the starting point for N locations within the whole interval
-        C = (C + offset) % R
-        # Use the y to set the abscissas, and the pdf to set the ordinates
-        y = np.linspace(a, R, 51)  # play with the number here
-        dy = y[1]-y[0]
-        mid = y[:-1]+dy/2
-
-        # Modify the mid to start from the max probability location
-        ynew = (mid+C) % R
-
-        f = dist.pdf(ynew)
-
-        # Modify y to -1 to 1 range, I think makes dakota generation of polynomials easier
-        x = 2*(y-a) / R - 1
-
-        updateDakotaFile(method_dict, n, x, f)
-        # run Dakota file to get the points locations
-        x, w = getSamplePoints(method_dict['dakota_filename'])
-        assert len(x) == 1, 'Should only be returning the directions'
-        x = np.array(x[0])
-        # Rescale x
-        x = R*x/2. + R/2. + a
-
-        # Call modify x with the new x.
-        x = (x+C) % R
-
-    if method == 'chaospy':
-        # I need to adjust the starting position and all of that.
-        x, w = cp.generate_quadrature(n-1, dist, rule='G')
-        x = x[0]
-
-    return x, w
 
 def getPointsDirection(dist, method_dict, n):
 
     if dist._str() == 'Amalia windrose':
         x, w = getPointsModifiedAmaliaDistribution(dist, method_dict, n)
-    if dist._str() == 'Amalia windrose raw':
-        x, w = getPointsRawAmaliaDistribution(dist, method_dict, n)
-    if dist._str() == 'Uniform(0.0, 360.0)':
-        x, w = getPointsUniformDistribution(dist, method_dict, n)
+    if dist._str() == 'Amalia windrose raw' or dist._str() == 'Uniform(0.0, 360.0)':
+        x, w = getPointsUnmodifiedDistribution(dist, method_dict, n)
 
     return x, w
 
