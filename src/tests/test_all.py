@@ -25,6 +25,7 @@ def get_method_dict():
                    'coeff_method': 'quadrature',
                    'windspeed_ref': 8,
                    'winddirection_ref': 225,
+                   'dirdistribution': 'amaliaModified',
                    'verbose': False}
     return method_dict
 
@@ -35,7 +36,7 @@ def add_distribution(method_dict):
         dist = distributions.getWeibull()
         method_dict['distribution'] = dist
     elif method_dict['uncertain_var'] == 'direction':
-        dist = distributions.getWindRose()
+        dist = distributions.getWindRose(method_dict['dirdistribution'])
         method_dict['distribution'] = dist
     else:
         raise ValueError('unknown uncertain_var option "%s", valid options "speed" or "direction".' %method_dict['uncertain_var'])

@@ -375,17 +375,21 @@ def getWeibull():
     return weibull_dist
 
 
-def getWindRose():
+def getWindRose(distribution):
     """Gets a chaospy distribution,
         which is initialized with a distribution class I created
         and extended by it.
     """
 
-    wind_rose = amaliaWindRose()
-    # wind_rose = amaliaWindRoseRaw()  # Using this option needs updating
-    # wind_rose = Uniform()
-    # wind_rose = amaliaWindRoseRaw01()
+    # Return the desired distribution (windRose)
+    if distribution == 'amaliaModified':
+        wind_rose = amaliaWindRose()
+    if distribution == 'amaliaRaw':
+        wind_rose = amaliaWindRoseRaw()
+    if distribution == 'Uniform':
+        wind_rose = Uniform()
 
+    # wind_rose = amaliaWindRoseRaw01()  # This options needs updating
 
     # Set the necessary functions to construct a chaospy distribution
     windRose = cp.construct(

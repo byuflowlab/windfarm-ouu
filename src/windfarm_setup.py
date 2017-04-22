@@ -122,7 +122,6 @@ def getPointsDirectionSpeed(dist, method_dict, n):
         # run Dakota file to get the points locations
         # This one also needs to work for the 1 and 2d cases.
         x, w = getSamplePoints(method_dict['dakota_filename'])
-        np.testing.assert_almost_equal(np.sum(w),1.0, decimal=8, err_msg='the weights should add to 1.')
         assert len(x) == 2, 'Should be returning the directions and speeds'
         x_d = np.array(x[0])
         x_s = np.array(x[1])
@@ -206,7 +205,6 @@ def getPointsModifiedAmaliaDistribution(dist, method_dict, n):
         updateDakotaFile(method_dict, n, x, f)
         # run Dakota file to get the points locations
         x, w = getSamplePoints(method_dict['dakota_filename'])
-        np.testing.assert_almost_equal(np.sum(w),1.0, decimal=8, err_msg='the weights should add to 1.')
         assert len(x) == 1, 'Should only be returning the directions'
         x = np.array(x[0])
         # Rescale x
@@ -263,7 +261,6 @@ def getPointsUnmodifiedDistribution(dist, method_dict, n):
 
         # Modify the mid to start from the max probability location
         ynew = (mid+C) % R
-
         f = dist.pdf(ynew)
 
         # Modify y to -1 to 1 range, I think makes dakota generation of polynomials easier
@@ -272,7 +269,6 @@ def getPointsUnmodifiedDistribution(dist, method_dict, n):
         updateDakotaFile(method_dict, n, x, f)
         # run Dakota file to get the points locations
         x, w = getSamplePoints(method_dict['dakota_filename'])
-        np.testing.assert_almost_equal(np.sum(w),1.0, decimal=8, err_msg='the weights should add to 1.')
         assert len(x) == 1, 'Should only be returning the directions'
         x = np.array(x[0])
         # Rescale x
