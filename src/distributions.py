@@ -111,9 +111,12 @@ class amaliaWindRoseRaw(object):
         w = likelihood/dx
         # Make sure it adds up to 1.
         # print 'integral of the pdf = ', np.sum(w*dx)
-        # Adjust to include the point at 360, which is the same as 0.
-        direction = np.append(direction, direction[-1]+dx)
-        w = np.append(w, w[0])
+        # Assume the weights correspond to the midpoint values of the directions
+        direction = direction + dx/2.
+        # Add the end point directions and endpoint weights
+        weight_end = (w[0]+w[-1])/2.
+        direction = np.concatenate([[0], direction, [360]])
+        w = np.concatenate([[weight_end], w, [weight_end]])
         f = interp1d(direction, w)
         return f
 

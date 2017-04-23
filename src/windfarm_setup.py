@@ -393,7 +393,7 @@ def getWeights(x, dx, dist):
         xleft = xi-dx/2.
         xright = xi+dx/2.
 
-        if xright > 360.0:
+        if xright >= 360.0:  # The equal because the pdf for the raw distribution doesn't integrate exactly to 1 in the cdf.
             w.append(1 - dist._cdf(xleft) + dist._cdf(xright-360))
         elif xleft < 0.0:
             w.append(dist._cdf(xright) + (1 - dist._cdf(360+xleft)))
@@ -412,23 +412,28 @@ def getWeightsModifiedAmalia(x, dx, dist):
 
     w = []
     counter = 0
-    for xi in x:
-        xleft = xi-dx/2.
-        xright = xi+dx/2.
 
-        # This logic is to make sure that the weights add up to 1, because of the skipping over the zero probability region.
-        if counter > 0 and (xleft%360) != (xright_old%360):
-            xleft = xright_old  # This works for the current zero probability region (110-140). A zero probability region near the boundaries might require more logic.
+    if len(x) == 1:  # Avoids having to do the logic when there is only one point.
+        w = 1
+    else:
+        for xi in x:
+            xleft = xi-dx/2.
+            xright = xi+dx/2.
 
-        if xright > 360.0:
-            w.append(1 - dist._cdf(xleft) + dist._cdf(xright-360))
-        elif xleft < 0.0:
-            w.append(dist._cdf(xright) + (1 - dist._cdf(360+xleft)))
-        else:
-            w.append(dist._cdf(xright) - dist._cdf(xleft))
+            # This logic is to make sure that the weights add up to 1, because of the skipping over the zero probability region.
+            # if counter > 0 and (xleft%360) != (xright_old%360):  # Doesn't work properly because of rounding errors.
+            if counter > 0 and not np.isclose(xleft%360, xright_old%360, rtol=0.0, atol=1e-13):
+                xleft = xright_old%360
 
-        xright_old = xright
-        counter += 1
+            if xright >= 360.0:  # The equal because the pdf for the modified amalia distribution doesn't integrate exactly to 1 ind the cdf.
+                w.append(1 - dist._cdf(xleft) + dist._cdf(xright-360))
+            elif xleft < 0.0:
+                w.append(dist._cdf(xright) + (1 - dist._cdf(360+xleft)))
+            else:
+                w.append(dist._cdf(xright) - dist._cdf(xleft))
+
+            xright_old = xright
+            counter += 1
 
     w = np.array(w).flatten()
     # print w  # all weights should be positive
