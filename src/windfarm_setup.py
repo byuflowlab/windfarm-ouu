@@ -403,7 +403,7 @@ def getWeights(x, dx, dist):
     w = np.array(w).flatten()
     # print w  # all weights should be positive
     # print 'the sum', np.sum(w)
-    np.testing.assert_almost_equal(np.sum(w),1.0, decimal=13, err_msg='the weights should add to 1.')
+    np.testing.assert_almost_equal(np.sum(w), 1.0, decimal=12, err_msg='the weights should add to 1.')
     return w
 
 
@@ -411,18 +411,23 @@ def getWeightsModifiedAmalia(x, dx, dist):
     # Logic to get the weights from integrating the pdf between the bins
 
     w = []
-    counter = 0
 
     if len(x) == 1:  # Avoids having to do the logic when there is only one point.
-        w = 1
+        w.append(1)
     else:
+        counter = 0
         for xi in x:
             xleft = xi-dx/2.
             xright = xi+dx/2.
 
+            if counter == 0:
+                xleft_first = xleft
+            if counter+1 == len(x) and not np.isclose(xleft_first%360, xright%360, rtol=0.0, atol=1e-12):  # I think mostly the case when len(x) = 2
+                xright = 360+xleft_first
+
             # This logic is to make sure that the weights add up to 1, because of the skipping over the zero probability region.
             # if counter > 0 and (xleft%360) != (xright_old%360):  # Doesn't work properly because of rounding errors.
-            if counter > 0 and not np.isclose(xleft%360, xright_old%360, rtol=0.0, atol=1e-13):
+            if counter > 0 and not np.isclose(xleft%360, xright_old%360, rtol=0.0, atol=1e-12):
                 xleft = xright_old%360
 
             if xright >= 360.0:  # The equal because the pdf for the modified amalia distribution doesn't integrate exactly to 1 ind the cdf.
@@ -438,7 +443,7 @@ def getWeightsModifiedAmalia(x, dx, dist):
     w = np.array(w).flatten()
     # print w  # all weights should be positive
     # print 'the sum', np.sum(w)
-    np.testing.assert_almost_equal(np.sum(w),1.0, decimal=13, err_msg='the weights should add to 1.')
+    np.testing.assert_almost_equal(np.sum(w), 1.0, decimal=12, err_msg='the weights should add to 1.')
     return w
 
 
