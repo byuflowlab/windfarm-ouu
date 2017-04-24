@@ -383,6 +383,7 @@ def modifyx(x, A=110, B=140, C=225, r=360):
                 if xi < C:
                     xi = (xi + B-A) % r
             y.append(xi)
+
     return np.array(y)
 
 
@@ -423,7 +424,10 @@ def getWeightsModifiedAmalia(x, dx, dist):
             if counter == 0:
                 xleft_first = xleft
             if counter+1 == len(x) and not np.isclose(xleft_first%360, xright%360, rtol=0.0, atol=1e-12):  # I think mostly the case when len(x) = 2
-                xright = 360+xleft_first
+                if xright < xleft_first:
+                    xright = xleft_first
+                if xright > xleft_first:
+                    xright = 360+xleft_first
 
             # This logic is to make sure that the weights add up to 1, because of the skipping over the zero probability region.
             # if counter > 0 and (xleft%360) != (xright_old%360):  # Doesn't work properly because of rounding errors.
