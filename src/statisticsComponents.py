@@ -619,13 +619,13 @@ def modify_statistics(params, unknowns):
 
 def get_wake_model(wake_model_name):
     # define wake model inputs
-    if wake_model_name is 'floris':
+    if wake_model_name == 'floris':
         wake_model = floris_wrapper
         IndepVarFunc = add_floris_params_IndepVarComps
-    elif wake_model_name is 'jensen':
+    elif wake_model_name == 'jensen':
         wake_model = jensen_wrapper
         IndepVarFunc = add_jensen_params_IndepVarComps
-    elif wake_model_name is 'gauss':
+    elif wake_model_name == 'gauss':
         wake_model = gauss_wrapper
         IndepVarFunc = add_gauss_params_IndepVarComps
     else:
