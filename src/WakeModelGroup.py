@@ -15,15 +15,16 @@ class WakeModelGroup(Group):
     def __init__(self, nTurbines, nDirections=1, use_rotor_components=False, datasize=0,
                  differentiable=True, optimizingLayout=False, nSamples=0,
                  wake_model=floris_wrapper, wake_model_options=None,
-                 params_IdepVar_func=add_floris_params_IndepVarComps, params_IndepVar_args=None):
+                 params_IdepVar_func=add_floris_params_IndepVarComps, params_IndepVar_args=None, analytic_gradient=False):
 
         super(WakeModelGroup, self).__init__()
 
-        # Check derivatives
-        # self.deriv_options['type'] = 'fd'
-        # self.deriv_options['form'] = 'forward'
-        # self.deriv_options['step_size'] = 1.0e-5
-        # print 'Derivatives are finite difference'  # Think of maybe making this an option to pass to the model.
+        # Finite difference for all wake models except Floris. Floris can be analytic or fd
+        if wake_model is not floris_wrapper or not analytic_gradient:
+            # Check derivatives
+            self.deriv_options['type'] = 'fd'
+            self.deriv_options['form'] = 'forward'
+            self.deriv_options['step_size'] = 1.0e-5
 
         if wake_model_options is None:
             wake_model_options = {'differentiable': differentiable, 'use_rotor_components': use_rotor_components,

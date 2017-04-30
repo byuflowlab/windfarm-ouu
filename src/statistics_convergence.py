@@ -3,6 +3,7 @@ import numpy as np
 # import matplotlib.pyplot as plt
 import json
 import argparse
+import time
 import chaospy as cp
 from openmdao.api import Problem
 from AEPGroups import AEPGroup
@@ -144,6 +145,8 @@ def get_args():
     parser.add_argument('--uncertain_var', default='direction', help="specify uncertain variable: 'direction', 'speed', 'direction_and_speed'")
     parser.add_argument('--coeff_method', default='quadrature', help="specify coefficient method for dakota: 'quadrature', 'regression'")
     parser.add_argument('--dirdistribution', default='amaliaModified', help="specify the desired distribution for the wind direction: 'amaliaModified', 'amaliaRaw', 'Uniform'")
+    parser.add_argument('--gradient', action='store_true', help='Compute the power vs design variable gradient. Otherwise return None')
+    parser.add_argument('--analytic_gradient', action='store_true', help='Compute gradient analytically (Only Floris), otherwise compute gradient by fd')
     parser.add_argument('--verbose', action='store_true', help='Includes results for every run in the output json file')
     parser.add_argument('--version', action='version', version='Statistics convergence 0.0')
     args = parser.parse_args()
@@ -165,8 +168,8 @@ if __name__ == "__main__":
     method_dict['wake_model']       = 'floris'
     method_dict['uncertain_var']    = 'direction'
     # method_dict['layout']         = 'optimized'  # Now this is specified in the command line
-    method_dict['dakota_filename']  = 'dakotageneral.in'
-    # method_dict['dakota_filename']  = 'dakotageneralPy.in'  # Interface with python support
+    # method_dict['dakota_filename']  = 'dakotageneral.in'
+    method_dict['dakota_filename']  = 'dakotageneralPy.in'  # Interface with python support
     # To Do specify the number of points (directions or speeds) as an option as well.
     method_dict['coeff_method']     = 'quadrature'
 
@@ -195,6 +198,7 @@ if __name__ == "__main__":
         power = []
         power_approx = []
 
+    tic = time.time()
     # Depending on the case n can represent number of quadrature points, sparse grid level, expansion order
     # n is roughly a surrogate for the number of samples
     for n in range(5, 6, 1):
@@ -234,5 +238,8 @@ if __name__ == "__main__":
         jsonfile = open('record.json', 'w')
         json.dump(obj, jsonfile, indent=2)
         jsonfile.close()
+
+    toc = time.time()
+    print 'Statistics Convergence took %.03f sec.' % (toc-tic)
 
     # plot()

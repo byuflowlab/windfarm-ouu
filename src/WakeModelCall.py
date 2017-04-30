@@ -5,7 +5,7 @@ from WakeModelGroup import WakeModelGroup
 from wakeexchange.floris import floris_wrapper, add_floris_params_IndepVarComps
 
 
-def getPower(turbineX, turbineY, windDirections, windSpeeds, windWeights, wake_model, IndepVarFunc):
+def getPower(turbineX, turbineY, windDirections, windSpeeds, windWeights, gradient, analytic_gradient, wake_model, IndepVarFunc):
     """Calls the wake model, which is an openMDAO problem
 
     returns: The power for each wind direction and wind speed pair.
@@ -38,7 +38,7 @@ def getPower(turbineX, turbineY, windDirections, windSpeeds, windWeights, wake_m
 
     # initialize problem
     n = windDirections.size
-    prob = Problem(WakeModelGroup(nTurbines=nTurbs, nDirections=n, wake_model=wake_model, params_IdepVar_func=IndepVarFunc))
+    prob = Problem(WakeModelGroup(nTurbines=nTurbs, nDirections=n, wake_model=wake_model, params_IdepVar_func=IndepVarFunc, analytic_gradient=analytic_gradient))
     prob.setup(check=False)
 
     # assign initial values to design variables
@@ -61,21 +61,16 @@ def getPower(turbineX, turbineY, windDirections, windSpeeds, windWeights, wake_m
     prob.run()
 
     powers = prob['powerMUX.Array']
-    if wake_model is floris_wrapper:
+
+    # Compute the gradient of the power wrt to the turbine locations
+    if gradient:
         J = prob.calc_gradient(['turbineX', 'turbineY'], ['powerMUX.Array'], return_format='dict')
         # To set finite difference options--step size, form, do so directly in the WakeModelGroup
-        # J = prob.calc_gradient(['turbineX', 'turbineY'], ['powerMUX.Array'], return_format='dict', mode='fd')  # force fd mode with default 1e-6 absolute
+        # J = prob.calc_gradient(['turbineX', 'turbineY'], ['powerMUX.Array'], return_format='dict', mode='fd')  # force fd mode with default step 1e-6 absolute
         JacobianX = J['powerMUX.Array']['turbineX']
         JacobianY = J['powerMUX.Array']['turbineY']
-        # JacobianX = np.array([None])
-        # JacobianY = np.array([None])
+
     else:
-        print 'Forcing finite difference for wake model ', wake_model  # Does the Gauss model have gradients.
-        # To set finite difference options--step size, form, do so directly in the WakeModelGroup
-        # J = prob.calc_gradient(['turbineX', 'turbineY'], ['powerMUX.Array'], return_format='dict', mode='fd')  # force fd mode
-        # JacobianX = J['powerMUX.Array']['turbineX']
-        # JacobianY = J['powerMUX.Array']['turbineY']
-        # If you don't want gradients comment above and uncomment below.
         JacobianX = np.array([None])
         JacobianY = np.array([None])
 

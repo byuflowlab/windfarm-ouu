@@ -14,12 +14,6 @@ class AEPGroup(Group):
 
         super(AEPGroup, self).__init__()
 
-        # Check derivatives
-        # self.deriv_options['type'] = 'fd'
-        # self.deriv_options['form'] = 'forward'
-        # self.deriv_options['step_size'] = 1.0e-5
-        # self.deriv_options['step_calc'] = 'relative'
-
         # providing default unit types
         direction_units = 'deg'
         wind_speed_units = 'm/s'
@@ -54,12 +48,6 @@ class AEPGroupMulti(Group):
 
         super(AEPGroupMulti, self).__init__()
 
-        # Check derivatives
-        # self.deriv_options['type'] = 'fd'
-        # self.deriv_options['form'] = 'forward'
-        # self.deriv_options['step_size'] = 1.0e-5
-        # self.deriv_options['step_calc'] = 'relative'
-
         # providing default unit types
         direction_units = 'deg'
         wind_speed_units = 'm/s'
@@ -81,5 +69,4 @@ class AEPGroupMulti(Group):
         if method == 'dakota':
             self.add('AEPcomp', DakotaStatisticsMulti(nTurbines, nDirectionsHigh, nDirectionsLow, method_dict), promotes=['*'])
         else:
-            print "Only dakota UQ method is implemented for multi-fidelity"
-            sys.exit()
+            raise ValueError('Only "dakota" keyword for method implemented for multi-fidelity.\nReceived method keyword "%s"' %method)

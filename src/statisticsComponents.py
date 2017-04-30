@@ -48,8 +48,11 @@ class DakotaStatistics(Component):
         wake_model, IndepVarFunc = get_wake_model(wake_model_name)
 
         # Call the wake model
+        print 'Computing powers with wake model "%s".' %wake_model_name
         powers, dpower_dturbX, dpower_dturbY = getPower(params['turbineX'], params['turbineY'], params['windDirections']
                                                         , params['windSpeeds'], params['windWeights'],
+                                                        params['method_dict']['gradient'],
+                                                        params['method_dict']['analytic_gradient'],
                                                         wake_model, IndepVarFunc)
 
         # Set the outputs (unknowns)
@@ -154,7 +157,7 @@ class DakotaStatistics(Component):
                 raise ValueError('unknown option "%d", valid options "1" or "2"' %option)
 
 
-            # print('Calculate Derivatives:', self.name)
+        # print('Calculate Derivatives:', self.name)
 
         return J
 
@@ -216,8 +219,10 @@ class DakotaStatisticsMulti(Component):
         wake_model, IndepVarFunc = get_wake_model(wake_model_name)
 
         # Call the High-fidelity wake model
+        print 'Computing powers with HIGH-fidelity wake model "%s".' %wake_model_name
         powersHigh, dpowerHigh_dturbX, dpowerHigh_dturbY = getPower(params['turbineX'], params['turbineY'],
                         params['windDirectionsHigh'], params['windSpeedsHigh'], params['windWeightsHigh'],
+                        params['method_dict']['gradient'], params['method_dict']['analytic_gradient'],
                         wake_model, IndepVarFunc)
 
         ### Solve low fidelity wake model ###
@@ -225,19 +230,25 @@ class DakotaStatisticsMulti(Component):
         wake_model, IndepVarFunc = get_wake_model(wake_model_name)
 
         # For the correction, Call the Low-fidelity wake model at the high-fidelity points
+        print 'Computing powers with LOW-fidelity wake model "%s" at the HIGH-fidelity points.' %wake_model_name
         powersLow, dpowerLow_dturbX, dpowerLow_dturbY = getPower(params['turbineX'], params['turbineY'],
                         params['windDirectionsHigh'], params['windSpeedsHigh'], params['windWeightsHigh'],
+                        params['method_dict']['gradient'], params['method_dict']['analytic_gradient'],
                         wake_model, IndepVarFunc)
 
         powersCorr = powersHigh - powersLow
-        # dpowerCorr_dturbX = dpowerHigh_dturbX - dpowerLow_dturbX  # dpowerLow_dTurbX might not be activated
-        # dpowerCorr_dturbY = dpowerHigh_dturbY - dpowerLow_dturbY  # dpowerLow_dTurbY might not be activated
-        dpowerCorr_dturbX = np.array([None])
-        dpowerCorr_dturbY = np.array([None])
+        if params['method_dict']['gradient']:
+            dpowerCorr_dturbX = dpowerHigh_dturbX - dpowerLow_dturbX
+            dpowerCorr_dturbY = dpowerHigh_dturbY - dpowerLow_dturbY
+        else:
+            dpowerCorr_dturbX = np.array([None])
+            dpowerCorr_dturbY = np.array([None])
 
         # Call the Low-fidelity wake model at the low-fidelity points
+        print 'Computing powers with LOW-fidelity wake model "%s" at the LOW-fidelity points.' %wake_model_name
         powersLow, dpowerLow_dturbX, dpowerLow_dturbY = getPower(params['turbineX'], params['turbineY'],
                         params['windDirectionsLow'], params['windSpeedsLow'], params['windWeightsLow'],
+                        params['method_dict']['gradient'], params['method_dict']['analytic_gradient'],
                         wake_model, IndepVarFunc)
 
         ### Get the rest of unknowns mean and std ###
@@ -288,64 +299,80 @@ class DakotaStatisticsMulti(Component):
 
     def linearize(self, params, unknowns, resids):
 
-        #TODO update to work for multifidelity case
+        #TODO update the regression to work for multifidelity case
+
         method_dict = params['method_dict']
         coeff_method = method_dict['coeff_method']
 
         if coeff_method == 'quadrature':
-            J = linearize_function(params, unknowns)
+            J = linearize_function_multi(params, unknowns)
 
         if coeff_method == 'regression':
-            # Reuse the code to call dakota (the solve non_linear)
-            # Write to the powerInput.txt file the gradient with respect to each design variable for each evaluation.
-            # The gradient of the mean is the vector made up of the first coefficient of each solve.
 
-            dpower_dturbX = unknowns['dpower_dturbX']
-            dpower_dturbY = unknowns['dpower_dturbY']
+            option = 1
+            # 1 - compute the gradient of the mean by the definition
+            # 2 - compute it via solving the regression problem
 
-            print 'In linearize for regression case'
+            if option == 1:
+                J = linearize_function_regression(params, unknowns)
 
-            m, n = dpower_dturbX.shape
-            dmean_dturbX = np.zeros([1, n])
-            dmean_dturbY = np.zeros([1, n])
+            elif option == 2:
 
-            # Get dmean_dturbX
-            print 'Gradients wrt X turbine locations'
-            for j in range(n):  # Loop over the columns
-                # Generate the file with the right hand side for Dakota
-                rhs = dpower_dturbX[:, j]
-                np.savetxt('powerInput.txt', rhs, header='Powers')
+                ### Calculate by solving multiple regression problems
 
-                # Have dakota solve the system for the gradients of the coefficients
-                dakotaFile = params['method_dict']['dakota_filename']
-                unused_mean, unused_std, coeff = getDakotaStatistics(dakotaFile)
+                # Reuse the code to call dakota (the solve non_linear)
+                # Write to the powerInput.txt file the gradient with respect to each design variable for each evaluation.
+                # The gradient of the mean is the vector made up of the first coefficient of each solve.
 
-                os.remove('powerInput.txt')
-                print 'Regression solution %d, coeffs = ' % j, coeff
-                dmean_dturbX[0][j] = coeff[0]  # Take the zeroth coefficient
+                dpower_dturbX = unknowns['dpower_dturbX']
+                dpower_dturbY = unknowns['dpower_dturbY']
 
-            # Get dmean_dturbY
-            print 'Gradients wrt Y turbine locations'
-            for j in range(n):  # Loop over the columns
-                # Generate the file with the right hand side for Dakota
-                rhs = dpower_dturbY[:, j]
-                np.savetxt('powerInput.txt', rhs, header='Powers')
+                print 'In linearize for regression case'
 
-                # Have dakota solve the system for the gradients of the coefficients
-                dakotaFile = params['method_dict']['dakota_filename']
-                unused_mean, unused_std, coeff = getDakotaStatistics(dakotaFile)
+                m, n = dpower_dturbX.shape
+                dmean_dturbX = np.zeros([1, n])
+                dmean_dturbY = np.zeros([1, n])
 
-                os.remove('powerInput.txt')
+                # Get dmean_dturbX
+                print 'Gradients wrt X turbine locations'
+                for j in range(n):  # Loop over the columns
+                    # Generate the file with the right hand side for Dakota
+                    rhs = dpower_dturbX[:, j]
+                    np.savetxt('powerInput.txt', rhs, header='Powers')
 
-                print 'Regression solution %d, coeffs = ' % j, coeff
-                dmean_dturbY[0][j] = coeff[0]  # Take the zeroth coefficient
+                    # Have dakota solve the system for the gradients of the coefficients
+                    dakotaFile = params['method_dict']['dakota_filename']
+                    unused_mean, unused_std, coeff = getDakotaStatistics(dakotaFile)
 
-            # number of hours in a year
-            hours = 8760.0
+                    os.remove('powerInput.txt')
+                    print 'Regression solution %d, coeffs = ' % j, coeff
+                    dmean_dturbX[0][j] = coeff[0]  # Take the zeroth coefficient
 
-            J = {}
-            J[('mean', 'turbineX')] = hours*dmean_dturbX
-            J[('mean', 'turbineY')] = hours*dmean_dturbY
+                # Get dmean_dturbY
+                print 'Gradients wrt Y turbine locations'
+                for j in range(n):  # Loop over the columns
+                    # Generate the file with the right hand side for Dakota
+                    rhs = dpower_dturbY[:, j]
+                    np.savetxt('powerInput.txt', rhs, header='Powers')
+
+                    # Have dakota solve the system for the gradients of the coefficients
+                    dakotaFile = params['method_dict']['dakota_filename']
+                    unused_mean, unused_std, coeff = getDakotaStatistics(dakotaFile)
+
+                    os.remove('powerInput.txt')
+
+                    print 'Regression solution %d, coeffs = ' % j, coeff
+                    dmean_dturbY[0][j] = coeff[0]  # Take the zeroth coefficient
+
+                # number of hours in a year
+                hours = 8760.0
+
+                J = {}
+                J[('mean', 'turbineX')] = hours*dmean_dturbX
+                J[('mean', 'turbineY')] = hours*dmean_dturbY
+
+            else:
+                raise ValueError('unknown option "%d", valid options "1" or "2"' %option)
 
         # print('Calculate Derivatives:', self.name)
 
@@ -390,6 +417,8 @@ class ChaospyStatistics(Component):
         # Call the wake model
         powers, dpower_dturbX, dpower_dturbY = getPower(params['turbineX'], params['turbineY'], params['windDirections']
                                                         , params['windSpeeds'], params['windWeights'],
+                                                        params['method_dict']['gradient'],
+                                                        params['method_dict']['analytic_gradient'],
                                                         wake_model, IndepVarFunc)
 
         power = powers
@@ -485,6 +514,8 @@ class RectStatistics(Component):
         # Call the wake model
         powers, dpower_dturbX, dpower_dturbY = getPower(params['turbineX'], params['turbineY'], params['windDirections']
                                                         , params['windSpeeds'], params['windWeights'],
+                                                        params['method_dict']['gradient'],
+                                                        params['method_dict']['analytic_gradient'],
                                                         wake_model, IndepVarFunc)
 
         weights = params['windWeights']
@@ -599,6 +630,50 @@ def linearize_function_regression(params, unknowns):
 
     return J
 
+def linearize_function_multi(params, unknowns):
+
+    # Low-fidelity contribution to the gradients
+    dpower_dturbX = unknowns['dpowerLow_dturbX']
+    dpower_dturbY = unknowns['dpowerLow_dturbY']
+    weights = params['windWeightsLow']
+
+    m, n = dpower_dturbX.shape
+    dmean_dturbX = np.zeros([1, n])
+    dmean_dturbY = np.zeros([1, n])
+
+    for j in range(n):
+        for i in range(m):
+            dmean_dturbX[0][j] += weights[i]*dpower_dturbX[i][j]
+            dmean_dturbY[0][j] += weights[i]*dpower_dturbY[i][j]
+
+    dmeanLow_dturbX = dmean_dturbX
+    dmeanLow_dturbY = dmean_dturbY
+
+    # Correction contribution to the gradients
+    dpower_dturbX = unknowns['dpowerCorr_dturbX']
+    dpower_dturbY = unknowns['dpowerCorr_dturbY']
+    weights = params['windWeightsHigh']
+
+    m, n = dpower_dturbX.shape
+    dmean_dturbX = np.zeros([1, n])
+    dmean_dturbY = np.zeros([1, n])
+
+    for j in range(n):
+        for i in range(m):
+            dmean_dturbX[0][j] += weights[i]*dpower_dturbX[i][j]
+            dmean_dturbY[0][j] += weights[i]*dpower_dturbY[i][j]
+
+    dmeanCorr_dturbX = dmean_dturbX
+    dmeanCorr_dturbY = dmean_dturbY
+
+    # number of hours in a year
+    hours = 8760.0
+
+    J = {}
+    J[('mean', 'turbineX')] = hours*(dmeanLow_dturbX + dmeanCorr_dturbX)
+    J[('mean', 'turbineY')] = hours*(dmeanLow_dturbY + dmeanCorr_dturbY)
+
+    return J
 
 def modify_statistics(params, unknowns):
     uncertain_var = params['method_dict']['uncertain_var']

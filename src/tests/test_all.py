@@ -26,6 +26,8 @@ def get_method_dict():
                    'windspeed_ref': 8,
                    'winddirection_ref': 225,
                    'dirdistribution': 'amaliaModified',
+                   'gradient': False,
+                   'analytic_gradient': False,
                    'verbose': False}
     return method_dict
 

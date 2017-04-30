@@ -98,6 +98,7 @@ class amaliaWindRoseRaw(object):
         self.lo = 0.0
         self.hi = 360.0
         self.inputfile = '../WindRoses/windrose_amalia_8ms.txt'
+        # self.inputfile = '/Users/Santi/gitSoftware/windfarm-ouu/WindRoses/windrose_amalia_8ms.txt'
 
     def _wind_rose_func(self):
         wind_data = np.loadtxt(self.inputfile)
