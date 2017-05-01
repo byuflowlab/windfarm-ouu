@@ -299,8 +299,6 @@ class DakotaStatisticsMulti(Component):
 
     def linearize(self, params, unknowns, resids):
 
-        #TODO update the regression to work for multifidelity case
-
         method_dict = params['method_dict']
         coeff_method = method_dict['coeff_method']
 
@@ -314,9 +312,11 @@ class DakotaStatisticsMulti(Component):
             # 2 - compute it via solving the regression problem
 
             if option == 1:
-                J = linearize_function_regression(params, unknowns)
+                J = linearize_function_multi_regression(params, unknowns)
 
             elif option == 2:
+
+                #TODO update the regression option 2 to work for multifidelity case
 
                 ### Calculate by solving multiple regression problems
 
@@ -630,6 +630,7 @@ def linearize_function_regression(params, unknowns):
 
     return J
 
+
 def linearize_function_multi(params, unknowns):
 
     # Low-fidelity contribution to the gradients
@@ -674,6 +675,56 @@ def linearize_function_multi(params, unknowns):
     J[('mean', 'turbineY')] = hours*(dmeanLow_dturbY + dmeanCorr_dturbY)
 
     return J
+
+
+def linearize_function_multi_regression(params, unknowns):
+    """Same as linearize function, but with equal weights"""
+
+    # Low-fidelity contribution to the gradients
+    dpower_dturbX = unknowns['dpowerLow_dturbX']
+    dpower_dturbY = unknowns['dpowerLow_dturbY']
+    weights = params['windWeightsLow']  # These are nan for the regression case.
+    weights = np.ones(len(weights))/len(weights)
+
+    m, n = dpower_dturbX.shape
+    dmean_dturbX = np.zeros([1, n])
+    dmean_dturbY = np.zeros([1, n])
+
+    for j in range(n):
+        for i in range(m):
+            dmean_dturbX[0][j] += weights[i]*dpower_dturbX[i][j]
+            dmean_dturbY[0][j] += weights[i]*dpower_dturbY[i][j]
+
+    dmeanLow_dturbX = dmean_dturbX
+    dmeanLow_dturbY = dmean_dturbY
+
+    # Correction contribution to the gradients
+    dpower_dturbX = unknowns['dpowerCorr_dturbX']
+    dpower_dturbY = unknowns['dpowerCorr_dturbY']
+    weights = params['windWeightsHigh']  # These are nan for the regression case.
+    weights = np.ones(len(weights))/len(weights)
+
+    m, n = dpower_dturbX.shape
+    dmean_dturbX = np.zeros([1, n])
+    dmean_dturbY = np.zeros([1, n])
+
+    for j in range(n):
+        for i in range(m):
+            dmean_dturbX[0][j] += weights[i]*dpower_dturbX[i][j]
+            dmean_dturbY[0][j] += weights[i]*dpower_dturbY[i][j]
+
+    dmeanCorr_dturbX = dmean_dturbX
+    dmeanCorr_dturbY = dmean_dturbY
+
+    # number of hours in a year
+    hours = 8760.0
+
+    J = {}
+    J[('mean', 'turbineX')] = hours*(dmeanLow_dturbX + dmeanCorr_dturbX)
+    J[('mean', 'turbineY')] = hours*(dmeanLow_dturbY + dmeanCorr_dturbY)
+
+    return J
+
 
 def modify_statistics(params, unknowns):
     uncertain_var = params['method_dict']['uncertain_var']
