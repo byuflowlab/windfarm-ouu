@@ -24,6 +24,9 @@ def get_args():
     parser.add_argument('--wake_model', default='floris', help="specify model: 'floris', 'jensen', 'gauss'")
     parser.add_argument('--uncertain_var', default='direction', help="specify uncertain variable: 'direction', 'speed', 'direction_and_speed'")
     parser.add_argument('--coeff_method', default='quadrature', help="specify coefficient method for dakota: 'quadrature', 'regression'")
+    parser.add_argument('--dirdistribution', default='amaliaModified', help="specify the desired distribution for the wind direction: 'amaliaModified', 'amaliaRaw', 'Uniform'")
+    parser.add_argument('--gradient', action='store_true', help='Compute the power vs design variable gradient. Otherwise return None')
+    parser.add_argument('--analytic_gradient', action='store_true', help='Compute gradient analytically (Only Floris), otherwise compute gradient by fd')
     parser.add_argument('--verbose', action='store_true', help='Includes results for every run in the output json file')
     parser.add_argument('--version', action='version', version='Layout optimization 0.0')
     args = parser.parse_args()
@@ -42,7 +45,7 @@ if __name__ == "__main__":
     # method_dict['method']           = 'rect'
     method_dict['uncertain_var']    = 'direction'
     # select model: floris, jensen, gauss, larsen (larsen not working yet) TODO get larsen model working
-    method_dict['wake_model']       = 'floris'
+    # method_dict['wake_model']       = 'floris'
     # method_dict['dakota_filename']  = 'dakotageneral.in'
     method_dict['dakota_filename']  = 'dakotageneralPy.in'  # Interface with python support
     method_dict['coeff_method']     = 'quadrature'
@@ -52,10 +55,10 @@ if __name__ == "__main__":
         dist = distributions.getWeibull()
         method_dict['distribution'] = dist
     elif method_dict['uncertain_var'] == 'direction':
-        dist = distributions.getWindRose()
+        dist = distributions.getWindRose(method_dict['dirdistribution'])
         method_dict['distribution'] = dist
     elif method_dict['uncertain_var'] == 'direction_and_speed':
-        dist1 = distributions.getWindRose()
+        dist1 = distributions.getWindRose(method_dict['dirdistribution'])
         dist2 = distributions.getWeibull()
         dist = cp.J(dist1, dist2)
         method_dict['distribution'] = dist
