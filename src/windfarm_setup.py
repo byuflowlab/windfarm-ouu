@@ -19,10 +19,22 @@ def getPoints(method_dict, n):
         winddirections = np.ones(windspeeds.size)*method_dict['winddirection_ref']  # 225 deg
         points = {'winddirections': winddirections, 'windspeeds': windspeeds, 'weights': weights}
 
+    elif method_dict['uncertain_var'] == 'wakeParameter':
+        dist = method_dict['distribution']
+        alphas, weights = getPointsAlpha(dist, method_dict, n)
+        winddirections = np.ones(alphas.size)*method_dict['winddirection_ref']  # 225 deg
+        windspeeds = np.ones(alphas.size)*method_dict['windspeed_ref']  # 8m/s
+        points = {'winddirections': winddirections, 'windspeeds': windspeeds, 'alphas': alphas, 'weights': weights}
+
     elif method_dict['uncertain_var'] == 'direction_and_speed':
         dist = method_dict['distribution']
         winddirections, windspeeds, weights = getPointsDirectionSpeed(dist, method_dict, n)
         points = {'winddirections': winddirections, 'windspeeds': windspeeds, 'weights': weights}
+
+    elif method_dict['uncertain_var'] == 'direction_and_speed_wakeParameter':
+        dist = method_dict['distribution']
+        winddirections, windspeeds, alphas, weights = getPointsDirectionSpeedAlphas(dist, method_dict, n)
+        points = {'winddirections': winddirections, 'windspeeds': windspeeds, 'alphas': alphas, 'weights': weights}
 
     else:
         raise ValueError('unknown uncertain_var option "%s", valid options "speed" or "direction".' %method_dict['uncertain_var'])
@@ -147,6 +159,135 @@ def getPointsDirectionSpeed(dist, method_dict, n):
         weights = w
 
     return winddirections, windspeeds, weights
+
+
+def getPointsDirectionSpeedAlphas(dist, method_dict, n):
+
+    method = method_dict['method']
+
+    if method == 'rect':
+        dist_dir = dist[0]
+        dist_speed = dist[1]
+        dist_alphas = dist[2]
+        winddirections, weights_dir = getPointsDirection(dist_dir, method_dict, n)
+        windspeeds, weights_speed = getPointsSpeed(dist_speed, method_dict, n)
+        alphas, weights_alpha = getPointsAlpha(dist_alphas, method_dict, n)
+
+        # Create a 1-dimensional vector of the tensor product
+        wind_dir = []
+        wind_spd = []
+        alpha = []
+        weights = []
+        for i in range(winddirections.size):
+            for j in range(windspeeds.size):
+                for k in range(alphas.size):
+                    wind_dir.append(winddirections[i])
+                    wind_spd.append(windspeeds[j])
+                    alpha.append(alphas[k])
+                    weights.append(weights_dir[i]*weights_speed[j]*weights_alpha[k])
+
+        winddirections = np.array(wind_dir)
+        windspeeds = np.array(wind_spd)
+        alphas = np.array(alpha)
+        weights = np.array(weights)
+
+    if method == 'dakota':
+
+        bnd = dist.range()
+        a = bnd[0]  # left boundary
+        b = bnd[1]  # right boundary
+        a_d = a[0] # the left boundary for the direction
+        b_d = b[0] # the right boundary for the direction
+        a_s = a[1] # the left boundary for the direction
+        b_s = b[1] # the right boundary for the direction
+
+        ###### Do direction work
+        dist_dir = dist[0]
+
+        if dist_dir._str() == 'Amalia windrose':
+
+            # Make sure the A, B, C values are the same than those in distribution
+            A, B = dist_dir.get_zero_probability_region()
+            # A = 110  # Left boundary of zero probability region
+            # B = 140  # Right boundary of zero probability region
+
+            C = 225  # Location of max probability or desired starting location
+            r = b_d-a_d  # original range
+            R = r - (B-A) # modified range
+
+            # Modify with offset, manually choose the offset you want
+            N = method_dict['Noffset']  # N = 10
+            i = method_dict['offset']  # i = [0, 1, 2, N-1]
+
+            # Modify the starting point C with offset
+            offset = i*r/N  # the offset modifies the starting point for N locations within the whole interval
+            C = (C + offset) % r
+            x_d, f_d = generate_direction_abscissas_ordinates(a_d, A, B, C, r, R, dist_dir)
+
+        if dist_dir._str() == 'Amalia windrose raw' or dist_dir._str() == 'Uniform(0.0, 360.0)':
+
+            C = 225  # Location of max probability or desired starting location.
+            R = b_d-a_d  # range 360
+
+            # Modify with offset, manually choose the offset you want
+            N = method_dict['Noffset']  # N = 10
+            i = method_dict['offset']  # i = [0, 1, 2, N-1]
+
+            offset = i*R/N  # the offset modifies the starting point for N locations within the whole interval
+            C = (C + offset) % R
+
+            # Use the y to set the abscissas, and the pdf to set the ordinates
+            y = np.linspace(a_d, R, 51)  # play with the number here
+            dy = y[1]-y[0]
+            mid = y[:-1]+dy/2
+
+            # Modify the mid to start from the max probability location
+            ynew = (mid+C) % R
+
+            f_d = dist_dir.pdf(ynew)
+
+            # Modify y to -1 to 1 range, I think makes dakota generation of polynomials easier
+            x_d = 2*(y-a_d) / R - 1
+
+        ####### Do the speed work
+        dist_speed = dist[1]
+        x_s, f_s = generate_speed_abscissas_ordinates(a_s, b_s, dist_speed)
+
+        # Update the dakota file
+        updateDakotaFile(method_dict, n, [x_d, x_s], [f_d, f_s])
+        # Have in the input file also a uniform variable for the wake parameter
+
+        # run Dakota file to get the points locations
+        # This one also needs to work for the 1 and 2d cases.
+        x, w = getSamplePoints(method_dict['dakota_filename'])
+        assert len(x) == 3, 'Should be returning the directions and speeds and wake parameters'
+        x_w = np.array(x[0])
+        x_d = np.array(x[1])
+        x_s = np.array(x[2])
+
+
+        # Do stuff for the direction case
+        if dist_dir._str() == 'Amalia windrose':
+            # Rescale x
+            x_d = R*x_d/2. + R/2. + a_d  # R = 330
+            # Call modify x with the new x.
+            x_d = modifyx(x_d, A, B, C, r)
+        if dist_dir._str() == 'Amalia windrose raw' or dist_dir._str() == 'Uniform(0.0, 360.0)':
+            # Rescale x
+            x_d = R*x_d/2. + R/2. + a_d  # R = 360
+            # Call modify x with the new x.
+            x_d = (x_d+C) % R
+
+        # Do stuff for the speed case
+        # Rescale x
+        x_s = (b_s-a_s)/2. + (b_s-a_s)/2.*x_s + a_s
+
+        winddirections = x_d
+        windspeeds = x_s
+        alphas = x_w
+        weights = w
+
+    return winddirections, windspeeds, alphas, weights
 
 
 def getPointsModifiedAmaliaDistribution(dist, method_dict, n):
@@ -333,6 +474,41 @@ def getPointsSpeed(dist, method_dict, n):
         x = x[0]
 
     return x, w
+
+
+def getPointsAlpha(dist, method_dict, n):
+
+    method = method_dict['method']
+    bnd = dist.range()
+    a = bnd[0]  # lower boundary
+    b = bnd[1]  # upper boundary
+    a = a[0]  # get rid of the list
+    b = b[0]  # get rid of the list
+
+    if method == 'rect':
+
+        X = np.linspace(a, b, n+1)
+        dx = X[1]-X[0]
+        x = X[:-1]+dx/2  # Take the midpoints of the bins
+        # Get the weights associated with the points locations
+        w = []
+        for i in range(n):
+            w.append(dist._cdf(X[i+1]) - dist._cdf(X[i]))
+
+        w = np.array(w).flatten()
+
+    if method == 'dakota':
+
+        x, f = generate_speed_abscissas_ordinates(a, b, dist)
+        updateDakotaFile(method_dict, n, x, f)
+        # If have a input with a uniform variable it will use that
+        # run Dakota file to get the points locations
+        x, w = getSamplePoints(method_dict['dakota_filename'])
+        assert len(x) == 1, 'Should only be returning the speeds'
+        x = np.array(x[0])
+
+    return x, w
+
 
 
 def generate_direction_abscissas_ordinates(a, A, B, C, r, R, dist):

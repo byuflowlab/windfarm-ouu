@@ -25,6 +25,8 @@ class DakotaStatistics(Component):
                        desc='vector containing the wind directions')
         self.add_param('windSpeeds', np.zeros(nDirections),
                        desc='vector containing the wind speeds')
+        self.add_param('alphas', np.zeros(nDirections),
+                       desc='vector containing the Jensen wake parameter')
         self.add_param('windWeights', np.zeros(nDirections),
                        desc='vector containing the integration weight associated with each power')
         self.add_param('turbineX', np.zeros(nTurbines),
@@ -50,7 +52,7 @@ class DakotaStatistics(Component):
         # Call the wake model
         print 'Computing powers with wake model "%s".' %wake_model_name
         powers, dpower_dturbX, dpower_dturbY = getPower(params['turbineX'], params['turbineY'], params['windDirections']
-                                                        , params['windSpeeds'], params['windWeights'],
+                                                        , params['windSpeeds'], params['alphas'], params['windWeights'],
                                                         params['method_dict']['gradient'],
                                                         params['method_dict']['analytic_gradient'],
                                                         wake_model, IndepVarFunc)
@@ -488,6 +490,8 @@ class RectStatistics(Component):
                        desc='vector containing the wind directions')
         self.add_param('windSpeeds', np.zeros(nDirections),
                        desc='vector containing the wind speeds')
+        self.add_param('alphas', np.zeros(nDirections),
+                       desc='vector containing the Jensen wake parameter')
         self.add_param('windWeights', np.zeros(nDirections),
                        desc='vector containing the integration weight associated with each power')
         self.add_param('turbineX', np.zeros(nTurbines),
@@ -513,7 +517,7 @@ class RectStatistics(Component):
 
         # Call the wake model
         powers, dpower_dturbX, dpower_dturbY = getPower(params['turbineX'], params['turbineY'], params['windDirections']
-                                                        , params['windSpeeds'], params['windWeights'],
+                                                        , params['windSpeeds'], params['alphas'], params['windWeights'],
                                                         params['method_dict']['gradient'],
                                                         params['method_dict']['analytic_gradient'],
                                                         wake_model, IndepVarFunc)
@@ -728,13 +732,13 @@ def linearize_function_multi_regression(params, unknowns):
 
 def modify_statistics(params, unknowns):
     uncertain_var = params['method_dict']['uncertain_var']
-    if uncertain_var == 'direction':
+    if uncertain_var == 'direction' or uncertain_var == 'wakeParameter':
         pass
     else:  # either the speed or the speed and direction case
         dist = params['method_dict']['distribution']
         if uncertain_var == 'speed':
             k = dist.get_truncation_value()  # how much of the probability was truncated
-        if uncertain_var == 'direction_and_speed':
+        if uncertain_var == 'direction_and_speed' or uncertain_var == 'direction_and_speed_wakeParameter':
             dist = dist[1]
             k = dist.get_truncation_value()  # how much of the probability was truncated
         meant = unknowns['mean']  # the truncated mean

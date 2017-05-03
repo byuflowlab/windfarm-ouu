@@ -5,7 +5,7 @@ from WakeModelGroup import WakeModelGroup
 from wakeexchange.floris import floris_wrapper, add_floris_params_IndepVarComps
 
 
-def getPower(turbineX, turbineY, windDirections, windSpeeds, windWeights, gradient, analytic_gradient, wake_model, IndepVarFunc):
+def getPower(turbineX, turbineY, windDirections, windSpeeds, alphas, windWeights, gradient, analytic_gradient, wake_model, IndepVarFunc):
     """Calls the wake model, which is an openMDAO problem
 
     returns: The power for each wind direction and wind speed pair.
@@ -36,45 +36,49 @@ def getPower(turbineX, turbineY, windDirections, windSpeeds, windWeights, gradie
         generatorEfficiency[turbI] = 0.944
         yaw[turbI] = 0.     # deg.
 
-    # initialize problem
-    n = windDirections.size
-    prob = Problem(WakeModelGroup(nTurbines=nTurbs, nDirections=n, wake_model=wake_model, params_IdepVar_func=IndepVarFunc, analytic_gradient=analytic_gradient))
-    prob.setup(check=False)
+    powers = []
+    # I can't send a vector of alphas in, so send one at a time
+    for (alpha, windDirection, windSpeed, windWeight) in zip(alphas, windDirections, windSpeeds, windWeights):
+        # initialize problem
+        n = windDirection.size
+        prob = Problem(WakeModelGroup(nTurbines=nTurbs, nDirections=n, wake_model=wake_model, params_IdepVar_func=IndepVarFunc, analytic_gradient=analytic_gradient))
+        prob.setup(check=False)
 
-    # assign initial values to design variables
-    prob['turbineX'] = turbineX
-    prob['turbineY'] = turbineY
-    for direction_id in range(0, n):
-        prob['yaw%i' % direction_id] = yaw
+        # assign initial values to design variables
+        prob['turbineX'] = turbineX
+        prob['turbineY'] = turbineY
+        for direction_id in range(0, n):
+            prob['yaw%i' % direction_id] = yaw
 
-    # assign values to constant inputs (not design variables)
-    prob['rotorDiameter'] = rotorDiameter
-    prob['axialInduction'] = axialInduction
-    prob['generatorEfficiency'] = generatorEfficiency
-    prob['windSpeeds'] = windSpeeds
-    prob['air_density'] = air_density
-    prob['windDirections'] = windDirections
-    prob['windWeights'] = windWeights
-    prob['Ct_in'] = Ct
-    prob['Cp_in'] = Cp
+        # assign values to constant inputs (not design variables)
+        prob['rotorDiameter'] = rotorDiameter
+        prob['axialInduction'] = axialInduction
+        prob['generatorEfficiency'] = generatorEfficiency
+        prob['windSpeeds'] = windSpeed
+        prob['air_density'] = air_density
+        prob['windDirections'] = windDirection
+        prob['model_params:alpha'] = alpha  # This is new
+        prob['windWeights'] = windWeight
+        prob['Ct_in'] = Ct
+        prob['Cp_in'] = Cp
 
-    prob.run()
+        prob.run()
 
-    powers = prob['powerMUX.Array']
+        powers.append(prob['powerMUX.Array'])
 
-    # Compute the gradient of the power wrt to the turbine locations
-    if gradient:
-        J = prob.calc_gradient(['turbineX', 'turbineY'], ['powerMUX.Array'], return_format='dict')
-        # To set finite difference options--step size, form, do so directly in the WakeModelGroup
-        # J = prob.calc_gradient(['turbineX', 'turbineY'], ['powerMUX.Array'], return_format='dict', mode='fd')  # force fd mode with default step 1e-6 absolute
-        JacobianX = J['powerMUX.Array']['turbineX']
-        JacobianY = J['powerMUX.Array']['turbineY']
+        # Compute the gradient of the power wrt to the turbine locations
+        if gradient:
+            J = prob.calc_gradient(['turbineX', 'turbineY'], ['powerMUX.Array'], return_format='dict')
+            # To set finite difference options--step size, form, do so directly in the WakeModelGroup
+            # J = prob.calc_gradient(['turbineX', 'turbineY'], ['powerMUX.Array'], return_format='dict', mode='fd')  # force fd mode with default step 1e-6 absolute
+            JacobianX = J['powerMUX.Array']['turbineX']
+            JacobianY = J['powerMUX.Array']['turbineY']
 
-    else:
-        JacobianX = np.array([None])
-        JacobianY = np.array([None])
+        else:
+            JacobianX = np.array([None])
+            JacobianY = np.array([None])
 
-    return powers, JacobianX, JacobianY
+    return np.array(powers).flatten(), JacobianX, JacobianY
 
 
 if __name__ == "__main__":

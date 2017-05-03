@@ -358,6 +358,70 @@ class TruncatedWeibull01(object):
     def bnd(self):
         return self.lo, self.hi
 
+class WakeParameterUniform(object):
+    """A Uniform distribution."""
+
+    def __init__(self):
+        self.lo = 0.06
+        self.hi = 0.14
+
+    def pdf(self, x):
+
+        lo = self.lo
+        hi = self.hi
+
+        pdf = []
+        x = x.flatten()  # In the constructor of the distribution it gets made a 2d array for some reason. But not for cdf
+        x = np.atleast_1d(x)  # makes it work if x is a scalar
+        for x_i in x:
+            if x_i < lo:
+                pdf.append(0.0)
+            elif x_i > hi:
+                pdf.append(0.0)
+            else:
+                pdf.append(1.0/(hi-lo))
+        return np.array(pdf)
+
+    def cdf(self, x):
+
+        lo = self.lo
+        hi = self.hi
+
+        cdf = []
+        x = np.atleast_1d(x)  # makes it work if x is a scalar
+        for x_i in x:
+            if x_i < lo:
+                cdf.append(0.0)
+            elif x_i > hi:
+                cdf.append(1.0)
+            else:
+                cdf.append((x_i - lo)/(hi-lo))
+        return np.array(cdf)
+
+    def str(self):
+        return "WakeParameterUniform(%s, %s)" % (self.lo, self.hi)
+
+    def bnd(self):
+        return self.lo, self.hi
+
+
+def getWakeParameter():
+
+    wakeParameter = WakeParameterUniform()
+
+    # Set the necessary functions to construct a chaospy distribution
+    WakeParameter = cp.construct(
+        cdf=lambda self, x: wakeParameter.cdf(x),
+        bnd=lambda self: wakeParameter.bnd(),
+        pdf=lambda self, x: wakeParameter.pdf(x),
+        str=lambda self: wakeParameter.str()
+    )
+
+    wakeParameter_dist = WakeParameter()
+
+    return wakeParameter_dist
+
+
 def getWeibull():
 
     # my_weibull = myWeibull()

@@ -22,10 +22,11 @@ class AEPGroup(Group):
         # add necessary inputs for group
         self.add('dv0', IndepVarComp('windDirections', np.zeros(nDirections), units=direction_units), promotes=['*'])
         self.add('dv1', IndepVarComp('windSpeeds', np.zeros(nDirections), units=wind_speed_units), promotes=['*'])
-        self.add('dv2', IndepVarComp('windWeights', np.zeros(nDirections)), promotes=['*'])
+        self.add('dv2', IndepVarComp('alphas', np.zeros(nDirections)), promotes=['*'])
+        self.add('dv3', IndepVarComp('windWeights', np.zeros(nDirections)), promotes=['*'])
 
-        self.add('dv3', IndepVarComp('turbineX', np.zeros(nTurbines), units=length_units), promotes=['*'])
-        self.add('dv4', IndepVarComp('turbineY', np.zeros(nTurbines), units=length_units), promotes=['*'])
+        self.add('dv4', IndepVarComp('turbineX', np.zeros(nTurbines), units=length_units), promotes=['*'])
+        self.add('dv5', IndepVarComp('turbineY', np.zeros(nTurbines), units=length_units), promotes=['*'])
 
         method = method_dict['method']
         if method == 'dakota':

@@ -40,13 +40,14 @@ def run(method_dict, n):
     points = windfarm_setup.getPoints(method_dict, n)
     winddirections = points['winddirections']
     windspeeds = points['windspeeds']
+    alphas = points['alphas']  # The alpha in the Jensen model
     weights = points['weights']  # This might be None depending on the method.
     N = winddirections.size  # actual number of samples
 
     print 'Locations at which power is evaluated'
-    print '\twindspeed \t winddirection'
+    print '\twindspeed \t winddirection \t alphas'
     for i in range(N):
-        print i+1, '\t', '%.2f' % windspeeds[i], '\t', '%.2f' % winddirections[i]
+        print i+1, '\t', '%.2f' % windspeeds[i], '\t', '%.2f' % winddirections[i], '\t', '%.3f' % alphas[i]
 
     # Turbines layout
     turbineX, turbineY = windfarm_setup.getLayout(method_dict['layout'])
@@ -59,6 +60,7 @@ def run(method_dict, n):
     # assign initial values to variables
     prob['windSpeeds'] = windspeeds
     prob['windDirections'] = winddirections
+    prob['alphas'] = alphas
     prob['windWeights'] = weights
 
     prob['turbineX'] = turbineX
@@ -105,7 +107,7 @@ def run(method_dict, n):
     power = prob['Powers']
     print 'powers = ', power
 
-    return mean_data/factor, std_data/factor, N, winddirections, windspeeds, power,\
+    return mean_data/factor, std_data/factor, N, winddirections, windspeeds, alphas, power,\
            winddirections_approx, windspeeds_approx, power_approx
 
 
@@ -118,16 +120,17 @@ def plot():
     # print json.dumps(a, indent=2)
 
     fig, ax = plt.subplots()
-    ax.plot(a['winddirections'], a['power'])
+    ax.plot(a['alphas'], a['power'])
+    # ax.plot(a['winddirections'], a['power'])
     # ax.plot(a['windspeeds'], a['power'])
-    ax.set_xlabel('wind directions (deg)')
+    ax.set_xlabel('Wake parameter value')
     ax.set_ylabel('power')
 
     fig, ax = plt.subplots()
     ax.plot(a['samples'], a['mean'])
-    ax.set_xlabel('Number of Wind Directions')
+    ax.set_xlabel('Number of wake parameter values')
     ax.set_ylabel('mean annual energy production')
-    ax.set_title('Mean annual energy as a function of the Number of Wind Directions')
+    ax.set_title('Mean annual energy as a function of the Number of wake parameter values')
 
     plt.show()
 
@@ -165,8 +168,8 @@ if __name__ == "__main__":
     method_dict = vars(args)  # Start a dictionary with the arguments specified in the command line
     method_dict['method']           = 'dakota'
     # select model: floris, jensen, gauss, larsen (larsen not working yet) TODO get larsen model working
-    method_dict['wake_model']       = 'floris'
-    method_dict['uncertain_var']    = 'direction'
+    method_dict['wake_model']       = 'jensen'
+    method_dict['uncertain_var']    = 'direction_and_speed_wakeParameter'
     # method_dict['layout']         = 'optimized'  # Now this is specified in the command line
     # method_dict['dakota_filename']  = 'dakotageneral.in'
     method_dict['dakota_filename']  = 'dakotageneralPy.in'  # Interface with python support
@@ -180,10 +183,19 @@ if __name__ == "__main__":
     elif method_dict['uncertain_var'] == 'direction':
         dist = distributions.getWindRose(method_dict['dirdistribution'])
         method_dict['distribution'] = dist
+    elif method_dict['uncertain_var'] == 'wakeParameter':
+        dist = distributions.getWakeParameter()
+        method_dict['distribution'] = dist
     elif method_dict['uncertain_var'] == 'direction_and_speed':
         dist1 = distributions.getWindRose(method_dict['dirdistribution'])
         dist2 = distributions.getWeibull()
         dist = cp.J(dist1, dist2)
+        method_dict['distribution'] = dist
+    elif method_dict['uncertain_var'] == 'direction_and_speed_wakeParameter':
+        dist1 = distributions.getWindRose(method_dict['dirdistribution'])
+        dist2 = distributions.getWeibull()
+        dist3 = distributions.getWakeParameter()
+        dist = cp.J(dist1, dist2, dist3)
         method_dict['distribution'] = dist
     else:
         raise ValueError('unknown uncertain_var option "%s", valid options "speed", "direction" or "direction_and_speed".' %method_dict['uncertain_var'])
@@ -201,10 +213,10 @@ if __name__ == "__main__":
     tic = time.time()
     # Depending on the case n can represent number of quadrature points, sparse grid level, expansion order
     # n is roughly a surrogate for the number of samples
-    for n in range(5, 6, 1):
+    for n in range(2, 3, 1):
 
         # Run the problem
-        mean_data, std_data, N, winddirections, windspeeds, powers, \
+        mean_data, std_data, N, winddirections, windspeeds, alphas, powers, \
         winddirections_approx, windspeeds_approx, powers_approx \
             = run(method_dict, n)
         mean.append(mean_data)
@@ -228,7 +240,7 @@ if __name__ == "__main__":
                 'Noffset': method_dict['Noffset'], 'offset': method_dict['offset']}
         else:
             obj = {'mean': mean, 'std': std, 'samples': samples, 'winddirections': winddirections.tolist(),
-                'windspeeds': windspeeds.tolist(), 'power': powers.tolist(),
+                'windspeeds': windspeeds.tolist(), 'alphas': alphas.tolist(), 'power': powers.tolist(),
                 'winddirections_approx': winddirections_approx.tolist(),
                 'windspeeds_approx': windspeeds_approx.tolist(),
                 'power_approx': powers_approx.tolist(),
