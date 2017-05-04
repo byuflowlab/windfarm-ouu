@@ -56,11 +56,11 @@ def getPointsDirectionSpeed(dist, method_dict, n):
         wind_dir = []
         wind_spd = []
         weights = []
-        for i in range(winddirections.size):
-            for j in range(windspeeds.size):
-                wind_dir.append(winddirections[i])
-                wind_spd.append(windspeeds[j])
-                weights.append(weights_dir[i]*weights_speed[j])
+        for i in range(windspeeds.size):
+            for j in range(winddirections.size):
+                wind_dir.append(winddirections[j])
+                wind_spd.append(windspeeds[i])
+                weights.append(weights_dir[j]*weights_speed[i])
 
         winddirections = np.array(wind_dir)
         windspeeds = np.array(wind_spd)
@@ -101,7 +101,7 @@ def getPointsDirectionSpeed(dist, method_dict, n):
 
         if dist_dir._str() == 'Amalia windrose raw' or dist_dir._str() == 'Uniform(0.0, 360.0)':
 
-            C = 225  # Location of max probability or desired starting location.
+            C = 0  # 225  # Location of max probability or desired starting location.
             R = b_d-a_d  # range 360
 
             # Modify with offset, manually choose the offset you want
@@ -178,13 +178,13 @@ def getPointsDirectionSpeedAlphas(dist, method_dict, n):
         wind_spd = []
         alpha = []
         weights = []
-        for i in range(winddirections.size):
-            for j in range(windspeeds.size):
+        for i in range(windspeeds.size):
+            for j in range(winddirections.size):
                 for k in range(alphas.size):
-                    wind_dir.append(winddirections[i])
-                    wind_spd.append(windspeeds[j])
+                    wind_dir.append(winddirections[j])
+                    wind_spd.append(windspeeds[i])
                     alpha.append(alphas[k])
-                    weights.append(weights_dir[i]*weights_speed[j]*weights_alpha[k])
+                    weights.append(weights_dir[j]*weights_speed[i]*weights_alpha[k])
 
         winddirections = np.array(wind_dir)
         windspeeds = np.array(wind_spd)
@@ -226,7 +226,7 @@ def getPointsDirectionSpeedAlphas(dist, method_dict, n):
 
         if dist_dir._str() == 'Amalia windrose raw' or dist_dir._str() == 'Uniform(0.0, 360.0)':
 
-            C = 225  # Location of max probability or desired starting location.
+            C = 0  # 225  # Location of max probability or desired starting location.
             R = b_d-a_d  # range 360
 
             # Modify with offset, manually choose the offset you want
@@ -371,7 +371,7 @@ def getPointsUnmodifiedDistribution(dist, method_dict, n):
     a = a[0]  # get rid of the list
     b = b[0]  # get rid of the list
 
-    C = 225  # Location of max probability or desired starting location.
+    C = 0  # 225  # Location of max probability or desired starting location.
     R = b-a  # range 360
 
     # Modify with offset, manually choose the offset you want
