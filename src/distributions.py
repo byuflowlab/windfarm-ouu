@@ -280,8 +280,8 @@ class TruncatedWeibull(object):
     def __init__(self):
         self.a = 1.8
         self.b = 12.552983
-        self.lo = 0.0
-        self.hi = 30.0
+        self.lo = 3.0  # 0.0
+        self.hi = 20.0  # 30.0
         self.k = self.set_truncation_value()
 
     def set_truncation_value(self):
@@ -388,10 +388,12 @@ def getWindRose(distribution):
     # Return the desired distribution (windRose)
     if distribution == 'amaliaModified':
         wind_rose = amaliaWindRose()
-    if distribution == 'amaliaRaw':
+    elif distribution == 'amaliaRaw':
         wind_rose = amaliaWindRoseRaw()
-    if distribution == 'Uniform':
+    elif distribution == 'Uniform':
         wind_rose = Uniform()
+    else:
+        raise ValueError('unknown dirdistribution option "%s", valid options "amaliaModified", "amaliaRaw", "Uniform".' % distribution)
 
     # wind_rose = amaliaWindRoseRaw01()  # This options needs updating
 
