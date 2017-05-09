@@ -1,10 +1,38 @@
 import numpy as np
 # import matplotlib.pyplot as plt
+from functools import wraps
 import chaospy as cp
 from getSamplePoints import getSamplePoints
 from dakotaInterface import updateDakotaFile
 
 
+def make_hashable(method_dict, n):
+    """Create a key of hashable types"""
+    m = method_dict
+    # key = (n, m['layout'], m['Noffset'], m['offset'], m['analytic_gradient'], m['uncertain_var'],
+    #        m['gradient'], m['distribution'], m['method'], m['wake_model'])  # The wake model returns a list for multifidelity
+    key = (n, m['layout'], m['Noffset'], m['offset'], m['analytic_gradient'], m['uncertain_var'],
+           m['gradient'], m['distribution'], m['method'])  # Remove the wake model
+    return key
+
+
+def memoize(function):
+    cache = {}
+
+    @wraps(function)  # Preserves the metadata of the wrapped function
+    def wrapper(method_dict, n):
+        key = make_hashable(method_dict, n)
+        if key in cache:
+            print "Returning cached points"
+            return cache[key]
+        else:
+            rv = function(method_dict, n)
+            cache[key] = rv
+            return rv
+    return wrapper
+
+
+@memoize
 def getPoints(method_dict, n):
 
     if method_dict['uncertain_var'] == 'direction':

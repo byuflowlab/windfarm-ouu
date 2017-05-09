@@ -1,10 +1,41 @@
 
 import numpy as np
+from functools import wraps
 from openmdao.api import Problem
 from WakeModelGroup import WakeModelGroup
 from wakeexchange.floris import floris_wrapper, add_floris_params_IndepVarComps
 
 
+def make_hashable(*args):
+    """Create a key of hashable types"""
+    key = []
+    for arg in args:
+        if type(arg) is np.ndarray:
+            key.append(arg.tostring())
+        else:
+            key.append(arg)
+    key = tuple(key)
+
+    return key
+
+
+def memoize(function):
+    cache = {}
+
+    @wraps(function)  # Preserves the metadata of the wrapped function
+    def wrapper(*args):
+        key = make_hashable(*args)
+        if key in cache:
+            print "Returning cached powers"
+            return cache[key]
+        else:
+            rv = function(*args)
+            cache[key] = rv
+            return rv
+    return wrapper
+
+
+@memoize
 def getPower(turbineX, turbineY, windDirections, windSpeeds, windWeights, gradient, analytic_gradient, wake_model, IndepVarFunc):
     """Calls the wake model, which is an openMDAO problem
 
