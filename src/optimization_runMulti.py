@@ -25,7 +25,7 @@ def get_args():
     parser.add_argument('--wake_model', default='floris', help="specify model: 'floris', 'jensen', 'gauss'")
     parser.add_argument('--uncertain_var', default='direction', help="specify uncertain variable: 'direction', 'speed', 'direction_and_speed'")
     parser.add_argument('--coeff_method', default='quadrature', help="specify coefficient method for dakota: 'quadrature', 'regression'")
-    parser.add_argument('--dirdistribution', default='amaliaModified', help="specify the desired distribution for the wind direction: 'amaliaModified', 'amaliaRaw', 'Uniform'")
+    parser.add_argument('--dirdistribution', default='amaliaRaw', help="specify the desired distribution for the wind direction: 'amaliaModified', 'amaliaRaw', 'Uniform'")
     parser.add_argument('--gradient', action='store_true', help='Compute the power vs design variable gradient. Otherwise return None')
     parser.add_argument('--analytic_gradient', action='store_true', help='Compute gradient analytically (Only Floris), otherwise compute gradient by fd')
     parser.add_argument('--verbose', action='store_true', help='Includes results for every run in the output json file')
@@ -112,10 +112,11 @@ if __name__ == "__main__":
 
     # Turbines layout
     turbineX, turbineY = windfarm_setup.getLayout(method_dict['layout'])
-    locations = np.column_stack((turbineX, turbineY))
     nTurbs = turbineX.size
 
     # generate boundary constraint
+    locations = np.column_stack((turbineX, turbineY))  # Uses the starting layout boundary
+    # locations = np.genfromtxt('../WindFarms/layout_amalia.txt', delimiter=' ')  # Pick the desired layout for the boundary
     boundaryVertices, boundaryNormals = calculate_boundary(locations)
     nVertices = boundaryVertices.shape[0]
     print 'boundary vertices', boundaryVertices

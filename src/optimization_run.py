@@ -24,7 +24,7 @@ def get_args():
     parser.add_argument('--wake_model', default='floris', help="specify model: 'floris', 'jensen', 'gauss'")
     parser.add_argument('--uncertain_var', default='direction', help="specify uncertain variable: 'direction', 'speed', 'direction_and_speed'")
     parser.add_argument('--coeff_method', default='quadrature', help="specify coefficient method for dakota: 'quadrature', 'regression'")
-    parser.add_argument('--dirdistribution', default='amaliaModified', help="specify the desired distribution for the wind direction: 'amaliaModified', 'amaliaRaw', 'Uniform'")
+    parser.add_argument('--dirdistribution', default='amaliaRaw', help="specify the desired distribution for the wind direction: 'amaliaModified', 'amaliaRaw', 'Uniform'")
     parser.add_argument('--gradient', action='store_true', help='Compute the power vs design variable gradient. Otherwise return None')
     parser.add_argument('--analytic_gradient', action='store_true', help='Compute gradient analytically (Only Floris), otherwise compute gradient by fd')
     parser.add_argument('--verbose', action='store_true', help='Includes results for every run in the output json file')
@@ -49,6 +49,7 @@ if __name__ == "__main__":
     # method_dict['dakota_filename']  = 'dakotageneral.in'
     method_dict['dakota_filename']  = 'dakotageneralPy.in'  # Interface with python support
     method_dict['coeff_method']     = 'quadrature'
+    method_dict['gradient'] = True  # We are running optimization, so have this set to true.
 
     # Specify the distribution according to the uncertain variable
     if method_dict['uncertain_var'] == 'speed':
@@ -81,10 +82,11 @@ if __name__ == "__main__":
 
     # Turbines layout
     turbineX, turbineY = windfarm_setup.getLayout(method_dict['layout'])
-    locations = np.column_stack((turbineX, turbineY))
     nTurbs = turbineX.size
 
     # generate boundary constraint
+    locations = np.column_stack((turbineX, turbineY))  # Uses the starting layout boundary
+    # locations = np.genfromtxt('../WindFarms/layout_amalia.txt', delimiter=' ')  # Pick the desired layout for the boundary
     boundaryVertices, boundaryNormals = calculate_boundary(locations)
     nVertices = boundaryVertices.shape[0]
     print 'boundary vertices', boundaryVertices
@@ -99,7 +101,7 @@ if __name__ == "__main__":
     diameter = 126.4  # meters, used in the scaling
     prob.driver = pyOptSparseDriver()
     prob.driver.options['optimizer'] = 'SNOPT'
-    prob.driver.add_objective('obj', scaler=1E-8)
+    prob.driver.add_objective('obj', scaler=1E-8)  # For 2d 1E-9
 
     # set optimizer options
     prob.driver.opt_settings['Verify level'] = -1  # 3
